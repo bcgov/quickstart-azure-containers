@@ -9,3 +9,5 @@ generate "dev_tfvars" {
   enable_psql_sidecar    = true
   vnet_name              = "b9cee3-dev-vwan-spoke"
   vnet_address_space     = "10.46.9.0/24"
+EOF
+}
