@@ -340,7 +340,7 @@ create_federated_credentials() {
     
     # Always create subject claim for environment-specific deployments
     SUBJECT="repo:$GITHUB_REPO:environment:$GITHUB_ENVIRONMENT"
-    CREDENTIAL_NAME="github-$GITHUB_ENVIRONMENT"
+    CREDENTIAL_NAME="$GITHUB_REPO-$GITHUB_ENVIRONMENT"
     
     # GitHub Actions OIDC issuer and audience
     ISSUER="https://token.actions.githubusercontent.com"
