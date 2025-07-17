@@ -301,7 +301,7 @@ assign_roles() {
     # Set default contributor scope if not provided
     if [[ -z "$CONTRIBUTOR_SCOPE" ]]; then
         if [[ "$DRY_RUN" == "false" ]]; then
-            CONTRIBUTOR_SCOPE="/subscriptions/$(az account show --query "id" --output tsv)/resourceGroups/$RESOURCE_GROUP"
+            CONTRIBUTOR_SCOPE="/subscriptions/$(az account show --query "id" --output tsv)"
         else
             CONTRIBUTOR_SCOPE="[DRY-RUN-RESOURCE-GROUP-SCOPE]"
         fi
@@ -340,7 +340,8 @@ create_federated_credentials() {
     
     # Always create subject claim for environment-specific deployments
     SUBJECT="repo:$GITHUB_REPO:environment:$GITHUB_ENVIRONMENT"
-    CREDENTIAL_NAME="$GITHUB_REPO-$GITHUB_ENVIRONMENT"
+    REPO_NAME_WITHOUT_OWNER=$(echo "$GITHUB_REPO" | cut -d'/' -f2)
+    CREDENTIAL_NAME="$REPO_NAME_WITHOUT_OWNER-$GITHUB_ENVIRONMENT"
     
     # GitHub Actions OIDC issuer and audience
     ISSUER="https://token.actions.githubusercontent.com"
