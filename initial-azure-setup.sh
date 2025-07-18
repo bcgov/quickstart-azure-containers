@@ -186,6 +186,9 @@ execute_command() {
     else
         echo "    Executing: $cmd"
         eval "$cmd"
+        sleep 1 # Adding a small delay for readability
+        echo
+        echo
         return $?
     fi
 }
@@ -301,25 +304,41 @@ assign_roles() {
     # Set default contributor scope if not provided
     if [[ -z "$CONTRIBUTOR_SCOPE" ]]; then
         if [[ "$DRY_RUN" == "false" ]]; then
-            CONTRIBUTOR_SCOPE="/subscriptions/$(az account show --query "id" --output tsv)/resourceGroups/$RESOURCE_GROUP"
+            CONTRIBUTOR_SCOPE="/subscriptions/$(az account show --query "id" --output tsv)"
         else
             CONTRIBUTOR_SCOPE="[DRY-RUN-RESOURCE-GROUP-SCOPE]"
         fi
     fi
 
-    # Check if role assignment already exists
-    if [[ "$DRY_RUN" == "false" ]]; then
-        if az role assignment list --assignee "$CLIENT_ID" --scope "$CONTRIBUTOR_SCOPE" --query "length(@)" --output tsv | grep -q '0'; then
-            log_info "No existing role assignments found for managed identity"
-        else
-            log_warning "Role assignments already exist for managed identity. Skipping assignment."
-            return 0
+    log_info "Assigning roles to managed identity '$IDENTITY_NAME' in resource group '$RESOURCE_GROUP'..."
+    local roles_list=(
+    "Reader"                                # Basic read access to resources
+    "Website Contributor"                   # For App Service
+    "Monitoring Contributor"                # For Monitoring (if using Application Insights)
+    "Log Analytics Contributor"            # For Log Analytics (if using)
+    "Storage Account Contributor"           # For Storage Account
+    "Key Vault Contributor"                 # For Key Vault
+    "API Management Service Contributor"    # For API Management
+    "Container Apps Contributor"             # For Container Apps
+    "Network Contributor"                   
+    "Managed Identity Contributor"
+    "Managed Identity Operator"
+    )
+    for role in "${roles_list[@]}"; do
+        # check if role already assigned to make it idempotent
+        if [[ "$DRY_RUN" == "false" ]]; then
+            if az role assignment list --assignee "$CLIENT_ID" --role "$role" --scope "$CONTRIBUTOR_SCOPE" --query "length(@)" --output tsv | grep -q '0'; then
+                log_info "No existing role assignment found for role '$role'"
+            else
+                log_warning "Role '$role' already assigned to managed identity. Skipping assignment."
+                continue
+            fi
         fi
-    fi
-
-    # Assign Contributor role
-    execute_command "az role assignment create --assignee '$CLIENT_ID' --role 'Contributor' --scope '$CONTRIBUTOR_SCOPE'" \
-        "Assigning Contributor role to managed identity"
+        execute_command "az role assignment create --assignee '$CLIENT_ID' --role '$role' --scope '$CONTRIBUTOR_SCOPE'" "Assigning '$role' role to managed identity"
+    done
+    # Assign Contributor role, TODO check later
+    # execute_command "az role assignment create --assignee '$CLIENT_ID' --role 'Contributor' --scope '$CONTRIBUTOR_SCOPE'" \
+    #    "Assigning Contributor role to managed identity"
     
     # Assign additional roles if specified
     if [[ -n "$ADDITIONAL_ROLES" ]]; then
@@ -340,7 +359,8 @@ create_federated_credentials() {
     
     # Always create subject claim for environment-specific deployments
     SUBJECT="repo:$GITHUB_REPO:environment:$GITHUB_ENVIRONMENT"
-    CREDENTIAL_NAME="$GITHUB_REPO-$GITHUB_ENVIRONMENT"
+    REPO_NAME_WITHOUT_OWNER=$(echo "$GITHUB_REPO" | cut -d'/' -f2)
+    CREDENTIAL_NAME="$REPO_NAME_WITHOUT_OWNER-$GITHUB_ENVIRONMENT"
     
     # GitHub Actions OIDC issuer and audience
     ISSUER="https://token.actions.githubusercontent.com"
