@@ -315,7 +315,6 @@ assign_roles() {
     "Reader"                                # Basic read access to resources
     "Website Contributor"                   # For App Service
     "Monitoring Contributor"                # For Monitoring (if using Application Insights)
-    "PostgreSQL Flexible Management Service Contributor" # For Postgres Flexible Server
     "Log Analytics Contributor"            # For Log Analytics (if using)
     "Storage Account Contributor"           # For Storage Account
     "Key Vault Contributor"                 # For Key Vault
