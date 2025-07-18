@@ -213,16 +213,7 @@ resource "azurerm_linux_web_app" "api" {
     "POSTGRES_PASSWORD"                   = var.postgresql_admin_password
     "POSTGRES_DATABASE"                   = var.database_name
     "WEBSITE_SKIP_RUNNING_KUDUAGENT"      = "false"
-    "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "true"
-  }
-  storage_account {
-    name         = "flywaywebjobmount"
-    account_name = azurerm_storage_account.flyway_webjob.name
-    access_key   = azurerm_storage_account.flyway_webjob.primary_access_key
-    share_name   = azurerm_storage_share.flyway_webjob.name
-    mount_path   = "/mnt/flywaydata"
-    type         = "AzureFiles"
-
+    "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
   }
 
   # Logs configuration
