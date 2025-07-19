@@ -62,6 +62,21 @@ resource "azurerm_linux_web_app" "backend" {
       allowed_origins     = ["*"] # Allow all origins - customize as needed for production
       support_credentials = false
     }
+    # IP Restrictions: Only allow traffic from frontend App Service
+    ip_restriction {
+      name       = "AllowFrontendAppService"
+      virtual_network_subnet_id = azapi_resource.app_service_subnet.id
+      action     = "Allow"
+      priority   = 100
+      description = "Allow traffic from frontend App Service only"
+    }
+    ip_restriction {
+      name       = "DenyAll"
+      ip_address = "0.0.0.0/0"
+      action     = "Deny"
+      priority   = 200
+      description = "Deny all other traffic"
+    }
   }
 
   # Application settings
@@ -99,7 +114,6 @@ resource "azurerm_linux_web_app" "backend" {
       }
     }
   }
-
   tags = var.common_tags
   lifecycle {
     ignore_changes = [
