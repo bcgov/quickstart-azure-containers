@@ -65,11 +65,17 @@ resource "azurerm_linux_web_app" "backend" {
     dynamic "ip_restriction" {
       for_each = azurerm_linux_web_app.frontend.outbound_ip_address_list
       content {
-        ip_address = ip_restriction.value
+        ip_address = "${ip_restriction.value}/32"
         action     = "Allow"
-        name       = "AllowFrontendOutbound"
+        name       = "AllowFrontendOutbound-${replace(ip_restriction.value, ".", "-")}"
         priority   = 100
       }
+    }
+    ip_restriction {
+      name       = "DenyAll"
+      action     = "Deny"
+      priority   = 200
+      description = "Deny all other traffic"
     }
   }
 
