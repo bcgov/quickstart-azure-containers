@@ -63,7 +63,7 @@ resource "azurerm_linux_web_app" "backend" {
       support_credentials = false
     }
     dynamic "ip_restriction" {
-      for_each = azurerm_linux_web_app.frontend.outbound_ip_addresses
+      for_each = azurerm_linux_web_app.frontend.outbound_ip_address_list
       content {
         ip_address = ip_restriction.value
         action     = "Allow"
