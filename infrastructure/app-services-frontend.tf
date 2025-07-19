@@ -72,7 +72,7 @@ resource "azurerm_linux_web_app" "frontend" {
     "APPINSIGHTS_INSTRUMENTATIONKEY"        = azurerm_application_insights.main.instrumentation_key
 
     # Backend URL for frontend to communicate with API
-    "VITE_BACKEND_URL" = "https://${azurerm_linux_web_app.backend.default_hostname}"
+    "VITE_BACKEND_URL" = "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net"
     "LOG_LEVEL"        = "info" # Default log level for frontend
   }
 
@@ -95,6 +95,22 @@ resource "azurerm_linux_web_app" "frontend" {
       # Ignore tags to allow management via Azure Policy
       tags
     ]
+  }
+}
+resource "azurerm_app_service_app_settings" "frontend" {
+  app_service_id = azurerm_linux_web_app.frontend.id
+
+  settings = {
+    "PORT"                                    = "80"
+    "WEBSITES_PORT"                         = "3000"
+    "WEBSITES_ENABLE_APP_SERVICE_STORAGE"   = "false"
+    "DOCKER_ENABLE_CI"                      = "true"
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.main.connection_string
+    "APPINSIGHTS_INSTRUMENTATIONKEY"        = azurerm_application_insights.main.instrumentation_key
+
+    # Backend URL for frontend to communicate with API
+    "VITE_BACKEND_URL" = "https://${azurerm_linux_web_app.backend.default_hostname}"
+    "LOG_LEVEL"        = "info" # Default log level for frontend
   }
 }
 
