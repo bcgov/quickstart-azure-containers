@@ -5,7 +5,7 @@ resource "azurerm_service_plan" "backend" {
   location            = var.location
   os_type             = "Linux"
   sku_name            = var.app_service_sku_name_backend
-
+  depends_on          = [azurerm_resource_group.main]
 
   tags = var.common_tags
   lifecycle {
