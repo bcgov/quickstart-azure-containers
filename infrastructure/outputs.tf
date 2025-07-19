@@ -1,7 +1,7 @@
 # Outputs for App Services configuration
 output "app_service_url" {
   description = "The URL of the App Service"
-  value       = "https://${azurerm_linux_web_app.api.default_hostname}"
+  value       = "https://${azurerm_linux_web_app.backend.default_hostname}"
 }
 
 output "frontend_app_service_url" {

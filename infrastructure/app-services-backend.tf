@@ -22,10 +22,10 @@ resource "azurerm_linux_web_app" "backend" {
   name                = "${var.repo_name}-${var.app_env}-api"
   resource_group_name = var.resource_group_name
   location            = var.location
-  service_plan_id     = azurerm_service_plan.main.id
+  service_plan_id     = azurerm_service_plan.backend.id
 
   # VNet integration for secure communication
-  virtual_network_subnet_id = azur
+  virtual_network_subnet_id = data.azurerm_subnet.app_service.id
 
   # Enable HTTPS only
   https_only = true
@@ -75,7 +75,7 @@ resource "azurerm_linux_web_app" "backend" {
     "APPINSIGHTS_INSTRUMENTATIONKEY"        = azurerm_application_insights.main.instrumentation_key
 
     # Database configuration using direct variables
-    "POSTGRES_HOST"                       = azurerm_postgresql_flexible_server.main.fqdn
+    "POSTGRES_HOST"                       = azurerm_postgresql_flexible_server.postgresql.fqdn
     "POSTGRES_USER"                       = var.postgresql_admin_username
     "POSTGRES_PASSWORD"                   = var.db_master_password
     "POSTGRES_DATABASE"                   = var.database_name
