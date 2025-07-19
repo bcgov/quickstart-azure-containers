@@ -5,7 +5,7 @@ resource "azurerm_service_plan" "frontend" {
   resource_group_name = var.resource_group_name
   location            = var.location
   os_type             = "Linux"
-  sku_name            = "B1" # Basic tier
+  sku_name            = var.app_service_sku_name_frontend
 
   tags = var.common_tags
   lifecycle {

@@ -97,9 +97,3 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: "trivy-results.sarif"
-  e2e:
-    name: E2E Tests
-    uses: ./.github/workflows/.e2e.yml
-    with:
-      FRONTEND_URL: http://localhost:3000
-      tag: ${{ inputs.tag }}

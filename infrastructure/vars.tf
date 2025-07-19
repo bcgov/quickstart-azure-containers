@@ -135,7 +135,7 @@ variable "node_env" {
 variable "enable_psql_sidecar" {
   description = "Whether to enable the CloudBeaver database management container"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "subscription_id" {
@@ -230,6 +230,11 @@ variable "is_postgis_enabled" {
 }
 variable "app_service_sku_name_backend" {
   description = "SKU name for the backend App Service Plan"
+  type        = string
+  default     = "B1" # Basic tier 
+}
+variable "app_service_sku_name_frontend" {
+  description = "SKU name for the frontend App Service Plan"
   type        = string
   default     = "B1" # Basic tier 
 }
