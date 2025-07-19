@@ -110,13 +110,6 @@ variable "apps_service_subnet_name" {
   default     = "app-service-subnet"
 }
 
-variable "postgresql_admin_password" {
-  description = "PostgreSQL admin password"
-  type        = string
-  sensitive   = true
-}
-
-
 variable "api_image" {
   description = "The image for the API container"
   type        = string
@@ -148,13 +141,26 @@ variable "enable_psql_sidecar" {
 variable "subscription_id" {
   description = "Azure subscription ID"
   type        = string
+  sensitive   = true
 }
 
 variable "tenant_id" {
   description = "Azure tenant ID"
   type        = string
+  sensitive   = true
 }
 
+variable "client_id" {
+  description = "Azure client ID for the service principal"
+  type        = string
+  sensitive   = true
+}
+
+variable "use_oidc" {
+  description = "Use OIDC for authentication"
+  type        = bool
+  default     = true
+}
 
 variable "web_subnet_name" {
   description = "Name of the web subnet for APIM deployment"
@@ -167,6 +173,11 @@ variable "private_endpoint_subnet_name" {
   type        = string
   default     = "privateendpoints-subnet"
 
+}
+variable "container_instance_subnet_name" {
+  description = "Name of the subnet for container instances"
+  type        = string
+  default     = "container-instance-subnet"
 }
 
 
@@ -197,4 +208,28 @@ variable "repo_name" {
   description = "Name of the repository, used for resource naming"
   type        = string
   default     = "quickstart-azure-containers"
+}
+# Add your variable declarations below
+
+variable "log_analytics_retention_days" {
+  description = "Number of days to retain data in Log Analytics Workspace"
+  type        = number
+  default     = 30
+}
+
+variable "log_analytics_sku" {
+  description = "SKU for Log Analytics Workspace"
+  type        = string
+  default     = "PerGB2018"
+}
+
+variable "is_postgis_enabled" {
+  description = "Enable PostGIS extension for PostgreSQL Flexible Server"
+  type        = bool
+  default     = false
+}
+variable "app_service_sku_name_backend" {
+  description = "SKU name for the backend App Service Plan"
+  type        = string
+  default     = "B1" # Basic tier 
 }

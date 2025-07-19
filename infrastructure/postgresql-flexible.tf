@@ -1,28 +1,5 @@
-# Azure PostgreSQL Flexible Server for Landing Zone compatibility
-data "azurerm_client_config" "current" {}
-
-
-# Data source for existing private endpoints subnet
-data "azurerm_subnet" "private_endpoints" {
-  name                 = "privateendpoints-subnet"
-  virtual_network_name = data.azurerm_virtual_network.main.name
-  resource_group_name  = var.vnet_resource_group_name
-  depends_on           = [azapi_resource.privateendpoints_subnet]
-}
-# Create the main resource group for all application resources
-resource "azurerm_resource_group" "main" {
-  name     = var.resource_group_name
-  location = var.location
-  tags     = var.common_tags
-  lifecycle {
-    ignore_changes = [
-      tags
-    ]
-  }
-}
-
 # PostgreSQL Flexible Server
-resource "azurerm_postgresql_flexible_server" "main" {
+resource "azurerm_postgresql_flexible_server" "postgresql" {
   name                = var.app_name
   resource_group_name = azurerm_resource_group.main.name
   location            = var.location
@@ -63,9 +40,9 @@ resource "azurerm_postgresql_flexible_server" "main" {
 }
 
 # Create database
-resource "azurerm_postgresql_flexible_server_database" "main" {
+resource "azurerm_postgresql_flexible_server_database" "postgres_database" {
   name      = var.database_name
-  server_id = azurerm_postgresql_flexible_server.main.id
+  server_id = azurerm_postgresql_flexible_server.postgresql.id
   collation = "en_US.utf8"
   charset   = "utf8"
 }
@@ -80,7 +57,7 @@ resource "azurerm_private_endpoint" "postgresql" {
 
   private_service_connection {
     name                           = "${var.app_name}-psc"
-    private_connection_resource_id = azurerm_postgresql_flexible_server.main.id
+    private_connection_resource_id = azurerm_postgresql_flexible_server.postgresql.id
     subresource_names              = ["postgresqlServer"]
     is_manual_connection           = false
   }
@@ -104,8 +81,8 @@ resource "azurerm_private_endpoint" "postgresql" {
 # Time delay to ensure PostgreSQL server is fully ready before configuration changes
 resource "time_sleep" "wait_for_postgresql" {
   depends_on = [
-    azurerm_postgresql_flexible_server.main,
-    azurerm_postgresql_flexible_server_database.main,
+    azurerm_postgresql_flexible_server.postgresql,
+    azurerm_postgresql_flexible_server_database.postgres_database,
     azurerm_private_endpoint.postgresql
   ]
   create_duration = "60s"
@@ -115,7 +92,7 @@ resource "time_sleep" "wait_for_postgresql" {
 # These configurations require the server to be fully operational
 resource "azurerm_postgresql_flexible_server_configuration" "shared_preload_libraries" {
   name      = "shared_preload_libraries"
-  server_id = azurerm_postgresql_flexible_server.main.id
+  server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = "pg_stat_statements"
 
   depends_on = [time_sleep.wait_for_postgresql]
@@ -123,7 +100,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "shared_preload_libr
 
 resource "azurerm_postgresql_flexible_server_configuration" "log_statement" {
   name      = "log_statement"
-  server_id = azurerm_postgresql_flexible_server.main.id
+  server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = "all"
 
   depends_on = [
@@ -134,8 +111,9 @@ resource "azurerm_postgresql_flexible_server_configuration" "log_statement" {
 
 # Enable PostGIS extension
 resource "azurerm_postgresql_flexible_server_configuration" "azure_extensions" {
+  count     = var.is_postgis_enabled ? 1 : 0
   name      = "azure.extensions"
-  server_id = azurerm_postgresql_flexible_server.main.id
+  server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = "POSTGIS"
 
   depends_on = [

@@ -62,6 +62,7 @@ Options:
     -n, --identity-name         Managed identity name (required)
     -r, --github-repo           GitHub repository in format owner/repo (required)
     -e, --environment           GitHub environment name (required)
+    -ar, --assign-roles         Assign roles to the managed identity (comma-separated, optional), if not specified, no roles will be assigned 
     --contributor-scope         Scope for Contributor role assignment (optional, defaults to resource group)
     --additional-roles          Additional roles to assign (comma-separated, optional)
     --storage-account           Storage account name for Terraform state (optional, default: auto-generated)
@@ -101,7 +102,7 @@ STORAGE_CONTAINER="tfstate"
 CREATE_STORAGE=false
 DRY_RUN=false
 CREATE_GITHUB_SECRETS=false
-
+ASSIGN_ROLES=""
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -119,6 +120,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -e|--environment)
             GITHUB_ENVIRONMENT="$2"
+            shift 2
+            ;;
+        -ar|--assign-roles)
+            ASSIGN_ROLES="$2"
             shift 2
             ;;
         --contributor-scope)
@@ -299,6 +304,10 @@ get_identity_details() {
 
 # Function to assign roles to managed identity
 assign_roles() {
+    if [[ -z "$ASSIGN_ROLES" ]]; then
+        log_info "No roles specified for assignment. Skipping role assignment."
+        return 0
+    fi
     log_info "Assigning roles to managed identity..."
     
     # Set default contributor scope if not provided
@@ -311,19 +320,7 @@ assign_roles() {
     fi
 
     log_info "Assigning roles to managed identity '$IDENTITY_NAME' in resource group '$RESOURCE_GROUP'..."
-    local roles_list=(
-    "Reader"                                # Basic read access to resources
-    "Website Contributor"                   # For App Service
-    "Monitoring Contributor"                # For Monitoring (if using Application Insights)
-    "Log Analytics Contributor"            # For Log Analytics (if using)
-    "Storage Account Contributor"           # For Storage Account
-    "Key Vault Contributor"                 # For Key Vault
-    "API Management Service Contributor"    # For API Management
-    "Container Apps Contributor"             # For Container Apps
-    "Network Contributor"                   
-    "Managed Identity Contributor"
-    "Managed Identity Operator"
-    )
+    local roles_list=(${ASSIGN_ROLES//,/ })
     for role in "${roles_list[@]}"; do
         # check if role already assigned to make it idempotent
         if [[ "$DRY_RUN" == "false" ]]; then
@@ -336,19 +333,6 @@ assign_roles() {
         fi
         execute_command "az role assignment create --assignee '$CLIENT_ID' --role '$role' --scope '$CONTRIBUTOR_SCOPE'" "Assigning '$role' role to managed identity"
     done
-    # Assign Contributor role, TODO check later
-    # execute_command "az role assignment create --assignee '$CLIENT_ID' --role 'Contributor' --scope '$CONTRIBUTOR_SCOPE'" \
-    #    "Assigning Contributor role to managed identity"
-    
-    # Assign additional roles if specified
-    if [[ -n "$ADDITIONAL_ROLES" ]]; then
-        IFS=',' read -ra ROLES <<< "$ADDITIONAL_ROLES"
-        for role in "${ROLES[@]}"; do
-            role=$(echo "$role" | xargs) # Trim whitespace
-            execute_command "az role assignment create --assignee '$CLIENT_ID' --role '$role' --scope '$CONTRIBUTOR_SCOPE'" \
-                "Assigning '$role' role to managed identity"
-        done
-    fi
     
     log_success "Role assignments completed"
 }
@@ -515,6 +499,15 @@ assign_storage_roles() {
     )
     
     for role in "${STORAGE_ROLES[@]}"; do
+        # Check if role already assigned to make it idempotent
+        if [[ "$DRY_RUN" == "false" ]]; then
+            if az role assignment list --assignee "$CLIENT_ID" --role "$role" --scope "$STORAGE_ACCOUNT_ID" --query "length(@)" --output tsv | grep -q '0'; then
+                log_info "No existing role assignment found for role '$role'"
+            else
+                log_warning "Role '$role' already assigned to managed identity. Skipping assignment."
+                continue
+            fi
+        fi
         execute_command "az role assignment create \
             --assignee '$CLIENT_ID' \
             --role '$role' \
