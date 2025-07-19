@@ -53,7 +53,7 @@ resource "azurerm_private_endpoint" "postgresql" {
   name                = "${var.app_name}-pe"
   location            = var.location
   resource_group_name = azurerm_resource_group.main.name
-  subnet_id           = data.azurerm_subnet.private_endpoints.id
+  subnet_id           = data.azurerm_subnet.private_endpoint.id
 
   private_service_connection {
     name                           = "${var.app_name}-psc"

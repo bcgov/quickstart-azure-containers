@@ -72,7 +72,7 @@ resource "azurerm_linux_web_app" "frontend" {
     "APPINSIGHTS_INSTRUMENTATIONKEY"        = azurerm_application_insights.main.instrumentation_key
 
     # Backend URL for frontend to communicate with API
-    "VITE_BACKEND_URL" = "https://${azurerm_linux_web_app.api.default_hostname}"
+    "VITE_BACKEND_URL" = "https://${azurerm_linux_web_app.backend.default_hostname}"
     "LOG_LEVEL"        = "info" # Default log level for frontend
   }
 
