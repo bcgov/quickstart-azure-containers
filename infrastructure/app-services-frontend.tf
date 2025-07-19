@@ -81,10 +81,6 @@ resource "azurerm_linux_web_app" "frontend" {
     detailed_error_messages = true
     failed_request_tracing  = true
 
-    application_logs {
-      file_system_level = "Information"
-    }
-
     http_logs {
       file_system {
         retention_in_days = 7
