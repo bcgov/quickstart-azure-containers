@@ -5,39 +5,23 @@ resource "azurerm_container_group" "flyway" {
   subnet_ids          = [azapi_resource.container_instance_subnet.id]
   container {
     name   = "flyway"
-    image     = "${var.flyway_image}"
+    image  = var.flyway_image
     cpu    = "1"
     memory = "1.5"
 
-    environment_variables = [
-      {
-        name  = "FLYWAY_URL"
-        value = "jdbc:postgresql://${azurerm_postgresql_flexible_server.postgresql.fqdn}/${var.database_name}?sslmode=require"
-      },
-      {
-        name  = "FLYWAY_USER"
-        value = var.postgresql_admin_username
-      },
-      {
-        name  = "FLYWAY_PASSWORD"
-        value = var.db_master_password
-      },
-      {
-        name  = "FLYWAY_DEFAULT_SCHEMA"
-        value = "app"
-      },
-      {
-        name  = "FLYWAY_CONNECT_RETRIES"
-        value = "2"
-      },
-      {
-        name  = "FLYWAY_GROUP"
-        value = "true"
-      }
-    ]
+    environment_variables = {
+      FLYWAY_DEFAULT_SCHEMA  = "app"
+      FLYWAY_CONNECT_RETRIES = "10"
+      FLYWAY_GROUP           = "true"
+    }
+    secure_environment_variables = {
+      FLYWAY_USER            = var.postgresql_admin_username
+      FLYWAY_PASSWORD        = var.db_master_password
+      FLYWAY_URL             = "jdbc:postgresql://${azurerm_postgresql_flexible_server.postgresql.fqdn}/${var.database_name}?sslmode=require"
+    }
 
   }
-  os_type = "Linux"
+  os_type        = "Linux"
   restart_policy = "OnFailure"
 
   tags = var.common_tags
