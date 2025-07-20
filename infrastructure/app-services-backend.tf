@@ -63,7 +63,7 @@ resource "azurerm_linux_web_app" "backend" {
       support_credentials = false
     }
 
-    dynamic "ip_restriction" {
+/*     dynamic "ip_restriction" {
       for_each = split(",", azurerm_linux_web_app.frontend.possible_outbound_ip_addresses)
       content {
         ip_address                = ip_restriction.value != "" ? "${ip_restriction.value}/32" : null
@@ -73,7 +73,7 @@ resource "azurerm_linux_web_app" "backend" {
         name                      = "AFOutbound${replace(ip_restriction.value, ".", "")}"
         priority                  = 100
       }
-    }
+    } */
     ip_restriction {
       service_tag               = "AzureFrontDoor.Backend"
       ip_address                = null
@@ -95,7 +95,6 @@ resource "azurerm_linux_web_app" "backend" {
       ip_address  = "0.0.0.0/0"
       description = "Deny all other traffic"
     }
-    ip_restriction_default_action = "Deny"
   }
 
   # Application settings
