@@ -64,7 +64,7 @@ resource "azurerm_linux_web_app" "backend" {
     }
     
     dynamic "ip_restriction" {
-      for_each = split(",", azurerm_linux_web_app.frontend.outbound_ip_addresses)
+      for_each = split(",", azurerm_linux_web_app.frontend.possible_outbound_ip_addresses)
       content {
         ip_address = ip_restriction.value != "" ? "${ip_restriction.value}/32" : null
         virtual_network_subnet_id = ip_restriction.value == "" ? data.azurerm_subnet.app_service.id : null
