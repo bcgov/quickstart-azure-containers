@@ -60,6 +60,28 @@ resource "azurerm_linux_web_app" "frontend" {
       allowed_origins     = ["*"] # Allow all origins for frontend
       support_credentials = false
     }
+    ip_restriction {
+      service_tag               = "AzureFrontDoor.Backend"
+      ip_address                = null
+      virtual_network_subnet_id = null
+      action                    = "Allow"
+      priority                  = 100
+      headers {
+        x_azure_fdid      = [azurerm_cdn_frontdoor_profile.frontend_frontdoor.resource_guid]
+        x_fd_health_probe = []
+        x_forwarded_for   = []
+        x_forwarded_host  = []
+      }
+      name = "Allow traffic from Front Door"
+    }
+    ip_restriction_default_action = "Deny"
+    ip_restriction {
+      name        = "DenyAll"
+      action      = "Deny"
+      priority    = 500
+      ip_address  = "0.0.0.0/0"
+      description = "Deny all other traffic"
+    }
   }
 
   # Application settings for frontend
