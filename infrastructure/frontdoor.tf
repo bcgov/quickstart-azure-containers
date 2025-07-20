@@ -13,7 +13,7 @@ resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
 }
 
 resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_waf" {
-  name                = "${var.app_name}-frontend-waf"
+  name                = "${replace(var.app_name, "/[^a-zA-Z0-9]/", "")}frontendwaf"
   resource_group_name = azurerm_resource_group.main.name
   sku_name            = "Standard_AzureFrontDoor"
   mode                = "Prevention"
