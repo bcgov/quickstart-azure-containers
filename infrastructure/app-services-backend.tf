@@ -135,7 +135,7 @@ resource "azurerm_linux_web_app" "backend" {
       tags
     ]
   }
-  depends_on = [azurerm_linux_web_app.frontend]
+  depends_on = [azurerm_linux_web_app.frontend, azurerm_container_group.flyway]
 }
 
 
