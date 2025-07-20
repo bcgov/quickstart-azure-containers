@@ -20,8 +20,9 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_waf" {
 
   custom_rule {
     name                           = "RateLimitByIP"
+    enabled                        = true
     priority                       = 1
-    type                           = "RateLimit"
+    type                           = "MatchRule"
     rate_limit_duration_in_minutes = 1
     rate_limit_threshold           = 50
     action                         = "Block"
