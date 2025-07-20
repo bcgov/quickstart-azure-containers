@@ -89,7 +89,6 @@ resource "azurerm_linux_web_app" "backend" {
     "NODE_ENV"                              = var.node_env
     "PORT"                                  = "80"
     "WEBSITES_PORT"                         = "3000"
-    "WEBSITES_ENABLE_APP_SERVICE_STORAGE"   = "false"
     "DOCKER_ENABLE_CI"                      = "true"
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.main.connection_string
     "APPINSIGHTS_INSTRUMENTATIONKEY"        = azurerm_application_insights.main.instrumentation_key
@@ -101,6 +100,7 @@ resource "azurerm_linux_web_app" "backend" {
     "POSTGRES_DATABASE"                   = var.database_name
     "WEBSITE_SKIP_RUNNING_KUDUAGENT"      = "false"
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
+    "WEBSITE_ENABLE_SYNC_UPDATE_SITE"     = "1"
   }
 
   # Logs configuration
