@@ -16,11 +16,11 @@ resource "azurerm_container_group" "flyway" {
       },
       {
         name  = "FLYWAY_USER"
-        value = var.postgresql_admin_username
+        value = "${var.postgresql_admin_username}"
       },
       {
         name  = "FLYWAY_PASSWORD"
-        value = var.db_master_password
+        value = "${var.db_master_password}"
       },
       {
         name  = "FLYWAY_DEFAULT_SCHEMA"
