@@ -34,7 +34,7 @@ jobs:
     name: Stack Prefix
     uses: ./.github/workflows/.stack-prefix.yml
   deploy:
-    name: Deploys Database
+    name: Deploy
     needs: [stack-prefix]
     uses: ./.github/workflows/.deployer.yml
     with:
