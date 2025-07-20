@@ -3,6 +3,7 @@ resource "azurerm_container_group" "flyway" {
   location            = var.location
   resource_group_name = var.resource_group_name
   subnet_ids          = [azapi_resource.container_instance_subnet.id]
+  priority            = "Spot"
   diagnostics {
     log_analytics {
       workspace_id = azurerm_log_analytics_workspace.main.workspace_id
@@ -26,8 +27,8 @@ resource "azurerm_container_group" "flyway" {
       FLYWAY_PASSWORD        = var.db_master_password
       FLYWAY_URL             = "jdbc:postgresql://${azurerm_postgresql_flexible_server.postgresql.fqdn}/${var.database_name}?sslmode=require"
     }
-
   }
+  ip_address_type = "None"  # No public IP for Flyway
   os_type        = "Linux"
   restart_policy = "OnFailure"
 
