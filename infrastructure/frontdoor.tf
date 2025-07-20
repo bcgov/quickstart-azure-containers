@@ -49,7 +49,7 @@ resource "azurerm_cdn_frontdoor_route" "frontend_route" {
   cdn_frontdoor_origin_ids      = [azurerm_cdn_frontdoor_origin.frontend_app_service_origin.id]
 
   supported_protocols    = ["Http", "Https"]
-  patterns_to_match      = ["*"]
+  patterns_to_match      = ["/*"]
   forwarding_protocol    = "HttpsOnly"
   link_to_default_domain = true
   https_redirect_enabled = true
