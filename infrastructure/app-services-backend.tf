@@ -79,6 +79,7 @@ resource "azurerm_linux_web_app" "backend" {
       priority    = 500
       description = "Deny all other traffic"
     }
+    ip_restriction_default_action = "Deny"
   }
 
   # Application settings
