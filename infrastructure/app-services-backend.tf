@@ -62,10 +62,11 @@ resource "azurerm_linux_web_app" "backend" {
       allowed_origins     = ["*"] # Allow all origins - customize as needed for production
       support_credentials = false
     }
+    
     dynamic "ip_restriction" {
-      for_each = [for ip in azurerm_linux_web_app.frontend.outbound_ip_address_list : ip if ip != ""]
+      for_each = split(",", azurerm_linux_web_app.frontend.outbound_ip_addresses)
       content {
-        ip_address = "${ip_restriction.value}/32"
+        ip_address = ip_restriction.value != "" ? "${ip_restriction.value}/32" : null
         action     = "Allow"
         name       = "AllowFrontendOutbound-${replace(ip_restriction.value, ".", "-")}"
         priority   = 100
@@ -278,10 +279,6 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
   logs {
     detailed_error_messages = true
     failed_request_tracing  = true
-
-    application_logs {
-      file_system_level = "Information"
-    }
 
     http_logs {
       file_system {
