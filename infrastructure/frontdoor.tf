@@ -27,12 +27,6 @@ resource "azurerm_cdn_frontdoor_origin_group" "frontend_origin_group" {
     successful_samples_required = 3
   }
 
-  health_probe {
-    path                = "/"
-    request_type        = "GET"
-    protocol            = "Https"
-    interval_in_seconds = 60
-  }
 }
 resource "azurerm_cdn_frontdoor_origin" "frontend_app_service_origin" {
   name                          = "${var.repo_name}-${var.app_env}-frontend-origin"
@@ -55,11 +49,12 @@ resource "azurerm_cdn_frontdoor_route" "frontend_route" {
   cdn_frontdoor_origin_ids      = [azurerm_cdn_frontdoor_origin.frontend_app_service_origin.id]
 
   supported_protocols    = ["Http", "Https"]
-  patterns_to_match      = ["/*"]
+  patterns_to_match      = ["*"]
   forwarding_protocol    = "HttpsOnly"
   link_to_default_domain = true
   https_redirect_enabled = true
   cache {
     query_string_caching_behavior = "IgnoreQueryString"
+    compression_enabled = false
   }
 }
