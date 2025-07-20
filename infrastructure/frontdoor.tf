@@ -12,6 +12,54 @@ resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
   }
 }
 
+resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_waf" {
+  name                = "${var.app_name}-frontend-waf"
+  resource_group_name = azurerm_resource_group.main.name
+  sku_name            = "Standard_AzureFrontDoor"
+  mode                = "Prevention"
+
+  custom_rule {
+    name                           = "RateLimitByIP"
+    priority                       = 1
+    type                           = "RateLimit"
+    rate_limit_duration_in_minutes = 1
+    rate_limit_threshold           = 50
+    action                         = "Block"
+    match_condition {
+      match_variable     = "RemoteAddr"
+      operator           = "IPMatch"
+      negation_condition = false
+      match_values       = ["0.0.0.0/0"] # Apply to all IPs
+    }
+
+  }
+  tags = var.common_tags
+  lifecycle {
+    ignore_changes = [
+      # Ignore tags to allow management via Azure Policy
+      tags
+    ]
+  }
+}
+
+resource "azurerm_cdn_frontdoor_security_policy" "frontend_fd_waf_policy" {
+  name                     = "${var.app_name}-frontend-fd-waf-policy"
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.frontend_frontdoor.id
+
+  security_policies {
+    firewall {
+      cdn_frontdoor_firewall_policy_id = azurerm_cdn_frontdoor_firewall_policy.frontend_waf.id
+
+      association {
+        domain {
+          cdn_frontdoor_domain_id = azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint.id
+        }
+        patterns_to_match = ["/*"]
+      }
+    }
+  }
+}
+
 resource "azurerm_cdn_frontdoor_endpoint" "frontend_fd_endpoint" {
   name                     = "${var.repo_name}-${var.app_env}-frontend-fd"
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.frontend_frontdoor.id

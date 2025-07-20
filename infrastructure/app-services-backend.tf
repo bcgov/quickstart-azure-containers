@@ -63,7 +63,7 @@ resource "azurerm_linux_web_app" "backend" {
       support_credentials = false
     }
 
-/*     dynamic "ip_restriction" {
+    /*     dynamic "ip_restriction" {
       for_each = split(",", azurerm_linux_web_app.frontend.possible_outbound_ip_addresses)
       content {
         ip_address                = ip_restriction.value != "" ? "${ip_restriction.value}/32" : null
