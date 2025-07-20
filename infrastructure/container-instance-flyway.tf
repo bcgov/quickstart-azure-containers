@@ -3,6 +3,13 @@ resource "azurerm_container_group" "flyway" {
   location            = var.location
   resource_group_name = var.resource_group_name
   subnet_ids          = [azapi_resource.container_instance_subnet.id]
+  diagnostics {
+    log_analytics {
+      workspace_id = azurerm_log_analytics_workspace.main.id
+      workspace_key = azurerm_log_analytics_workspace.main.primary_shared_key
+      log_type = "ContainerInstanceLogs"
+    }
+  }
   container {
     name   = "flyway"
     image  = var.flyway_image
