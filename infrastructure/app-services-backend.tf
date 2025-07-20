@@ -68,7 +68,7 @@ resource "azurerm_linux_web_app" "backend" {
       ip_address = "${ip_restriction.value}/32"
       action     = "Allow"
       name       = "AllowFrontendOutbound-${replace(ip_restriction.value, ".", "-")}"
-      priority   = 100 + count.index
+      priority   = 100
       }
     }
     ip_restriction {
