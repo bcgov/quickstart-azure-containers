@@ -32,6 +32,7 @@ on:
 env:
     TG_VERSION: 0.63.6
     TF_VERSION: 1.12.2
+    TF_LOG: DEBUG
     AZURE_REGION: Canada Central
 permissions:
   id-token: write # This is required for requesting the JWT
