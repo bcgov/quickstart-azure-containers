@@ -70,7 +70,7 @@ resource "azurerm_linux_web_app" "backend" {
         virtual_network_subnet_id = ip_restriction.value == "" ? data.azurerm_subnet.app_service.id : null
         service_tag = ip_restriction.value == "" ? "AppService" : null
         action     = "Allow"
-        name       = "AllowFrontendOutbound-${replace(ip_restriction.value, ".", "-")}"
+        name       = "AFOutbound${replace(ip_restriction.value, ".", "")}"
         priority   = 100
       }
     }
