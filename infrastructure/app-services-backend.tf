@@ -68,6 +68,7 @@ resource "azurerm_linux_web_app" "backend" {
       content {
         ip_address = ip_restriction.value != "" ? "${ip_restriction.value}/32" : null
         virtual_network_subnet_id = ip_restriction.value == "" ? data.azurerm_subnet.app_service.id : null
+        service_tag = ip_restriction.value == "" ? "AppService" : null
         action     = "Allow"
         name       = "AllowFrontendOutbound-${replace(ip_restriction.value, ".", "-")}"
         priority   = 100
@@ -77,6 +78,7 @@ resource "azurerm_linux_web_app" "backend" {
       name        = "DenyAll"
       action      = "Deny"
       priority    = 500
+      ip_address  = "0.0.0.0/0"
       description = "Deny all other traffic"
     }
     ip_restriction_default_action = "Deny"
