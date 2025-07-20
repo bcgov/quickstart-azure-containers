@@ -67,6 +67,7 @@ resource "azurerm_linux_web_app" "backend" {
       for_each = split(",", azurerm_linux_web_app.frontend.outbound_ip_addresses)
       content {
         ip_address = ip_restriction.value != "" ? "${ip_restriction.value}/32" : null
+        virtual_network_subnet_id = ip_restriction.value == "" ? data.azurerm_subnet.app_service.id : null
         action     = "Allow"
         name       = "AllowFrontendOutbound-${replace(ip_restriction.value, ".", "-")}"
         priority   = 100
