@@ -8,7 +8,6 @@ resource "azurerm_container_group" "flyway" {
     log_analytics {
       workspace_id = azurerm_log_analytics_workspace.main.workspace_id
       workspace_key = azurerm_log_analytics_workspace.main.primary_shared_key
-      log_type = "ContainerInstanceLogs"
     }
   }
   container {
