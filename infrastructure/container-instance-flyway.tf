@@ -39,7 +39,7 @@ resource "azurerm_container_group" "flyway" {
       tags,
       ip_address_type
     ]
-    replace_triggered_by = [terraform_data.trigger_flyway[0]]
+    replace_triggered_by = [null_resource.trigger_flyway]
   }
   provisioner "local-exec" {
     command     = <<EOT
@@ -64,7 +64,9 @@ resource "azurerm_container_group" "flyway" {
   }
 }
 
-resource "terraform_data" "trigger_flyway" {
-  input = timestamp()
+resource "null_resource" "trigger_flyway" {
+  triggers = {
+    always_run = timestamp()
+  }
 }
 
