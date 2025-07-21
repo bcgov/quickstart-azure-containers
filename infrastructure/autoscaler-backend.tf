@@ -4,7 +4,7 @@ resource "azurerm_monitor_autoscale_setting" "backend_autoscale" {
   resource_group_name = var.resource_group_name
   location            = var.location
   target_resource_id  = azurerm_service_plan.backend.id
-
+  enabled             = var.backend_autoscale_enabled
   profile {
     name = "default"
 

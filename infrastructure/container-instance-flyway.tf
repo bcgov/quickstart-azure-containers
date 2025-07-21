@@ -42,10 +42,10 @@ resource "azurerm_container_group" "flyway" {
   }
 }
 resource "null_resource" "check_flyway_status" {
-    depends_on = [azurerm_container_group.flyway]
+  depends_on = [azurerm_container_group.flyway]
 
-    provisioner "local-exec" {
-        command = <<EOT
+  provisioner "local-exec" {
+    command     = <<EOT
             TIMEOUT=300
             INTERVAL=10
             ELAPSED=0
@@ -63,6 +63,6 @@ resource "null_resource" "check_flyway_status" {
                 exit 1
             fi
         EOT
-        interpreter = ["/bin/bash", "-c"]
-    }
+    interpreter = ["/bin/bash", "-c"]
+  }
 }
