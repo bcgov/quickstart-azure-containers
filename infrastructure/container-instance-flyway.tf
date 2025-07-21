@@ -25,7 +25,7 @@ resource "azurerm_container_group" "flyway" {
       FLYWAY_URL             = "jdbc:postgresql://${azurerm_postgresql_flexible_server.postgresql.fqdn}:5432/${var.database_name}"
     }
   }
-  ip_address_type = "None" # No public IP for Flyway
+  ip_address_type = "Private" # No public IP for Flyway
   os_type         = "Linux"
   restart_policy  = "OnFailure"
 
