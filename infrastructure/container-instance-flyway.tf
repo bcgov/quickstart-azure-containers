@@ -4,6 +4,9 @@ resource "azurerm_container_group" "flyway" {
   resource_group_name = var.resource_group_name
   subnet_ids          = [azapi_resource.container_instance_subnet.id]
   priority            = "Regular"
+  dns_config {
+    nameservers = [data.azurerm_virtual_network.main.dns_servers[0]]
+  }
   diagnostics {
     log_analytics {
       workspace_id  = azurerm_log_analytics_workspace.main.workspace_id
