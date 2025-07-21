@@ -43,7 +43,7 @@ jobs:
  
   deploy-to-tools:
     name: Deploy to Tools
-    #needs: builds
+    needs: builds
     if: (github.event_name == 'workflow_dispatch')
     concurrency:
       group: deploy-tools-${{ github.event.number || 'latest' }}
