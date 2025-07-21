@@ -41,3 +41,28 @@ resource "azurerm_container_group" "flyway" {
     ]
   }
 }
+resource "null_resource" "check_flyway_status" {
+    depends_on = [azurerm_container_group.flyway]
+
+    provisioner "local-exec" {
+        command = <<EOT
+            TIMEOUT=300
+            INTERVAL=10
+            ELAPSED=0
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+                STATUS=$(az container show --resource-group ${var.resource_group_name} --name ${azurerm_container_group.flyway.name} --query "containers[0].instanceView.currentState.exitCode" -o tsv)
+                if [ "$STATUS" != "None" ] && [ -n "$STATUS" ]; then
+                    break
+                fi
+                sleep $INTERVAL
+                ELAPSED=$((ELAPSED + INTERVAL))
+            done
+
+            if [ "$STATUS" != "0" ]; then
+                echo "Flyway container failed with exit code $STATUS"
+                exit 1
+            fi
+        EOT
+        interpreter = ["/bin/bash", "-c"]
+    }
+}
