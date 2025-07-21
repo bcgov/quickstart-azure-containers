@@ -6,7 +6,7 @@ resource "azurerm_container_group" "flyway" {
   priority            = "Regular"
   diagnostics {
     log_analytics {
-      workspace_id = azurerm_log_analytics_workspace.main.workspace_id
+      workspace_id  = azurerm_log_analytics_workspace.main.workspace_id
       workspace_key = azurerm_log_analytics_workspace.main.primary_shared_key
     }
   }
@@ -20,16 +20,14 @@ resource "azurerm_container_group" "flyway" {
       FLYWAY_DEFAULT_SCHEMA  = "app"
       FLYWAY_CONNECT_RETRIES = "10"
       FLYWAY_GROUP           = "true"
-    }
-    secure_environment_variables = {
       FLYWAY_USER            = var.postgresql_admin_username
       FLYWAY_PASSWORD        = var.db_master_password
       FLYWAY_URL             = "jdbc:postgresql://${azurerm_postgresql_flexible_server.postgresql.fqdn}/${var.database_name}?sslmode=require"
     }
   }
-  ip_address_type = "None"  # No public IP for Flyway
-  os_type        = "Linux"
-  restart_policy = "OnFailure"
+  ip_address_type = "None" # No public IP for Flyway
+  os_type         = "Linux"
+  restart_policy  = "OnFailure"
 
   tags = var.common_tags
   lifecycle {
