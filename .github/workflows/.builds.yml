@@ -30,4 +30,4 @@ jobs:
           package: ${{ matrix.package }}
           tags: ${{ inputs.tags }}
           triggers: ('${{ matrix.package }}/' '.github/workflows/.builds.yml')
-          tag_fallback: dev
+          tag_fallback: latest
