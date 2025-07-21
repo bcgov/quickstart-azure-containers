@@ -319,7 +319,31 @@ resource "azurerm_network_security_group" "container_instance" {
     source_port_range          = "*"
     destination_port_ranges    = ["3000-9000"]
   }
+# Allow inbound from Private Endpoints subnet to Container Instances subnet
+security_rule {
+  name                       = "AllowInboundFromPrivateEndpoint"
+  priority                   = 106
+  direction                  = "Inbound"
+  access                     = "Allow"
+  protocol                   = "*"
+  source_address_prefix      = local.private_endpoints_subnet_cidr
+  destination_address_prefix = local.container_instance_subnet_cidr
+  source_port_range          = "*"
+  destination_port_range     = "*"
+}
 
+# Allow outbound to Private Endpoints subnet from Container Instances subnet
+security_rule {
+  name                       = "AllowOutboundToPrivateEndpoint"
+  priority                   = 107
+  direction                  = "Outbound"
+  access                     = "Allow"
+  protocol                   = "*"
+  source_address_prefix      = local.container_instance_subnet_cidr
+  destination_address_prefix = local.private_endpoints_subnet_cidr
+  source_port_range          = "*"
+  destination_port_range     = "*"
+}
   security_rule {
     name                       = "AllowInboundFromInternet"
     priority                   = 110
