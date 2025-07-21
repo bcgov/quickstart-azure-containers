@@ -39,11 +39,8 @@ resource "azurerm_container_group" "flyway" {
       tags,
       ip_address_type
     ]
+    replace_triggered_by = [terraform_data.trigger_flyway[0]]
   }
-}
-resource "null_resource" "check_flyway_status" {
-  depends_on = [azurerm_container_group.flyway]
-
   provisioner "local-exec" {
     command     = <<EOT
             TIMEOUT=300
@@ -66,3 +63,8 @@ resource "null_resource" "check_flyway_status" {
     interpreter = ["/bin/bash", "-c"]
   }
 }
+
+resource "terraform_data" "trigger_flyway" {
+  input = timestamp()
+}
+
