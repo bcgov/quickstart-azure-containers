@@ -40,7 +40,7 @@ permissions:
 jobs:
  infra:
   environment: ${{ inputs.environment_name }}
-  name: Terraform ${{inputs.command}}  ${{ inputs.environment_name }}
+  name: Terragrunt ${{inputs.command}}  ${{ inputs.environment_name }}
   runs-on: ubuntu-24.04
   steps:
     - name: Checkout

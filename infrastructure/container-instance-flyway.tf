@@ -22,7 +22,7 @@ resource "azurerm_container_group" "flyway" {
       FLYWAY_GROUP           = "true"
       FLYWAY_USER            = var.postgresql_admin_username
       FLYWAY_PASSWORD        = var.db_master_password
-      FLYWAY_URL             = "jdbc:postgresql://${azurerm_postgresql_flexible_server.postgresql.fqdn}:5432/${var.database_name}"
+      FLYWAY_URL             = "jdbc:postgresql://${var.app_name}.privatelink.postgres.database.azure.com:5432/${var.database_name}"
     }
   }
   ip_address_type = "None" # No public IP for Flyway
