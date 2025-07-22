@@ -74,6 +74,7 @@ jobs:
         echo "frontend-image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
     
     - name: Terragrunt ${{inputs.command}}
+      id: terragrunt
       working-directory: terragrunt/${{ inputs.environment_name }}
       env:
           target_env: ${{ inputs.environment_name }}
@@ -92,4 +93,37 @@ jobs:
       run: |
           # Run terraform
           terragrunt run-all ${{inputs.command}} --terragrunt-non-interactive
-    
+          terragrunt output -json > outputs.json
+          #print the output
+          cat outputs.json
+          echo "VITE_BACKEND_URL=$(jq -r .backend_app_service_url.value outputs.json)" >> $GITHUB_OUTPUT
+          echo "STORAGE_ACCOUNT_NAME=$(jq -r .storage_account_name.value outputs.json)" >> $GITHUB_OUTPUT
+          echo "AFD_RESOURCE_GROUP_NAME=$(jq -r .resource_group_name.value outputs.json)" >> $GITHUB_OUTPUT
+          echo "AFD_PROFILE_NAME=$(jq -r .cdn_frontdoor_static_content_profile_name.value outputs.json)" >> $GITHUB_OUTPUT
+          echo "AFD_ENDPOINT_NAME=$(jq -r .cdn_frontdoor_static_content_endpoint_name.value outputs.json)" >> $GITHUB_OUTPUT
+    - name: setup node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    - name: Build And Upload Static Content
+      working-directory: frontend
+      run: |
+        npm run deploy
+
+        # Upload the static content to the storage account
+        az storage blob upload-batch \
+          --account-name ${{ steps.terragrunt.outputs.storage_account_name }} \
+          --destination static \
+          --source ./dist \
+          --auth-mode login
+        
+        # purge cache
+        az afd endpoint purge \
+          --auth-mode login \
+          --resource-group ${{ steps.terragrunt.outputs.AFD_RESOURCE_GROUP_NAME }} \
+          --profile-name ${{ steps.terragrunt.outputs.AFD_PROFILE_NAME }} \
+          --endpoint-name ${{ steps.terragrunt.outputs.AFD_ENDPOINT_NAME }} \
+          --content-paths '/*'
+      shell: bash

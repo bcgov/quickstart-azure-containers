@@ -22,7 +22,7 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_waf" {
     name                           = "RateLimitByIP"
     enabled                        = true
     priority                       = 1
-    type                           = "MatchRule"
+    type                           = "RateLimit"
     rate_limit_duration_in_minutes = 1
     rate_limit_threshold           = 50
     action                         = "Block"
@@ -32,7 +32,19 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_waf" {
       negation_condition = false
       match_values       = ["0.0.0.0/0"] # Apply to all IPs
     }
-
+  }
+  managed_rule {
+    type    = "Microsoft_BotManagerRuleSet"
+    version = "1.1"
+    action  = "Log"
+    override {
+      rule_group_name = "BadBots"
+      rule {
+        action  = "JSChallenge"
+        enabled = true
+        rule_id = "Bot100200"
+      }
+    }
   }
   tags = var.common_tags
   lifecycle {
