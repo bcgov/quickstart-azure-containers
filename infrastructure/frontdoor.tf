@@ -102,4 +102,6 @@ resource "azurerm_cdn_frontdoor_route" "frontend_route" {
   forwarding_protocol    = "HttpsOnly"
   link_to_default_domain = true
   https_redirect_enabled = true
+  cache {
+  }
 }
