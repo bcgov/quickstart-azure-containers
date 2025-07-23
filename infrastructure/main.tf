@@ -56,6 +56,16 @@ module "postgresdb" {
 
   depends_on = [module.networking]
 }
+module "monitoring" {
+  source                       = "./modules/monitoring"
+  app_name                     = var.app_name
+  resource_group_name          = azurerm_resource_group.main.name
+  location                     = var.location
+  log_analytics_sku            = var.log_analytics_sku
+  log_analytics_retention_days = var.log_analytics_retention_days
+  common_tags                  = var.common_tags
+  depends_on                   = [azurerm_resource_group.main, module.networking]
+}
 
 module "flyway" {
   source   = "./modules/flyway"
@@ -72,19 +82,10 @@ module "flyway" {
   log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
   dns_servers                  = module.networking.dns_servers
   container_instance_subnet_id = module.networking.container_instance_subnet_id
-  depends_on                   = [module.postgresdb]
+  depends_on                   = [module.postgresdb, module.monitoring]
 }
 
-module "monitoring" {
-  source                       = "./modules/monitoring"
-  app_name                     = var.app_name
-  resource_group_name          = azurerm_resource_group.main.name
-  location                     = var.location
-  log_analytics_sku            = var.log_analytics_sku
-  log_analytics_retention_days = var.log_analytics_retention_days
-  common_tags                  = var.common_tags
-  depends_on                   = [azurerm_resource_group.main, module.networking]
-}
+
 
 module "frontdoor" {
   source              = "./modules/frontdoor"
@@ -141,7 +142,7 @@ module "backend" {
   db_master_password                      = var.db_master_password
   postgresql_admin_username               = var.postgresql_admin_username
   api_image                               = var.api_image
-  depends_on                              = [module.frontend]
+  depends_on                              = [module.frontend, module.flyway]
 }
 
 
