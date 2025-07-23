@@ -18,13 +18,38 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_firewall_policy" {
   sku_name            = "Standard_AzureFrontDoor"
   mode                = "Prevention"
 
+  log_scrubbing {
+    enabled = true
+
+    scrubbing_rule {
+      enabled        = true
+      match_variable = "RequestHeaderNames"
+      operator       = "Equals"
+      selector       = "Authorization"
+    }
+  }
+  managed_rule {
+    type    = "DefaultRuleSet"
+    version = "1.0"
+    action  = "Log"
+  }
+  managed_rule {
+    type    = "Microsoft_BotManagerRuleSet"
+    version = "1.1"
+    action  = "Block"
+  }
+  managed_rule {
+    type    = "BotProtection"
+    version = "preview-0.1"
+    action  = "Block"
+  }
   custom_rule {
     name                           = "RateLimitByIP"
     enabled                        = true
     priority                       = 1
     type                           = "RateLimitRule"
     rate_limit_duration_in_minutes = 1
-    rate_limit_threshold           = 5
+    rate_limit_threshold           = 10
     action                         = "Block"
     match_condition {
       match_variable     = "RemoteAddr"
@@ -32,7 +57,6 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_firewall_policy" {
       negation_condition = false
       match_values       = ["0.0.0.0/0"] # Apply to all IPs
     }
-
   }
   tags = var.common_tags
   lifecycle {
