@@ -78,7 +78,7 @@ module "flyway" {
   db_master_password           = var.db_master_password
   database_name                = module.postgresdb.database_name
   flyway_image                 = var.flyway_image
-  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_id
+  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_workspaceId
   log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
   dns_servers                  = module.networking.dns_servers
   container_instance_subnet_id = module.networking.container_instance_subnet_id
