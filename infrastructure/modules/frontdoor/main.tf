@@ -22,9 +22,9 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_firewall_policy" {
     name                           = "RateLimitByIP"
     enabled                        = true
     priority                       = 1
-    type                           = "MatchRule"
+    type                           = "RateLimit"
     rate_limit_duration_in_minutes = 1
-    rate_limit_threshold           = 50
+    rate_limit_threshold           = 5
     action                         = "Block"
     match_condition {
       match_variable     = "RemoteAddr"
