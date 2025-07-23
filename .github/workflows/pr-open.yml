@@ -75,7 +75,7 @@ jobs:
     uses: ./.github/workflows/.deploy_stack.yml
     with:
       environment_name: tools
-      command: plan #TODO change it before merge
+      command: apply
       tag: manual
       app_env: tools
     secrets: inherit
