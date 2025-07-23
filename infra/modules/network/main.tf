@@ -1,3 +1,8 @@
+data "azurerm_virtual_network" "main" {
+  name                = var.vnet_name
+  resource_group_name = var.vnet_resource_group_name
+}
+
 # NSG for privateendpoints subnet
 resource "azurerm_network_security_group" "privateendpoints" {
   name                = "${var.resource_group_name}-pe-nsg"

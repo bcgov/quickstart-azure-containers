@@ -1,3 +1,22 @@
+variable "apps_service_subnet_name" {
+  description = "Name of the subnet for App Services"
+  type        = string
+  default     = "app-service-subnet"
+  nullable    = false
+}
+
+variable "common_tags" {
+  description = "Common tags to apply to all resources"
+  type        = map(string)
+  nullable    = false
+}
+
+variable "container_instance_subnet_name" {
+  description = "Name of the subnet for container instances"
+  type        = string
+  default     = "container-instance-subnet"
+  nullable    = false
+}
 
 variable "location" {
   description = "Azure region for resources"
@@ -6,9 +25,22 @@ variable "location" {
   nullable    = false
 }
 
+variable "private_endpoint_subnet_name" {
+  description = "Name of the subnet for private endpoints"
+  type        = string
+  default     = "privateendpoints-subnet"
+  nullable    = false
+}
+
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
+  nullable    = false
+}
+
+variable "vnet_address_space" {
+  type        = string
+  description = "Address space for the virtual network, it is created by platform team"
   nullable    = false
 }
 
@@ -24,42 +56,9 @@ variable "vnet_resource_group_name" {
   nullable    = false
 }
 
-variable "common_tags" {
-  description = "Common tags to apply to all resources"
-  type        = map(string)
-  nullable    = false
-}
-
 variable "web_subnet_name" {
   description = "Name of the web subnet for APIM deployment"
   type        = string
   default     = "web-subnet"
   nullable    = false
 }
-
-variable "private_endpoint_subnet_name" {
-  description = "Name of the subnet for private endpoints"
-  type        = string
-  default     = "privateendpoints-subnet"
-  nullable    = false
-}
-
-variable "container_instance_subnet_name" {
-  description = "Name of the subnet for container instances"
-  type        = string
-  default     = "container-instance-subnet"
-  nullable    = false
-}
-variable "apps_service_subnet_name" {
-  description = "Name of the subnet for App Services"
-  type        = string
-  default     = "app-service-subnet"
-  nullable    = false
-}
-
-variable "vnet_address_space" {
-  type        = string
-  description = "Address space for the virtual network, it is created by platform team"
-  nullable    = false
-}
-

@@ -9,13 +9,15 @@ variable "common_tags" {
   type        = map(string)
   nullable    = false
 }
-variable "resource_group_name" {
-  description = "The name of the resource group to create."
+
+variable "frontdoor_sku_name" {
+  description = "The SKU name for the Front Door."
   type        = string
   nullable    = false
 }
-variable "frontdoor_sku_name" {
-  description = "The SKU name for the Front Door."
+
+variable "resource_group_name" {
+  description = "The name of the resource group to create."
   type        = string
   nullable    = false
 }

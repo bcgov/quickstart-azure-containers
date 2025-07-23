@@ -3,15 +3,16 @@ variable "app_name" {
   type        = string
 }
 
+variable "common_tags" {
+  description = "Common tags to apply to all resources"
+  type        = map(string)
+  nullable    = false
+}
+
 variable "location" {
   description = "Azure region for resources"
   type        = string
   default     = "Canada Central"
-}
-
-variable "resource_group_name" {
-  description = "Name of the resource group"
-  type        = string
 }
 
 variable "log_analytics_retention_days" {
@@ -25,8 +26,8 @@ variable "log_analytics_sku" {
   type        = string
   default     = "PerGB2018"
 }
-variable "common_tags" {
-  description = "Common tags to apply to all resources"
-  type        = map(string)
-  nullable    = false
+
+variable "resource_group_name" {
+  description = "Name of the resource group"
+  type        = string
 }
