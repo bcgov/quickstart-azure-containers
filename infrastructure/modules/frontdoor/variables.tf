@@ -14,3 +14,8 @@ variable "resource_group_name" {
   type        = string
   nullable    = false
 }
+variable "frontdoor_sku_name" {
+  description = "The SKU name for the Front Door."
+  type        = string
+  nullable    = false
+}

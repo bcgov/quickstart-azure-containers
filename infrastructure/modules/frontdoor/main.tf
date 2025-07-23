@@ -15,7 +15,7 @@ resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
 resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_firewall_policy" {
   name                = "${replace(var.app_name, "/[^a-zA-Z0-9]/", "")}frontendfirewall"
   resource_group_name = var.resource_group_name
-  sku_name            = "Standard_AzureFrontDoor"
+  sku_name            = var.frontdoor_sku_name
   mode                = "Prevention"
 
   log_scrubbing {
@@ -28,20 +28,30 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_firewall_policy" {
       selector       = "Authorization"
     }
   }
-  managed_rule {
-    type    = "DefaultRuleSet"
-    version = "1.0"
-    action  = "Log"
-  }
-  managed_rule {
-    type    = "Microsoft_BotManagerRuleSet"
-    version = "1.1"
-    action  = "Block"
-  }
-  managed_rule {
-    type    = "BotProtection"
-    version = "preview-0.1"
-    action  = "Block"
+  # the 'managed_rule' code block is only supported with the "Premium_AzureFrontDoor" sku
+  dynamic "managed_rule" {
+    for_each = var.frontdoor_sku_name == "Premium_AzureFrontDoor" ? [
+      {
+        type    = "DefaultRuleSet"
+        version = "1.0"
+        action  = "Log"
+      },
+      {
+        type    = "Microsoft_BotManagerRuleSet"
+        version = "1.1"
+        action  = "Block"
+      },
+      {
+        type    = "BotProtection"
+        version = "preview-0.1"
+        action  = "Block"
+      }
+    ] : []
+    content {
+      type    = managed_rule.value.type
+      version = managed_rule.value.version
+      action  = managed_rule.value.action
+    }
   }
   custom_rule {
     name                           = "RateLimitByIP"

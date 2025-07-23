@@ -220,3 +220,8 @@ variable "app_service_sku_name_frontend" {
   type        = string
   default     = "B1" # Basic tier 
 }
+variable "frontdoor_sku_name" {
+  description = "SKU name for the Front Door"
+  type        = string
+  default     = "Standard_AzureFrontDoor"
+}

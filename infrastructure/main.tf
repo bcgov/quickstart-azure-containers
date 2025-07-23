@@ -92,6 +92,7 @@ module "frontdoor" {
   app_name            = var.app_name
   resource_group_name = azurerm_resource_group.main.name
   common_tags         = var.common_tags
+  frontdoor_sku_name  = var.frontdoor_sku_name
   depends_on          = [azurerm_resource_group.main, module.networking]
 }
 
