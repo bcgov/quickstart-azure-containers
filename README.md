@@ -16,7 +16,7 @@ A secure, compliant infrastructure template for deploying containerized applicat
 /quickstart-azure-containers
 ├── .github/                   # GitHub workflows and actions for CI/CD
 │   └── workflows/             # GitHub Actions workflow definitions
-├── infrastructure/            # Terraform code for Azure infrastructure components
+├── infra/                     # Terraform code for Azure infrastructure components
 │   ├── main.tf                # Root Terraform configuration
 │   ├── provider.tf            # Provider configuration (Azure, etc.)
 │   ├── variables.tf           # Global variables
@@ -24,9 +24,9 @@ A secure, compliant infrastructure template for deploying containerized applicat
 │   └── modules/               # Reusable Terraform modules
 │       ├── backend/           # App Service, Container Apps, or AKS backend infrastructure
 │       ├── frontend/          # Frontend hosting (e.g., Static Web Apps, App Service)
-│       ├── postgresdb/        # PostgreSQL database instance and configuration
+│       ├── postgresql/        # PostgreSQL database instance and configuration
 │       ├── flyway/            # Flyway migration runner setup
-│       ├── networking/        # Virtual network, subnets, and network security
+│       ├── network/        # Virtual network, subnets, and network security
 │       ├── monitoring/        # Azure Monitor, Log Analytics, and alerting
 │       └── frontdoor/         # Azure Front Door 
 ├── backend/                   # NestJS backend API code
