@@ -2,7 +2,6 @@
 locals {
   # Split the address space
   vnet_ip_base                   = split("/", var.vnet_address_space)[0]
-  vnet_prefix                    = tonumber(split("/", var.vnet_address_space)[1])
   octets                         = split(".", local.vnet_ip_base)
   base_ip                        = "${local.octets[0]}.${local.octets[1]}.${local.octets[2]}"
   app_service_subnet_cidr        = "${local.base_ip}.0/27"

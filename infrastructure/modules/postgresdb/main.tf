@@ -1,15 +1,15 @@
 # PostgreSQL Flexible Server
 resource "azurerm_postgresql_flexible_server" "postgresql" {
   name                = "${var.app_name}-postgresql"
-  resource_group_name = azurerm_resource_group.main.name
+  resource_group_name = var.resource_group_name
   location            = var.location
 
   administrator_login    = var.postgresql_admin_username
   administrator_password = var.db_master_password
 
   sku_name                     = var.postgresql_sku_name
-  version                      = "16"
-  zone                         = "1"
+  version                      = var.postgres_version
+  zone                         = var.zone
   storage_mb                   = var.postgresql_storage_mb
   backup_retention_days        = var.backup_retention_period
   geo_redundant_backup_enabled = var.geo_redundant_backup_enabled
@@ -52,8 +52,8 @@ resource "azurerm_postgresql_flexible_server_database" "postgres_database" {
 resource "azurerm_private_endpoint" "postgresql" {
   name                = "${var.app_name}-postgresql-pe"
   location            = var.location
-  resource_group_name = azurerm_resource_group.main.name
-  subnet_id           = data.azurerm_subnet.private_endpoint.id
+  resource_group_name = var.resource_group_name
+  subnet_id           = var.private_endpoint_subnet_id
 
   private_service_connection {
     name                           = "${var.app_name}-postgresql-psc"
