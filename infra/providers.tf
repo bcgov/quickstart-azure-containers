@@ -22,7 +22,8 @@ provider "azurerm" {
       recover_soft_deleted_key_vaults = true
     }
     resource_group {
-      prevent_deletion_if_contains_resources = false # Allow deletion of resource groups with resources, since we are in exploration, TODO: set to true later
+      #TODO: set to true later, Allow deletion of resource groups with resources, since we are in exploration, 
+      prevent_deletion_if_contains_resources = false 
     }
   }
   subscription_id = var.subscription_id
