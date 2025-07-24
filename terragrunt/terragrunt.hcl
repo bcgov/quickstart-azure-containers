@@ -4,8 +4,6 @@ terraform {
 
 locals {
   stack_prefix               = get_env("stack_prefix")
-  flyway_image               = get_env("flyway_image")
-  frontend_image             = get_env("frontend_image")
   api_image                  = get_env("api_image")
   vnet_resource_group_name   = get_env("vnet_resource_group_name") # Resource group where the VNet exists.
   vnet_name                  = get_env("vnet_name")                # Name of the existing VNet.
@@ -14,7 +12,7 @@ locals {
   azure_subscription_id      = get_env("azure_subscription_id")
   azure_tenant_id            = get_env("azure_tenant_id")
   azure_client_id            = get_env("azure_client_id")          # Azure service principal client ID.
-  storage_account_name       = "qacatfstate${local.target_env}"    # Created by initial setup script.
+  storage_account_name       = get_env("storage_account_name")     # Created by initial setup script.
   statefile_key              = "${local.stack_prefix}/${local.app_env}/terraform.tfstate"
   container_name             = "tfstate"
 }
@@ -28,7 +26,7 @@ terraform {
   backend "azurerm" {
     resource_group_name  = "${local.vnet_resource_group_name}"
     storage_account_name = "${local.storage_account_name}"
-    container_name       = "tfstate"
+    container_name       = "${local.container_name}"
     key                  = "${local.statefile_key}"
     subscription_id      = "${local.azure_subscription_id}"
     tenant_id            = "${local.azure_tenant_id}"
@@ -56,6 +54,7 @@ db_master_password        = "${get_env("db_master_password")}"
 api_image                 = "${local.api_image}"
 flyway_image              = "${local.flyway_image}"
 frontend_image            = "${local.frontend_image}"
+repo_name                 = "${get_env("repo_name")}"
 common_tags = {
   "Environment" = "${local.target_env}"
   "AppEnv"      = "${local.app_env}"
