@@ -255,7 +255,7 @@ cd frontend && npm run dev
 
 Access your local application:
 - **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:3000
+- **Backend API**: http://localhost:<PORT>
 - **Database**: localhost:5432 (postgres/default)
 
 ## 🚢 Deployment Process
@@ -271,7 +271,7 @@ The repository includes comprehensive CI/CD workflows:
 # 1. Build and test frontend/backend containers
 # 2. Run security scans and linting
 # 3. Plan Terraform infrastructure changes
-# 4. Deploy ephemeral environment for testing
+# 4. Ability to manually deploy for testing to tools
 # 5. Run end-to-end tests
 ```
 
@@ -337,7 +337,6 @@ docker run --rm \
 Optional CloudBeaver container provides web-based database management:
 
 - **Access**: `https://your-app-cloudbeaver.azurewebsites.net`
-- **Authentication**: Azure AD integrated
 - **Features**: Query editor, schema browser, data export/import
 
 ## 🔐 Security Features
@@ -520,9 +519,9 @@ terragrunt force-unlock <lock-id>
 az storage blob list --account-name your-storage --container-name tfstate
 ```
 
-#### 3. Container Deployment Issues
+#### 3. Container Deployment Issues - ACR (Azure Container Registry)
 
-**Issue**: App Service fails to pull container
+**Issue**: App Service fails to pull container (if using ACR)
 ```
 Error: Failed to pull image: unauthorized
 ```
