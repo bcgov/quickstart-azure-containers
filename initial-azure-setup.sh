@@ -1,13 +1,76 @@
 #!/bin/bash
 
-# Azure CLI Script to Configure Managed Identity for GitHub Actions OIDC
-# This script creates a user-assigned managed identity and configures federated identity credentials
-# for GitHub Actions OIDC authentication following Azure security best practices
+# =============================================================================
+# Azure Landing Zone GitHub Actions OIDC Setup Script
+# =============================================================================
+# 
+# This script automates the setup of Azure managed identity and OIDC 
+# authentication for GitHub Actions in Azure Landing Zone environments.
+#
+# Features:
+# - Creates user-assigned managed identity for GitHub Actions
+# - Configures OIDC federated identity credentials (no secrets needed!)
+# - Sets up Azure storage account for Terraform state management
+# - Optionally creates GitHub environment and secrets automatically
+# - Assigns necessary Azure roles for deployment permissions
+# 
+# Role is managed by platform team, see this link:: https://developer.gov.bc.ca/docs/default/component/public-cloud-techdocs/azure/design-build-deploy/user-management/
+# Examples:
+#   # Basic setup for development environment
+#   ./initial-azure-setup.sh -g "ABCD-dev-networking" -n "myapp-dev-identity" \
+#     -r "myorg/myapp" -e "dev" --assign-roles "DO_PuC_Azure_Live_abc123_Contributors" --create-storage
+#
+#   # Production setup with auto GitHub secrets creation
+#   ./initial-azure-setup.sh -g "ABCD-prod-networking" -n "myapp-prod-identity" \
+#     -r "myorg/myapp" -e "prod" --assign-roles "DO_PuC_Azure_Live_abc123_Contributors" \
+#     --create-storage --create-github-secrets
+# 
+# =============================================================================
+# Prerequisites
+# =============================================================================
+# 
+# Before running this script, ensure the following requirements are met:
+#
+# Azure Requirements:
+# - Azure CLI installed and logged in (run: az login)
+# - Appropriate permissions in Azure subscription (Contributor-Owner)
+#
+# GitHub Requirements (optional):
+# - GitHub CLI installed (for auto secret creation with --create-github-secrets)
+# - Repository admin permissions (if using --create-github-secrets)
+#   Required GitHub token scopes:
+#   • repo (full repository access)
+#   • admin:repo_hook (if using webhooks)
+#   • admin:org (if repository is in an organization)
+#
+# Important Post-Setup Action (If You are not a Contributor Owner in the subscription):
+# After running this setup script, a project lead must manually add the newly
+# created Azure User-Assigned Managed Identity to the appropriate Entra ID group
+# that assigns the Contributor role for this project.
+#
+# Manual Steps Required After Script Completion:
+#   1. Note the managed identity name from the script output
+#   2. In the Entra ID admin portal, locate the appropriate project group
+#   3. Add the managed identity to the group that grants Contributor access
+#   4. Verify the group assignment is complete before running GitHub Actions
+#
+# For more information on role management, see:
+# https://developer.gov.bc.ca/docs/default/component/public-cloud-techdocs/azure/design-build-deploy/user-management/
+#
+# =============================================================================
 
+# catch errors and unset variables
 set -euo pipefail
-# Array to track temporary files for cleanup
+# =============================================================================
+# Utility Functions for Script Management
+# =============================================================================
+
+# Array to track temporary files for automatic cleanup
 TEMP_FILES=()
-# Function to create temporary file and track it
+
+# ================================================================================
+# Creates a temporary file and tracks it for cleanup
+# ================================================================================
 create_temp_file() {
     local temp_file
     temp_file=$(mktemp)
@@ -15,7 +78,9 @@ create_temp_file() {
     echo "$temp_file"
 }
 
-# Cleanup function
+# ================================================================================
+# Cleanup function that removes temporary files on script exit
+# ================================================================================
 cleanup() {
     local exit_code=$?
     if [[ ${#TEMP_FILES[@]} -gt 0 ]]; then
@@ -24,86 +89,147 @@ cleanup() {
     exit $exit_code
 }
 
-# Set trap to cleanup on exit
+# Set trap to ensure cleanup runs on script exit, interrupt, or termination
 trap cleanup EXIT INT TERM
-# Color codes for output
+
+# =============================================================================
+# Logging Functions with Color Output
+# =============================================================================
+# Color codes for terminal output formatting
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m' # No Color - resets formatting
 
-# Logging functions
+# ================================================================================
+# Logging functions for consistent output formatting
+# ================================================================================
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
 
+# ================================================================================
+# Log success messages with green formatting
+# ================================================================================
 log_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
+# ================================================================================
+# Log warning messages with yellow formatting
+# ================================================================================
 log_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
+# ================================================================================
+# Log error messages with red formatting
+# ================================================================================
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Function to display usage
+# ================================================================================
+# Display comprehensive help and usage information
+# ================================================================================
 usage() {
     cat << EOF
-Usage: $0 [OPTIONS]
+=============================================================================
+Azure Landing Zone GitHub Actions OIDC Setup Script
+=============================================================================
 
-Configure managed identity for GitHub Actions OIDC authentication.
+This script configures managed identity and OIDC authentication for GitHub 
+Actions to deploy to Azure Landing Zone environments securely.
 
-Options:
-    -g, --resource-group        Resource group name (required)
-    -n, --identity-name         Managed identity name (required)
-    -r, --github-repo           GitHub repository in format owner/repo (required)
-    -e, --environment           GitHub environment name (required)
-    -ar, --assign-roles         Assign roles to the managed identity (comma-separated, optional), if not specified, no roles will be assigned 
-    --contributor-scope         Scope for Contributor role assignment (optional, defaults to resource group)
-    --additional-roles          Additional roles to assign (comma-separated, optional)
-    --storage-account           Storage account name for Terraform state (optional, default: auto-generated)
-    --storage-container         Storage container name for Terraform state (optional, default: tfstate)
-    --create-storage            Create storage account for Terraform state (flag)
-    --create-github-secrets     Create GitHub secrets for the environment (flag)
-    --dry-run                   Show what would be done without making changes
+USAGE:
+    $0 [OPTIONS]
+
+REQUIRED OPTIONS:
+    -g, --resource-group        Azure resource group name (typically Landing Zone networking RG)
+    -n, --identity-name         Name for the user-assigned managed identity
+    -r, --github-repo           GitHub repository in format: owner/repository
+    -e, --environment           GitHub environment name (dev, test, prod, etc.)
+
+OPTIONAL OPTIONS:
+    -ar, --assign-roles         Azure roles to assign (comma-separated)
+                               Example: "Contributor,Storage Account Contributor"
+                               If not specified, no roles will be assigned
+    
+    --contributor-scope         Scope for role assignment (default: subscription level)
+                               Example: "/subscriptions/xxx/resourceGroups/yyy"
+    
+    --storage-account           Storage account name for Terraform state
+                               (auto-generated based on repo/env if not specified)
+    
+    --storage-container         Storage container name (default: "tfstate")
+    
+    --create-storage            Create Azure storage account for Terraform state
+    
+    --create-github-secrets     Automatically create GitHub environment and secrets
+                               (requires GitHub CLI with repo admin access)
+    
+    --dry-run                   Preview all actions without making any changes
+    
     -h, --help                  Show this help message
 
-Examples:
-    # Basic setup for main branch
-    $0 -g myResourceGroup -n myManagedIdentity -r myorg/myrepo
+EXAMPLES:
 
-    # Setup for specific environment
-    $0 -g myResourceGroup -n myManagedIdentity -r myorg/myrepo -e production
+    # Basic development environment setup
+    $0 -g "ABCD-dev-networking" -n "myapp-dev-identity" \
+       -r "myorg/myapp" -e "dev" \
+       --assign-roles "Contributor" \
+       --create-storage
 
-    # Setup with Terraform state storage account
-    $0 -g myResourceGroup -n myManagedIdentity -r myorg/myrepo --create-storage
+    # Production setup with auto GitHub integration
+    $0 -g "ABCD-prod-networking" -n "myapp-prod-identity" \
+       -r "myorg/myapp" -e "prod" \
+       --assign-roles "Contributor,Storage Account Contributor" \
+       --create-storage --create-github-secrets
 
-    # Setup with custom storage account name
-    $0 -g myResourceGroup -n myManagedIdentity -r myorg/myrepo --create-storage --storage-account mystorageaccount
+    # Preview changes without execution (recommended first run)
+    $0 -g "ABCD-dev-networking" -n "myapp-dev-identity" \
+       -r "myorg/myapp" -e "dev" \
+       --assign-roles "Contributor" \
+       --create-storage --dry-run
 
-    # Setup with custom storage account name and auto create github secrets for the environment
-    $0 -g myResourceGroup -n myManagedIdentity -r myorg/myrepo --create-storage --storage-account mystorageaccount --create-github-secrets
+    # Custom storage account with specific scope
+    $0 -g "ABCD-test-networking" -n "myapp-test-identity" \
+       -r "myorg/myapp" -e "test" \
+       --assign-roles "Contributor" \
+       --contributor-scope "/subscriptions/xxx/resourceGroups/ABCD-test-rg" \
+       --create-storage --storage-account "myapptesttfstate"
 
-    # Dry run to see what would be done
-    $0 -g myResourceGroup -n myManagedIdentity -r myorg/myrepo --dry-run
+NOTES:
+    • Resource group should be your Azure Landing Zone networking resource group
+    • GitHub repository format must be: owner/repository (e.g., bcgov/myapp)
+    • Environment names are case-sensitive and should match your GitHub environments
+    • Storage account names are auto-generated as: tfstate{repo}{env} (sanitized)
+    • Use --dry-run first to preview what will be created
+    • Requires Azure CLI logged in and GitHub CLI (optional) for auto-secrets
+
+=============================================================================
 EOF
 }
 
-# Default values
-GITHUB_ENVIRONMENT=""
-CONTRIBUTOR_SCOPE=""
-ADDITIONAL_ROLES=""
-STORAGE_ACCOUNT="" # Will be generated based on repo name
-STORAGE_CONTAINER="tfstate"
-CREATE_STORAGE=false
-DRY_RUN=false
-CREATE_GITHUB_SECRETS=false
-ASSIGN_ROLES=""
-# Parse command line arguments
+# =============================================================================
+# Script Configuration and Default Values
+# =============================================================================
+
+# Default values for optional parameters
+GITHUB_ENVIRONMENT=""              # Will be set by user input
+CONTRIBUTOR_SCOPE=""               # Defaults to subscription level if not specified
+ADDITIONAL_ROLES=""               # Additional roles beyond the main ones
+STORAGE_ACCOUNT=""                # Auto-generated based on repo name if not specified
+STORAGE_CONTAINER="tfstate"       # Standard container name for Terraform state
+CREATE_STORAGE=false             # Whether to create storage account
+DRY_RUN=false                   # Whether to preview changes only
+CREATE_GITHUB_SECRETS=false     # Whether to auto-create GitHub secrets
+ASSIGN_ROLES=""                 # Roles to assign to the managed identity
+
+# =============================================================================
+# Command Line Argument Parsing
+# =============================================================================
 while [[ $# -gt 0 ]]; do
     case $1 in
         -g|--resource-group)
@@ -166,19 +292,26 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validate required parameters
+# Validate that all required parameters are provided
 if [[ -z "${RESOURCE_GROUP:-}" || -z "${IDENTITY_NAME:-}" || -z "${GITHUB_REPO:-}" || -z "${GITHUB_ENVIRONMENT:-}" ]]; then
-    log_error "Required parameters missing. Use -h for help."
+    log_error "Required parameters missing!"
+    log_error "Missing one or more of: --resource-group, --identity-name, --github-repo, --environment"
+    echo ""
+    log_info "Use -h or --help to see usage examples"
     exit 1
 fi
 
-# Validate GitHub repository format
+# Validate GitHub repository format (must be owner/repository)
 if [[ ! "$GITHUB_REPO" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]; then
-    log_error "Invalid GitHub repository format. Expected: owner/repo"
+    log_error "Invalid GitHub repository format!"
+    log_error "Expected format: owner/repository (e.g., 'myorg/myapp')"
+    log_error "Received: '$GITHUB_REPO'"
     exit 1
 fi
 
-# Function to execute commands with dry-run support
+# ================================================================================
+# Execute commands with dry-run support and proper logging
+# ================================================================================
 execute_command() {
     local cmd="$1"
     local description="$2"
@@ -191,84 +324,118 @@ execute_command() {
     else
         echo "    Executing: $cmd"
         eval "$cmd"
-        sleep 1 # Adding a small delay for readability
-        echo
+        sleep 1 # Small delay for better readability and Azure propagation
         echo
         return $?
     fi
 }
 
-# Function to generate randomized storage account name
+# ================================================================================
+# Generate a compliant Azure storage account name from repo and environment
+# Azure storage account names must be 3-24 chars, lowercase letters and numbers only
+# ================================================================================
 generate_storage_account_name() {
+    # Only generate if not already specified by user
     if [[ -z "$STORAGE_ACCOUNT" ]]; then
-        # Extract and sanitize repo name and environment name
+        # Extract repository name (after the slash) and sanitize
         local repo_name=$(echo "$GITHUB_REPO" | cut -d'/' -f2 | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+        # Sanitize environment name  
         local env_name=$(echo "$GITHUB_ENVIRONMENT" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
 
-        # Compose base name: tfstate + repo + env
+        # Create base name: tfstate + repo + environment
+        # Example: tfstate + myapp + dev = tfstatemyappdev
         local base_name="tfstate${repo_name}${env_name}"
 
-        # Azure storage account name max length is 24, min is 3
-        # Truncate if necessary
+        # Azure storage account name constraints: 3-24 characters, lowercase + numbers only
         if [[ ${#base_name} -gt 24 ]]; then
-            base_name="${base_name:0:24}"
+            base_name="${base_name:0:24}"  # Truncate to 24 chars max
         fi
 
         STORAGE_ACCOUNT="$base_name"
 
-        # Final validation to ensure only lowercase letters and numbers
+        # Final sanitization to ensure compliance
         STORAGE_ACCOUNT=$(echo "$STORAGE_ACCOUNT" | sed 's/[^a-z0-9]//g')
 
-        # Ensure minimum length
+        # Ensure minimum length requirement (3 chars)
         if [[ ${#STORAGE_ACCOUNT} -lt 3 ]]; then
             STORAGE_ACCOUNT="${STORAGE_ACCOUNT}abc"
         fi
 
-        log_info "Generated storage account name: $STORAGE_ACCOUNT (based on repo: $repo_name, environment: $env_name)"
+        log_info "Generated storage account name: '$STORAGE_ACCOUNT'"
+        log_info "    Based on repo: '$repo_name', environment: '$env_name'"
+    else
+        log_info "Using provided storage account name: '$STORAGE_ACCOUNT'"
     fi
 }
 
-# Function to check if Azure CLI is installed and user is logged in
+# ================================================================================
+# Verify that required tools are installed and user is authenticated
+# ================================================================================
 check_prerequisites() {
     log_info "Checking prerequisites..."
     
-    # Check if Azure CLI is installed
+    # Verify Azure CLI is installed
     if ! command -v az &> /dev/null; then
-        log_error "Azure CLI is not installed. Please install it from https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
+        log_error "Azure CLI is not installed!"
+        log_error "Please install from: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
         exit 1
     fi
     
-    # Check if user is logged in
+    # Verify user is logged into Azure CLI
     if ! az account show &> /dev/null; then
-        log_error "Not logged in to Azure. Please run 'az login' or 'az login --use-device-code'first."
+        log_error "Not logged into Azure CLI!"
+        log_error "Please run: 'az login' or 'az login --use-device-code'"
         exit 1
     fi
+
+    # validate whether current logged-in user session is still valid
+    if ! az account show --query "id" --output tsv &> /dev/null; then
+        log_error "Current Azure session is invalid or expired!"
+        log_error "Please re-authenticate using: 'az login' or 'az login --use-device-code'"
+        exit 1
+    fi
+
+    
+    # Display current Azure context
+    local current_sub=$(az account show --query "name" --output tsv 2>/dev/null || echo "Unknown")
+    local current_user=$(az account show --query "user.name" --output tsv 2>/dev/null || echo "Unknown")
+    log_info "Azure CLI authenticated as: $current_user"
+    log_info "Current subscription: $current_sub"
     
     log_success "Prerequisites check passed"
 }
 
-
-
-# Function to check if resource group exists
+# ================================================================================
+# Verify that the specified Azure resource group exists and is accessible
+# ================================================================================
 check_resource_group() {
     log_info "Checking if resource group '$RESOURCE_GROUP' exists..."
     
     if [[ "$DRY_RUN" == "false" ]]; then
         if ! az group show --name "$RESOURCE_GROUP" &> /dev/null; then
-            log_error "Resource group '$RESOURCE_GROUP' does not exist. Please create it first or use an existing one."
+            log_error "Resource group '$RESOURCE_GROUP' does not exist or is not accessible!"
+            log_error "Please verify:"
+            log_error "  1. Resource group name is correct"
+            log_error "  2. You have access to the resource group"
+            log_error "  3. You're in the correct Azure subscription"
             exit 1
         fi
-        log_success "Resource group '$RESOURCE_GROUP' exists"
+        
+        # Display resource group location for confirmation
+        local rg_location=$(az group show --name "$RESOURCE_GROUP" --query "location" --output tsv)
+        log_success "Resource group '$RESOURCE_GROUP' found in $rg_location"
     else
-        log_info "[DRY-RUN] Would check if resource group '$RESOURCE_GROUP' exists"
+        log_info "[DRY-RUN] Would verify resource group '$RESOURCE_GROUP' exists"
     fi
 }
 
-# Function to create user-assigned managed identity
+# ================================================================================
+# Create user-assigned managed identity for GitHub Actions authentication
+# ================================================================================
 create_managed_identity() {
     log_info "Creating user-assigned managed identity '$IDENTITY_NAME'..."
     
-    # Check if identity already exists
+    # Check if the identity already exists to make this operation idempotent
     if [[ "$DRY_RUN" == "false" ]]; then
         if az identity show --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
             log_warning "Managed identity '$IDENTITY_NAME' already exists. Skipping creation."
@@ -282,62 +449,80 @@ create_managed_identity() {
     log_success "Managed identity '$IDENTITY_NAME' created successfully"
 }
 
-# Function to get managed identity details
+
+# ================================================================================
+# Retrieve the important details from the managed identity for later use
+# ================================================================================
 get_identity_details() {
     log_info "Retrieving managed identity details..."
     
     if [[ "$DRY_RUN" == "false" ]]; then
+        # Extract the key identifiers needed for GitHub Actions and role assignments
         CLIENT_ID=$(az identity show --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" --query "clientId" --output tsv)
         PRINCIPAL_ID=$(az identity show --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" --query "principalId" --output tsv)
         IDENTITY_ID=$(az identity show --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" --query "id" --output tsv)
         
-        log_info "Client ID: $CLIENT_ID"
-        log_info "Principal ID: $PRINCIPAL_ID"
-        log_info "Identity ID: $IDENTITY_ID"
+        log_info "Client ID (for GitHub Actions): $CLIENT_ID"
+        log_info "Principal ID (for role assignments): $PRINCIPAL_ID"
+        log_info "Full Identity Resource ID: $IDENTITY_ID"
     else
         log_info "[DRY-RUN] Would retrieve managed identity details"
+        # Set placeholder values for dry-run mode
         CLIENT_ID="[DRY-RUN-CLIENT-ID]"
         PRINCIPAL_ID="[DRY-RUN-PRINCIPAL-ID]"
         IDENTITY_ID="[DRY-RUN-IDENTITY-ID]"
     fi
 }
 
-# Function to assign roles to managed identity
+# ================================================================================
+# Assign specified Azure roles to the managed identity for deployment permissions
+# ================================================================================
 assign_roles() {
+    # Skip role assignment if no roles specified
     if [[ -z "$ASSIGN_ROLES" ]]; then
         log_info "No roles specified for assignment. Skipping role assignment."
+        log_info "You can manually assign roles later or re-run with --assign-roles parameter"
         return 0
     fi
-    log_info "Assigning roles to managed identity..."
     
-    # Set default contributor scope if not provided
+    log_info "Assigning Azure roles to managed identity..."
+    
+    # Set default scope to subscription level if not provided
     if [[ -z "$CONTRIBUTOR_SCOPE" ]]; then
         if [[ "$DRY_RUN" == "false" ]]; then
             CONTRIBUTOR_SCOPE="/subscriptions/$(az account show --query "id" --output tsv)"
         else
-            CONTRIBUTOR_SCOPE="[DRY-RUN-RESOURCE-GROUP-SCOPE]"
+            CONTRIBUTOR_SCOPE="[DRY-RUN-SUBSCRIPTION-SCOPE]"
         fi
     fi
 
-    log_info "Assigning roles to managed identity '$IDENTITY_NAME' in resource group '$RESOURCE_GROUP'..."
+    log_info "Role assignment scope: $CONTRIBUTOR_SCOPE"
+    
+    # Split comma-separated roles and assign each one
     local roles_list=(${ASSIGN_ROLES//,/ })
     for role in "${roles_list[@]}"; do
-        # check if role already assigned to make it idempotent
+        log_info "Processing role: '$role'"
+        
+        # Check if role is already assigned to make operation idempotent
         if [[ "$DRY_RUN" == "false" ]]; then
-            if az role assignment list --assignee "$CLIENT_ID" --role "$role" --scope "$CONTRIBUTOR_SCOPE" --query "length(@)" --output tsv | grep -q '0'; then
-                log_info "No existing role assignment found for role '$role'"
-            else
-                log_warning "Role '$role' already assigned to managed identity. Skipping assignment."
+            local existing_count=$(az role assignment list --assignee "$CLIENT_ID" --role "$role" --scope "$CONTRIBUTOR_SCOPE" --query "length(@)" --output tsv)
+            if [[ "$existing_count" -gt 0 ]]; then
+                log_warning "Role '$role' already assigned to managed identity. Skipping."
                 continue
             fi
         fi
-        execute_command "az role assignment create --assignee '$CLIENT_ID' --role '$role' --scope '$CONTRIBUTOR_SCOPE'" "Assigning '$role' role to managed identity"
+        
+        execute_command "az role assignment create --assignee '$CLIENT_ID' --role '$role' --scope '$CONTRIBUTOR_SCOPE'" \
+            "Assigning '$role' role to managed identity"
     done
     
-    log_success "Role assignments completed"
+    log_success "Role assignments completed successfully"
 }
 
-# Function to create federated identity credentials
+
+# ================================================================================
+# Create federated identity credentials for GitHub Actions OIDC authentication
+# ================================================================================
 create_federated_credentials() {
     log_info "Creating federated identity credentials for GitHub Actions OIDC..."
     
@@ -372,7 +557,10 @@ create_federated_credentials() {
     log_success "Federated identity credentials created successfully"
 }
 
-# Function to display GitHub Actions configuration
+
+# ================================================================================
+# Display GitHub Actions configuration information for manual setup
+# ================================================================================
 display_github_actions_config() {
     log_info "GitHub Actions Configuration:"
     
@@ -417,7 +605,9 @@ Managed Identity Details:
 EOF
 }
 
-# Function to create storage account for Terraform state
+# ================================================================================
+# Create storage account for Terraform state management
+# ================================================================================
 create_terraform_storage() {
     if [[ "$CREATE_STORAGE" != "true" ]]; then
         return 0
@@ -477,7 +667,9 @@ create_terraform_storage() {
     log_success "Storage account '$STORAGE_ACCOUNT' created successfully"
 }
 
-# Function to assign storage-specific roles to managed identity
+# ================================================================================
+# Assign storage-specific roles to managed identity for Terraform state access
+# ================================================================================
 assign_storage_roles() {
     if [[ "$CREATE_STORAGE" != "true" ]]; then
         return 0
@@ -518,7 +710,10 @@ assign_storage_roles() {
     log_success "Storage roles assigned successfully"
 }
 
+
+# ================================================================================
 # Function to display Terraform backend configuration
+# ================================================================================
 display_terraform_backend_config() {
     if [[ "$CREATE_STORAGE" != "true" ]]; then
         return 0
@@ -586,30 +781,32 @@ Storage Account Details:
 EOF
 }
 
-# Function to verify setup
+# ================================================================================
+# Verify that all components were created successfully
+# ================================================================================
 verify_setup() {
     log_info "Verifying setup..."
     
     if [[ "$DRY_RUN" == "false" ]]; then
         # Check if identity exists
         if az identity show --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-            log_success "✓ Managed identity exists"
+            log_success "Managed identity exists"
         else
-            log_error "✗ Managed identity not found"
+            log_error "Managed identity not found"
             return 1
         fi
         
         # Check if federated credential exists
         if az identity federated-credential show --name "$CREDENTIAL_NAME" --identity-name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-            log_success "✓ Federated credential exists"
+            log_success "Federated credential exists"
         else
-            log_error "✗ Federated credential not found"
+            log_error "Federated credential not found"
             return 1
         fi
         # Check role assignments
         ROLE_COUNT=$(az role assignment list --assignee "$CLIENT_ID" --scope "$CONTRIBUTOR_SCOPE" --query "length(@)" --output tsv)
         if [[ "$ROLE_COUNT" -gt 0 ]]; then
-            log_success "✓ Role assignments configured ($ROLE_COUNT roles)"
+            log_success "Role assignments configured ($ROLE_COUNT roles)"
         else
             log_warning "! No role assignments found"
         fi
@@ -617,17 +814,17 @@ verify_setup() {
         # Check storage account if created
         if [[ "$CREATE_STORAGE" == "true" ]]; then
             if az storage account show --name "$STORAGE_ACCOUNT" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-                log_success "✓ Storage account exists"
+                log_success "Storage account exists"
                 
                 # Check if container exists
                 if az storage container show --name "$STORAGE_CONTAINER" --account-name "$STORAGE_ACCOUNT" --auth-mode login &> /dev/null; then
-                    log_success "✓ Storage container exists"
+                    log_success "Storage container exists"
                 else
-                    log_error "✗ Storage container not found"
+                    log_error "Storage container not found"
                     return 1
                 fi
             else
-                log_error "✗ Storage account not found"
+                log_error "Storage account not found"
                 return 1
             fi
         fi
@@ -637,6 +834,10 @@ verify_setup() {
     
     log_success "Setup verification completed"
 }
+
+# ================================================================================
+# Create GitHub environment and secrets automatically using GitHub CLI
+# ================================================================================
 create_github_secrets(){
     # check if github cli is installed
     if ! command -v gh &> /dev/null; then
@@ -645,7 +846,7 @@ create_github_secrets(){
     fi
     # check if admin access to specified repository is available
     if ! gh repo view "$GITHUB_REPO" &> /dev/null; then
-        log_error "✗ Invalid access to repository: $GITHUB_REPO"
+        log_error "Invalid access to repository: $GITHUB_REPO"
         return 1
     fi
     
@@ -716,52 +917,76 @@ EOF
 
 }
 
-# Main execution
+# ================================================================================
+# Main function that orchestrates the entire setup process
+# ================================================================================
 main() {
-    log_info "Starting GitHub Actions OIDC setup for Azure..."
+    log_info "Starting GitHub Actions OIDC setup for Azure Landing Zone..."
     log_info "Repository: $GITHUB_REPO"
     log_info "Environment: $GITHUB_ENVIRONMENT"
-
+    log_info "Resource Group: $RESOURCE_GROUP"
+    log_info "Identity Name: $IDENTITY_NAME"
+    
+    # Step 1: Validate prerequisites and environment
     check_prerequisites
     check_resource_group
 
-    # Generate storage account name if creating storage
+    # Step 2: Generate storage account name if storage creation is requested
     if [[ "$CREATE_STORAGE" == "true" ]]; then
         generate_storage_account_name
-        log_info "Creating Terraform state storage: $STORAGE_ACCOUNT"
+        log_info "Will create Terraform state storage: $STORAGE_ACCOUNT"
     fi
 
+    # Step 3: Create and configure the managed identity
     create_managed_identity
     get_identity_details
 
-    # Add a short delay to allow Azure to propagate the new identity before assigning roles
+    # Step 4: Allow time for Azure AD to propagate the new identity
+    # This prevents race conditions when assigning roles immediately after creation
     if [[ "$DRY_RUN" == "false" ]]; then
-        log_info "Waiting 10 seconds for managed identity propagation..."
+        log_info "Waiting 10 seconds for managed identity propagation in Azure AD..."
         sleep 10
     fi
 
+    # Step 5: Assign Azure roles for deployment permissions
     assign_roles
+    
+    # Step 6: Create Terraform state storage if requested
     create_terraform_storage
     assign_storage_roles
+    
+    # Step 7: Configure OIDC federated identity credentials for GitHub Actions
     create_federated_credentials
+    
+    # Step 8: Automatically create GitHub environment and secrets if requested
     create_github_secrets
+    
+    # Step 9: Verify the complete setup
     verify_setup
 
+    # Step 10: Display configuration information (only if not auto-creating secrets)
     if [[ "$DRY_RUN" == "false" ]]; then
-        # Display configurations only if create github secrets is false
         if [[ "$CREATE_GITHUB_SECRETS" == "false" ]]; then
             display_github_actions_config
             display_terraform_backend_config
         fi
     fi
 
+    # Final success message
     log_success "GitHub Actions OIDC setup completed successfully!"
-
+    
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "This was a dry run. No actual changes were made."
         log_info "Run the script without --dry-run to apply the changes."
+    else
+        log_info "Your GitHub Actions workflows can now authenticate to Azure using OIDC!"
+        if [[ "$CREATE_GITHUB_SECRETS" == "true" ]]; then
+            log_info "GitHub environment '$GITHUB_ENVIRONMENT' and secrets have been configured automatically."
+        else
+            log_info "Copy the displayed configuration to your GitHub repository secrets."
+        fi
     fi
 }
 
-# Run main function
+# Execute the main function with all provided arguments
 main "$@"
