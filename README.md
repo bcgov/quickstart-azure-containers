@@ -255,7 +255,7 @@ cd frontend && npm run dev
 
 Access your local application:
 - **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:<PORT>
+- **Backend API**: http://localhost:3000 (default; see `docker-compose.yml` for overrides)
 - **Database**: localhost:5432 (postgres/default)
 
 ## 🚢 Deployment Process
