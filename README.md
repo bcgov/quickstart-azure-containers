@@ -1,4 +1,9 @@
-# 🚀 Quickstart for Azure Landing Zone Container Deployments
+# 🚀 Quickstart for Azure Landing Zone
+
+## ⚠️ 🚧 **WORK IN PROGRESS - DRAFT** 🚧 ⚠️
+
+> **🚨 Important Notice**: This template is currently under active development and should be considered a **DRAFT** version. Features, configurations, and documentation may change without notice. Use in production environments is **not recommended** at this time.
+
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Lifecycle:Stable](https://img.shields.io/badge/Lifecycle-Stable-97ca00)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
