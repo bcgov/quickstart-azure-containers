@@ -16,8 +16,8 @@ resource "azurerm_container_group" "flyway" {
   container {
     name   = "flyway"
     image  = var.flyway_image
-    cpu    = "1"
-    memory = "1.5"
+    cpu    = "0.1"
+    memory = "0.3"
     environment_variables = {
       FLYWAY_DEFAULT_SCHEMA  = "app"
       FLYWAY_CONNECT_RETRIES = "10"
@@ -38,7 +38,7 @@ resource "azurerm_container_group" "flyway" {
   }
   provisioner "local-exec" {
     command     = <<EOT
-            TIMEOUT=300
+            TIMEOUT=900
             INTERVAL=10
             ELAPSED=0
             while [ $ELAPSED -lt $TIMEOUT ]; do
