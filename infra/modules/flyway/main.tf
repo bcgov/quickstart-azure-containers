@@ -17,7 +17,7 @@ resource "azurerm_container_group" "flyway" {
     name   = "flyway"
     image  = var.flyway_image
     cpu    = "0.1"
-    memory = ".15"
+    memory = "0.3"
     environment_variables = {
       FLYWAY_DEFAULT_SCHEMA  = "app"
       FLYWAY_CONNECT_RETRIES = "10"
