@@ -25,25 +25,33 @@ export function initializeTelemetry(): void {
   }
 
   try {
+    // Create resource with detailed service information
     const resource = resourceFromAttributes({
-      ["SERVICE_NAME"]: "qs-azure-nest-api",
-      ["SERVICE_VERSION"]: "1.0.0",
-      ["DEPLOYMENT_ENVIRONMENT"]: process.env.NODE_ENV || "development",
+      SERVICE_NAME: "qs-azure-nest-api",
+      SERVICE_VERSION: "1.0.0",
+      SERVICE_INSTANCE_ID: process.env.WEBSITE_INSTANCE_ID || "local",
+      DEPLOYMENT_ENVIRONMENT: process.env.NODE_ENV || "development",
+      CLOUD_PROVIDER: "azure",
+      CLOUD_PLATFORM: "azure_app_service",
     });
 
-    // Initialize Azure Monitor with OpenTelemetry
+    // Initialize Azure Monitor with explicit configuration
     const options: AzureMonitorOpenTelemetryOptions = {
       azureMonitorExporterOptions: {
         connectionString: connectionString,
+        // Disable retries for testing to see immediate results
+        disableOfflineStorage: false,
+        storageDirectory: "/tmp/Microsoft/AzureMonitor",
       },
       resource: resource,
-      samplingRatio: 1.0, // Ensure 100% sampling for troubleshooting
+      samplingRatio: 1.0, // 100% sampling for troubleshooting
       instrumentationOptions: {
-        // Instrumentations generating traces
+        // Enable all relevant instrumentations
         azureSdk: { enabled: true },
-        http: { enabled: true },
+        http: {
+          enabled: true,
+        },
         postgreSql: { enabled: true },
-        // Instrumentations generating logs
         winston: { enabled: true },
       },
       enableLiveMetrics: true,
@@ -51,12 +59,12 @@ export function initializeTelemetry(): void {
       enablePerformanceCounters: true,
     };
 
+    console.log("Initializing Azure Monitor with options:");
+    console.log(options);
+
     useAzureMonitor(options);
 
     console.log("Azure Monitor OpenTelemetry initialized successfully");
-    console.log("Sampling Ratio:", options.samplingRatio);
-    console.log("Live Metrics Enabled:", options.enableLiveMetrics);
-    console.log("Standard Metrics Enabled:", options.enableStandardMetrics);
     console.log("===============================");
   } catch (error) {
     console.error("Failed to initialize Azure Monitor OpenTelemetry:", error);
