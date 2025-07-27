@@ -184,6 +184,31 @@ resource "azurerm_network_security_group" "app_service" {
     source_port_range          = "*"
     destination_port_ranges    = ["80", "443"]
   }
+# In your app_service NSG, add these security rules:
+
+security_rule {
+  name                       = "AllowApplicationInsights"
+  priority                   = 115
+  direction                  = "Outbound"
+  access                     = "Allow"
+  protocol                   = "Tcp"
+  source_address_prefix      = local.app_service_subnet_cidr
+  destination_address_prefix = "AzureMonitor"
+  source_port_range          = "*"
+  destination_port_range     = "443"
+}
+
+security_rule {
+  name                       = "AllowAzureCloud"
+  priority                   = 116
+  direction                  = "Outbound"
+  access                     = "Allow"
+  protocol                   = "Tcp"
+  source_address_prefix      = local.app_service_subnet_cidr
+  destination_address_prefix = "AzureCloud"
+  source_port_range          = "*"
+  destination_port_range     = "443"
+}
   tags = var.common_tags
   lifecycle {
     ignore_changes = [
