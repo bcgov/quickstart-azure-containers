@@ -73,19 +73,22 @@ resource "azurerm_linux_web_app" "backend" {
     }
   }
   app_settings = {
-    NODE_ENV                              = var.node_env
-    PORT                                  = "80"
-    WEBSITES_PORT                         = "3000"
-    DOCKER_ENABLE_CI                      = "true"
-    APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    POSTGRES_HOST                         = var.postgres_host
-    POSTGRES_USER                         = var.postgresql_admin_username
-    POSTGRES_PASSWORD                     = var.db_master_password
-    POSTGRES_DATABASE                     = var.database_name
-    WEBSITE_SKIP_RUNNING_KUDUAGENT        = "false"
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
-    WEBSITE_ENABLE_SYNC_UPDATE_SITE       = "1"
-    FORCE_REDEPLOY                        = null_resource.trigger_backend.id
+    NODE_ENV                                          = var.node_env
+    PORT                                              = "80"
+    WEBSITES_PORT                                     = "3000"
+    DOCKER_ENABLE_CI                                  = "true"
+    APPLICATIONINSIGHTS_CONNECTION_STRING             = var.appinsights_connection_string
+    APPLICATIONINSIGHTS_INSTRUMENTATION_LOGGING_LEVEL = "ALL"
+    APPLICATIONINSIGHTS_LOG_DESTINATION               = "file+console"
+    APPLICATIONINSIGHTS_LOGDIR                        = "/tmp"
+    POSTGRES_HOST                                     = var.postgres_host
+    POSTGRES_USER                                     = var.postgresql_admin_username
+    POSTGRES_PASSWORD                                 = var.db_master_password
+    POSTGRES_DATABASE                                 = var.database_name
+    WEBSITE_SKIP_RUNNING_KUDUAGENT                    = "false"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE               = "false"
+    WEBSITE_ENABLE_SYNC_UPDATE_SITE                   = "1"
+    FORCE_REDEPLOY                                    = null_resource.trigger_backend.id
   }
   logs {
     detailed_error_messages = true
