@@ -86,7 +86,6 @@ resource "azurerm_linux_web_app" "backend" {
     POSTGRES_USER                                     = var.postgresql_admin_username
     POSTGRES_PASSWORD                                 = var.db_master_password
     POSTGRES_DATABASE                                 = var.database_name
-    WEBSITE_SKIP_RUNNING_KUDUAGENT                    = "true"
     WEBSITES_ENABLE_APP_SERVICE_STORAGE               = "false"
     WEBSITE_ENABLE_SYNC_UPDATE_SITE                   = "1"
     FORCE_REDEPLOY                                    = null_resource.trigger_backend.id
