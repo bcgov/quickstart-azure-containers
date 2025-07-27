@@ -1,4 +1,7 @@
-import { useAzureMonitor } from "@azure/monitor-opentelemetry";
+import {
+  AzureMonitorOpenTelemetryOptions,
+  useAzureMonitor,
+} from "@azure/monitor-opentelemetry";
 
 /**
  * Initialize Azure Monitor OpenTelemetry
@@ -17,7 +20,12 @@ export function initializeTelemetry(): void {
 
   try {
     // Initialize Azure Monitor with OpenTelemetry
-    useAzureMonitor();
+    const options: AzureMonitorOpenTelemetryOptions = {
+      azureMonitorExporterOptions: {
+        connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
+      },
+    };
+    useAzureMonitor(options);
 
     console.log("Azure Monitor OpenTelemetry initialized successfully");
   } catch (error) {
