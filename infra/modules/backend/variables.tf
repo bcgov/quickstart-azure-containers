@@ -34,12 +34,6 @@ variable "appinsights_connection_string" {
   nullable    = false
 }
 
-variable "appinsights_instrumentation_key" {
-  description = "The Application Insights instrumentation key."
-  type        = string
-  nullable    = false
-}
-
 variable "backend_autoscale_enabled" {
   description = "Whether autoscaling is enabled for the backend App Service plan."
   type        = bool

@@ -78,7 +78,6 @@ resource "azurerm_linux_web_app" "backend" {
     WEBSITES_PORT                         = "3000"
     DOCKER_ENABLE_CI                      = "true"
     APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
     POSTGRES_HOST                         = var.postgres_host
     POSTGRES_USER                         = var.postgresql_admin_username
     POSTGRES_PASSWORD                     = var.db_master_password
@@ -249,7 +248,6 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
     WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
     DOCKER_ENABLE_CI                      = "true"
     APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
     WEBSITES_PORT                         = "8978"
     PORT                                  = "8978"
     CB_SERVER_NAME                        = var.app_name

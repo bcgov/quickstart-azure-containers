@@ -138,7 +138,6 @@ module "backend" {
   app_service_sku_name_backend            = var.app_service_sku_name_backend
   app_service_subnet_id                   = module.network.app_service_subnet_id
   appinsights_connection_string           = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key         = module.monitoring.appinsights_instrumentation_key
   backend_subnet_id                       = module.network.app_service_subnet_id
   common_tags                             = var.common_tags
   database_name                           = var.database_name
