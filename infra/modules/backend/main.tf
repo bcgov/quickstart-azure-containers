@@ -20,13 +20,11 @@ resource "azurerm_linux_web_app" "backend" {
   https_only                = true
   virtual_network_subnet_id = var.backend_subnet_id
   identity {
-    type         = "UserAssigned"
-    identity_ids = [var.user_assigned_identity_id]
+    type         = "SystemAssigned"
   }
   site_config {
     always_on                                     = true
     container_registry_use_managed_identity       = true
-    container_registry_managed_identity_client_id = var.user_assigned_identity_client_id
     minimum_tls_version                           = "1.3"
     health_check_path                             = "/api/health"
     health_check_eviction_time_in_min             = 2
@@ -229,14 +227,12 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
   service_plan_id           = azurerm_service_plan.backend.id
   virtual_network_subnet_id = var.backend_subnet_id
   https_only                = true
-  identity {
-    type         = "UserAssigned"
-    identity_ids = [var.user_assigned_identity_id]
+identity {
+    type = "SystemAssigned"
   }
   site_config {
     always_on                                     = true
     container_registry_use_managed_identity       = true
-    container_registry_managed_identity_client_id = var.user_assigned_identity_client_id
     minimum_tls_version                           = "1.3"
     health_check_path                             = "/"
     health_check_eviction_time_in_min             = 10

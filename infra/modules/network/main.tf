@@ -184,7 +184,6 @@ resource "azurerm_network_security_group" "app_service" {
     source_port_range          = "*"
     destination_port_ranges    = ["80", "443"]
   }
-  # In your app_service NSG, add these security rules:
 
   security_rule {
     name                       = "AllowApplicationInsights"

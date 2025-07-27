@@ -21,13 +21,11 @@ resource "azurerm_linux_web_app" "frontend" {
   virtual_network_subnet_id = var.frontend_subnet_id
   https_only                = true
   identity {
-    type         = "UserAssigned"
-    identity_ids = [var.user_assigned_identity_id]
+    type         = "SystemAssigned"
   }
   site_config {
     always_on                                     = true
     container_registry_use_managed_identity       = true
-    container_registry_managed_identity_client_id = var.user_assigned_identity_client_id
     minimum_tls_version                           = "1.3"
     health_check_path                             = "/"
     health_check_eviction_time_in_min             = 2
@@ -83,24 +81,7 @@ resource "azurerm_linux_web_app" "frontend" {
 
 }
 
-# Frontend Diagnostics
-resource "azurerm_monitor_diagnostic_setting" "frontend_diagnostics" {
-  name                       = "${var.app_name}-frontend-diagnostics"
-  target_resource_id         = azurerm_linux_web_app.frontend.id
-  log_analytics_workspace_id = var.log_analytics_workspace_id
-  enabled_log {
-    category = "AppServiceHTTPLogs"
-  }
-  enabled_log {
-    category = "AppServiceConsoleLogs"
-  }
-  enabled_log {
-    category = "AppServiceAppLogs"
-  }
-  enabled_log {
-    category = "AppServicePlatformLogs"
-  }
-}
+
 
 resource "azurerm_cdn_frontdoor_endpoint" "frontend_fd_endpoint" {
   name                     = "${var.repo_name}-${var.app_env}-frontend-fd"

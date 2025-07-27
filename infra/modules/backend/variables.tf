@@ -144,14 +144,3 @@ variable "resource_group_name" {
   nullable    = false
 }
 
-variable "user_assigned_identity_client_id" {
-  description = "The client ID of the user-assigned managed identity for the backend."
-  type        = string
-  nullable    = false
-}
-
-variable "user_assigned_identity_id" {
-  description = "The resource ID of the user-assigned managed identity for the backend."
-  type        = string
-  nullable    = false
-}
