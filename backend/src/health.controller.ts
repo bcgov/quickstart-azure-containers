@@ -157,7 +157,7 @@ export class HealthController {
         ver: 1,
         name: "Microsoft.ApplicationInsights.Event",
         time: new Date().toISOString(),
-        iKey: "eb10d1b7-99e5-4f88-a5c7-2c5562d7d886",
+        iKey: process.env.APPINSIGHTS_INSTRUMENTATIONKEY,
         data: {
           baseType: "EventData",
           baseData: {
