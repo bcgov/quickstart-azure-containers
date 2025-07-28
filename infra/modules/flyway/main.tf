@@ -7,12 +7,6 @@ resource "azurerm_container_group" "flyway" {
   dns_config {
     nameservers = var.dns_servers
   }
-  diagnostics {
-    log_analytics {
-      workspace_id  = var.log_analytics_workspace_id
-      workspace_key = var.log_analytics_workspace_key
-    }
-  }
   container {
     name   = "flyway"
     image  = var.flyway_image

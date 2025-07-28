@@ -47,17 +47,6 @@ variable "location" {
   nullable    = false
 }
 
-variable "log_analytics_workspace_id" {
-  description = "The resource ID of the Log Analytics workspace for diagnostics."
-  type        = string
-  nullable    = false
-}
-
-variable "log_analytics_workspace_key" {
-  description = "The primary shared key for the Log Analytics workspace."
-  type        = string
-  nullable    = false
-}
 
 variable "postgres_host" {
   description = "The FQDN of the PostgreSQL server."

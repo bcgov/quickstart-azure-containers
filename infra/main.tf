@@ -62,8 +62,6 @@ module "flyway" {
   dns_servers                  = module.network.dns_servers
   flyway_image                 = var.flyway_image
   location                     = var.location
-  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_workspaceId
-  log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
   postgres_host                = module.postgresql.postgres_host
   postgresql_admin_username    = var.postgresql_admin_username
   resource_group_name          = azurerm_resource_group.main.name
@@ -98,7 +96,6 @@ module "frontend" {
   frontdoor_frontend_firewall_policy_id = module.frontdoor.firewall_policy_id
   frontend_frontdoor_id                 = module.frontdoor.frontdoor_id
   location                              = var.location
-  log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
   repo_name                             = var.repo_name
   resource_group_name                   = azurerm_resource_group.main.name
 
