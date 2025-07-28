@@ -75,6 +75,8 @@ module "flyway" {
   dns_servers                  = module.network.dns_servers
   flyway_image                 = var.flyway_image
   location                     = var.location
+  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_workspaceId
+  log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
   postgres_host                = module.postgresql.postgres_host
   postgresql_admin_username    = var.postgresql_admin_username
   resource_group_name          = azurerm_resource_group.main.name
