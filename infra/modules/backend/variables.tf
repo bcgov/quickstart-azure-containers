@@ -99,13 +99,15 @@ variable "location" {
 variable "log_analytics_retention_days" {
   description = "Number of days to retain data in Log Analytics Workspace"
   type        = number
-  default     = 30
+  nullable    = false
+
 }
 
 variable "log_analytics_sku" {
   description = "SKU for Log Analytics Workspace"
   type        = string
   default     = "PerGB2018"
+  nullable    = false
 }
 
 variable "node_env" {

@@ -121,7 +121,8 @@ module "backend" {
   frontend_frontdoor_resource_guid        = module.frontdoor.frontdoor_resource_guid
   frontend_possible_outbound_ip_addresses = module.frontend.possible_outbound_ip_addresses
   location                                = var.location
-  log_analytics_workspace_id              = module.monitoring.log_analytics_workspace_id
+  log_analytics_retention_days            = var.log_analytics_retention_days
+  log_analytics_sku                       = var.log_analytics_sku
   postgres_host                           = module.postgresql.postgres_host
   postgresql_admin_username               = var.postgresql_admin_username
   private_endpoint_subnet_id              = module.network.private_endpoint_subnet_id
