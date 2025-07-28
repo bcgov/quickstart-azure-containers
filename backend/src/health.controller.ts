@@ -20,6 +20,13 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
+    return this.health.check([
+      () => this.prisma.pingCheck("prisma", this.prismaService),
+    ]);
+  }
+
+  @Get("connectivity")
+  async checkConnectivity() {
     // Test manual tracing with more detailed attributes
     const tracer = trace.getTracer("health-check-tracer", "1.0.0");
     const span = tracer.startSpan("health-check-operation", {
@@ -83,7 +90,7 @@ export class HealthController {
     // Record histogram metric
     const duration = Date.now() - startTime;
     histogram.record(duration, {
-      endpoint: "/api/health",
+      endpoint: "/api/health/connectivity",
       status: "success",
     });
 
@@ -95,12 +102,7 @@ export class HealthController {
 
     span.setStatus({ code: 1 }); // OK status
     span.end();
-
-    return this.health.check([
-      () => this.prisma.pingCheck("prisma", this.prismaService),
-    ]);
   }
-
   private testDetailedConnectivity() {
     const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
     if (!connectionString) return;
