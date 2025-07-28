@@ -1,35 +1,3 @@
-resource "azurerm_log_analytics_workspace" "backend" {
-  name                = "${var.app_name}-backend-law"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  sku                 = var.log_analytics_sku
-  retention_in_days   = var.log_analytics_retention_days
-
-  tags = var.common_tags
-  lifecycle {
-    ignore_changes = [
-      # Ignore tags to allow management via Azure Policy
-      tags
-    ]
-  }
-}
-
-# Application Insights for enhanced monitoring and logging
-resource "azurerm_application_insights" "backend" {
-  name                = "${var.app_name}-backend-ai"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  application_type    = "other"
-  workspace_id        = azurerm_log_analytics_workspace.backend.id
-
-  tags = var.common_tags
-  lifecycle {
-    ignore_changes = [
-      # Ignore tags to allow management via Azure Policy
-      tags
-    ]
-  }
-}
 # Backend App Service Plan
 resource "azurerm_service_plan" "backend" {
   name                = "${var.app_name}-backend-asp"
@@ -106,18 +74,17 @@ resource "azurerm_linux_web_app" "backend" {
     NODE_ENV = var.node_env
 
     # Application Insights settings
-    APPLICATIONINSIGHTS_CONNECTION_STRING             = azurerm_application_insights.backend.connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY                    = azurerm_application_insights.backend.instrumentation_key
+    APPLICATIONINSIGHTS_CONNECTION_STRING             = var.appinsights_connection_string
+    APPINSIGHTS_INSTRUMENTATIONKEY                    = var.appinsights_instrumentation_key
     APPLICATIONINSIGHTS_DISABLE_MANAGED_IDENTITY      = "true"
     APPLICATIONINSIGHTS_FORCE_PUBLIC_INGESTION        = "true"
-    APPLICATIONINSIGHTS_AUTHENTICATION_STRING         = azurerm_application_insights.backend.connection_string
+    APPLICATIONINSIGHTS_AUTHENTICATION_STRING         = var.appinsights_connection_string
     APPLICATIONINSIGHTS_INSTRUMENTATION_LOGGING_LEVEL = "ALL"
     APPLICATIONINSIGHTS_LOG_DESTINATION               = "file+console"
     APPLICATIONINSIGHTS_LOGDIR                        = "/tmp"
-    APPLICATIONINSIGHTS_APP_ID                        = azurerm_application_insights.backend.app_id
 
     # OpenTelemetry specific overrides
-    OTEL_EXPORTER_AZURE_MONITOR_CONNECTION_STRING = azurerm_application_insights.backend.connection_string
+    OTEL_EXPORTER_AZURE_MONITOR_CONNECTION_STRING = var.appinsights_connection_string
     OTEL_AZURE_MONITOR_DISABLE_OFFLINE_STORAGE    = "false"
     OTEL_AZURE_MONITOR_STORAGE_DIRECTORY          = "/tmp/Microsoft/AzureMonitor"
 
@@ -332,7 +299,7 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
 resource "azurerm_monitor_diagnostic_setting" "backend_diagnostics" {
   name                       = "${var.app_name}-backend-diagnostics"
   target_resource_id         = azurerm_linux_web_app.backend.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.backend.id
+  log_analytics_workspace_id = var.log_analytics_workspace_id
   enabled_log {
     category = "AppServiceHTTPLogs"
   }

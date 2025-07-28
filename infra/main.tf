@@ -52,6 +52,19 @@ module "postgresql" {
   depends_on = [module.network]
 }
 
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  app_name                     = var.app_name
+  common_tags                  = var.common_tags
+  location                     = var.location
+  log_analytics_retention_days = var.log_analytics_retention_days
+  log_analytics_sku            = var.log_analytics_sku
+  resource_group_name          = azurerm_resource_group.main.name
+
+  depends_on = [azurerm_resource_group.main]
+}
+
 module "flyway" {
   source   = "./modules/flyway"
   app_name = var.app_name
@@ -96,6 +109,7 @@ module "frontend" {
   frontdoor_frontend_firewall_policy_id = module.frontdoor.firewall_policy_id
   frontend_frontdoor_id                 = module.frontdoor.frontdoor_id
   location                              = var.location
+  log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
   repo_name                             = var.repo_name
   resource_group_name                   = azurerm_resource_group.main.name
 
@@ -111,6 +125,8 @@ module "backend" {
   app_service_sku_name_backend            = var.app_service_sku_name_backend
   app_service_subnet_id                   = module.network.app_service_subnet_id
   backend_subnet_id                       = module.network.app_service_subnet_id
+  appinsights_connection_string           = module.monitoring.appinsights_connection_string
+  appinsights_instrumentation_key         = module.monitoring.appinsights_instrumentation_key
   common_tags                             = var.common_tags
   database_name                           = var.database_name
   db_master_password                      = var.db_master_password
@@ -118,8 +134,7 @@ module "backend" {
   frontend_frontdoor_resource_guid        = module.frontdoor.frontdoor_resource_guid
   frontend_possible_outbound_ip_addresses = module.frontend.possible_outbound_ip_addresses
   location                                = var.location
-  log_analytics_retention_days            = var.log_analytics_retention_days
-  log_analytics_sku                       = var.log_analytics_sku
+  log_analytics_workspace_id              = module.monitoring.log_analytics_workspace_id
   postgres_host                           = module.postgresql.postgres_host
   postgresql_admin_username               = var.postgresql_admin_username
   private_endpoint_subnet_id              = module.network.private_endpoint_subnet_id

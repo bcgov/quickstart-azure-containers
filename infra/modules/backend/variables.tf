@@ -28,6 +28,17 @@ variable "app_service_subnet_id" {
   nullable    = false
 }
 
+variable "appinsights_connection_string" {
+  description = "The Application Insights connection string for monitoring."
+  type        = string
+  nullable    = false
+}
+
+variable "appinsights_instrumentation_key" {
+  description = "The Application Insights instrumentation key."
+  type        = string
+  nullable    = false
+}
 
 variable "backend_autoscale_enabled" {
   description = "Whether autoscaling is enabled for the backend App Service plan."
@@ -96,20 +107,11 @@ variable "location" {
   type        = string
   nullable    = false
 }
-variable "log_analytics_retention_days" {
-  description = "Number of days to retain data in Log Analytics Workspace"
-  type        = number
-  nullable    = false
-
-}
-
-variable "log_analytics_sku" {
-  description = "SKU for Log Analytics Workspace"
+variable "log_analytics_workspace_id" {
+  description = "The ID of the Log Analytics Workspace for monitoring."
   type        = string
-  default     = "PerGB2018"
   nullable    = false
 }
-
 variable "node_env" {
   description = "The Node.js environment (e.g., production, development)."
   type        = string

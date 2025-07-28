@@ -60,7 +60,11 @@ variable "location" {
   nullable    = false
 }
 
-
+variable "log_analytics_workspace_id" {
+  description = "The ID of the Log Analytics Workspace for monitoring."
+  type        = string
+  nullable    = false
+}
 variable "repo_name" {
   description = "The repository name, used for resource naming."
   type        = string

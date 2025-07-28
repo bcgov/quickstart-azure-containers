@@ -62,25 +62,6 @@ export class HealthController {
       service: "qs-azure-nest-api",
     });
 
-    // Enhanced logging with OpenTelemetry context
-    console.log("=== ENHANCED TELEMETRY DEBUG INFO ===");
-    console.log(
-      "Connection String:",
-      process.env.APPLICATIONINSIGHTS_CONNECTION_STRING ? "Set" : "Not set",
-    );
-    console.log(
-      "Connection String Length:",
-      process.env.APPLICATIONINSIGHTS_CONNECTION_STRING?.length || 0,
-    );
-    console.log(
-      "Instrumentation Key:",
-      process.env.APPLICATIONINSIGHTS_CONNECTION_STRING?.includes(
-        "eb10d1b7-99e5-4f88-a5c7-2c5562d7d886",
-      )
-        ? "Matches"
-        : "Does not match",
-    );
-
     // Log current trace context
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
@@ -143,9 +124,6 @@ export class HealthController {
     // Test specific Application Insights endpoints
     if (components.IngestionEndpoint) {
       this.testSpecificEndpoint(components.IngestionEndpoint, "Ingestion");
-    }
-    if (components.LiveEndpoint) {
-      this.testSpecificEndpoint(components.LiveEndpoint, "Live Metrics");
     }
   }
 
