@@ -51,18 +51,6 @@ module "postgresql" {
 
   depends_on = [module.network]
 }
-module "monitoring" {
-  source = "./modules/monitoring"
-
-  app_name                     = var.app_name
-  common_tags                  = var.common_tags
-  location                     = var.location
-  log_analytics_retention_days = var.log_analytics_retention_days
-  log_analytics_sku            = var.log_analytics_sku
-  resource_group_name          = azurerm_resource_group.main.name
-
-  depends_on = [azurerm_resource_group.main, module.network]
-}
 
 module "flyway" {
   source   = "./modules/flyway"
@@ -103,8 +91,6 @@ module "frontend" {
   app_env                               = var.app_env
   app_name                              = var.app_name
   app_service_sku_name_frontend         = var.app_service_sku_name_frontend
-  appinsights_connection_string         = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key       = module.monitoring.appinsights_instrumentation_key
   common_tags                           = var.common_tags
   frontend_frontdoor_resource_guid      = module.frontdoor.frontdoor_resource_guid
   frontend_image                        = var.frontend_image
@@ -127,8 +113,6 @@ module "backend" {
   app_name                                = var.app_name
   app_service_sku_name_backend            = var.app_service_sku_name_backend
   app_service_subnet_id                   = module.network.app_service_subnet_id
-  appinsights_connection_string           = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key         = module.monitoring.appinsights_instrumentation_key
   backend_subnet_id                       = module.network.app_service_subnet_id
   common_tags                             = var.common_tags
   database_name                           = var.database_name

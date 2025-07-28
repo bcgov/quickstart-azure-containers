@@ -1,3 +1,35 @@
+resource "azurerm_log_analytics_workspace" "backend" {
+  name                = "${var.app_name}-backend-law"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  sku                 = var.log_analytics_sku
+  retention_in_days   = var.log_analytics_retention_days
+
+  tags = var.common_tags
+  lifecycle {
+    ignore_changes = [
+      # Ignore tags to allow management via Azure Policy
+      tags
+    ]
+  }
+}
+
+# Application Insights for enhanced monitoring and logging
+resource "azurerm_application_insights" "backend" {
+  name                = "${var.app_name}-backend-ai"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  application_type    = "other"
+  workspace_id        = azurerm_log_analytics_workspace.backend.id
+
+  tags = var.common_tags
+  lifecycle {
+    ignore_changes = [
+      # Ignore tags to allow management via Azure Policy
+      tags
+    ]
+  }
+}
 # Backend App Service Plan
 resource "azurerm_service_plan" "backend" {
   name                = "${var.app_name}-backend-asp"
@@ -74,17 +106,18 @@ resource "azurerm_linux_web_app" "backend" {
     NODE_ENV = var.node_env
 
     # Application Insights settings
-    APPLICATIONINSIGHTS_CONNECTION_STRING             = var.appinsights_connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY                    = var.appinsights_instrumentation_key
+    APPLICATIONINSIGHTS_CONNECTION_STRING             = azurerm_application_insights.backend.connection_string
+    APPINSIGHTS_INSTRUMENTATIONKEY                    = azurerm_application_insights.backend.instrumentation_key
     APPLICATIONINSIGHTS_DISABLE_MANAGED_IDENTITY      = "true"
     APPLICATIONINSIGHTS_FORCE_PUBLIC_INGESTION        = "true"
-    APPLICATIONINSIGHTS_AUTHENTICATION_STRING         = var.appinsights_connection_string
+    APPLICATIONINSIGHTS_AUTHENTICATION_STRING         = azurerm_application_insights.backend.connection_string
     APPLICATIONINSIGHTS_INSTRUMENTATION_LOGGING_LEVEL = "ALL"
     APPLICATIONINSIGHTS_LOG_DESTINATION               = "file+console"
     APPLICATIONINSIGHTS_LOGDIR                        = "/tmp"
+    APPLICATIONINSIGHTS_APP_ID                        = azurerm_application_insights.backend.app_id
 
     # OpenTelemetry specific overrides
-    OTEL_EXPORTER_AZURE_MONITOR_CONNECTION_STRING = var.appinsights_connection_string
+    OTEL_EXPORTER_AZURE_MONITOR_CONNECTION_STRING = azurerm_application_insights.backend.connection_string
     OTEL_AZURE_MONITOR_DISABLE_OFFLINE_STORAGE    = "false"
     OTEL_AZURE_MONITOR_STORAGE_DIRECTORY          = "/tmp/Microsoft/AzureMonitor"
 
@@ -260,25 +293,24 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
     app_command_line = "/bin/sh -c 'mkdir -p /opt/cloudbeaver/workspace && echo \"CloudBeaver starting with persistent workspace...\" && /opt/cloudbeaver/run-server.sh'"
   }
   app_settings = {
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
-    DOCKER_ENABLE_CI                      = "true"
-    APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    WEBSITES_PORT                         = "8978"
-    PORT                                  = "8978"
-    CB_SERVER_NAME                        = var.app_name
-    CB_SERVER_URL                         = "https://${var.app_name}-cloudbeaver-app.azurewebsites.net"
-    CB_ADMIN_NAME                         = random_string.cloudbeaver_admin_name[0].result
-    CB_ADMIN_PASSWORD                     = random_password.cloudbeaver_admin_password[0].result
-    POSTGRES_HOST                         = var.postgres_host
-    POSTGRES_USER                         = var.postgresql_admin_username
-    POSTGRES_PASSWORD                     = var.db_master_password
-    POSTGRES_DATABASE                     = var.database_name
-    POSTGRES_PORT                         = "5432"
-    CB_LOCAL_HOST_ACCESS                  = "false"
-    CB_ENABLE_REVERSEPROXY_AUTH           = "false"
-    CB_DEV_MODE                           = "false"
-    AZURE_STORAGE_CONNECTION_STRING       = azurerm_storage_account.cloudbeaver[0].primary_connection_string
-    WORKSPACE_PATH                        = "/opt/cloudbeaver/workspace"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
+    DOCKER_ENABLE_CI                    = "true"
+    WEBSITES_PORT                       = "8978"
+    PORT                                = "8978"
+    CB_SERVER_NAME                      = var.app_name
+    CB_SERVER_URL                       = "https://${var.app_name}-cloudbeaver-app.azurewebsites.net"
+    CB_ADMIN_NAME                       = random_string.cloudbeaver_admin_name[0].result
+    CB_ADMIN_PASSWORD                   = random_password.cloudbeaver_admin_password[0].result
+    POSTGRES_HOST                       = var.postgres_host
+    POSTGRES_USER                       = var.postgresql_admin_username
+    POSTGRES_PASSWORD                   = var.db_master_password
+    POSTGRES_DATABASE                   = var.database_name
+    POSTGRES_PORT                       = "5432"
+    CB_LOCAL_HOST_ACCESS                = "false"
+    CB_ENABLE_REVERSEPROXY_AUTH         = "false"
+    CB_DEV_MODE                         = "false"
+    AZURE_STORAGE_CONNECTION_STRING     = azurerm_storage_account.cloudbeaver[0].primary_connection_string
+    WORKSPACE_PATH                      = "/opt/cloudbeaver/workspace"
   }
   logs {
     detailed_error_messages = true
@@ -300,7 +332,7 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
 resource "azurerm_monitor_diagnostic_setting" "backend_diagnostics" {
   name                       = "${var.app_name}-backend-diagnostics"
   target_resource_id         = azurerm_linux_web_app.backend.id
-  log_analytics_workspace_id = var.log_analytics_workspace_id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.backend.workspace_id
   enabled_log {
     category = "AppServiceHTTPLogs"
   }
@@ -312,5 +344,13 @@ resource "azurerm_monitor_diagnostic_setting" "backend_diagnostics" {
   }
   enabled_log {
     category = "AppServicePlatformLogs"
+  }
+
+  enabled_log {
+    category = "AuditEvent"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
   }
 }

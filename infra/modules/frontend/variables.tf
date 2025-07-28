@@ -10,17 +10,6 @@ variable "app_name" {
   nullable    = false
 }
 
-variable "appinsights_connection_string" {
-  description = "The Application Insights connection string for monitoring."
-  type        = string
-  nullable    = false
-}
-
-variable "appinsights_instrumentation_key" {
-  description = "The Application Insights instrumentation key."
-  type        = string
-  nullable    = false
-}
 
 variable "common_tags" {
   description = "A map of tags to apply to resources."

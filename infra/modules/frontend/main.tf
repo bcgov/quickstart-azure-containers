@@ -55,14 +55,12 @@ resource "azurerm_linux_web_app" "frontend" {
     ip_restriction_default_action = "Deny"
   }
   app_settings = {
-    PORT                                  = "80"
-    WEBSITES_PORT                         = "3000"
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
-    DOCKER_ENABLE_CI                      = "true"
-    APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
-    VITE_BACKEND_URL                      = "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net"
-    LOG_LEVEL                             = "info"
+    PORT                                = "80"
+    WEBSITES_PORT                       = "3000"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
+    DOCKER_ENABLE_CI                    = "true"
+    VITE_BACKEND_URL                    = "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net"
+    LOG_LEVEL                           = "info"
   }
   logs {
     detailed_error_messages = true
@@ -80,8 +78,6 @@ resource "azurerm_linux_web_app" "frontend" {
   }
 
 }
-
-
 
 resource "azurerm_cdn_frontdoor_endpoint" "frontend_fd_endpoint" {
   name                     = "${var.repo_name}-${var.app_env}-frontend-fd"
