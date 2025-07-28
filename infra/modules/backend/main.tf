@@ -20,7 +20,7 @@ resource "azurerm_application_insights" "backend" {
   location            = var.location
   resource_group_name = var.resource_group_name
   application_type    = "other"
-  workspace_id        = azurerm_log_analytics_workspace.backend.workspace_id
+  workspace_id        = azurerm_log_analytics_workspace.backend.id
 
   tags = var.common_tags
   lifecycle {
@@ -332,7 +332,7 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
 resource "azurerm_monitor_diagnostic_setting" "backend_diagnostics" {
   name                       = "${var.app_name}-backend-diagnostics"
   target_resource_id         = azurerm_linux_web_app.backend.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.backend.workspace_id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.backend.id
   enabled_log {
     category = "AppServiceHTTPLogs"
   }
