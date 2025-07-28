@@ -32,6 +32,14 @@ variable "appinsights_connection_string" {
   description = "The Application Insights connection string for monitoring."
   type        = string
   nullable    = false
+  sensitive   = true
+}
+
+variable "appinsights_instrumentation_key" {
+  description = "The Application Insights instrumentation key."
+  type        = string
+  nullable    = false
+  sensitive   = true
 }
 
 variable "backend_autoscale_enabled" {

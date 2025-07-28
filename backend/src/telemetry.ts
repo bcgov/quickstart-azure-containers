@@ -39,7 +39,11 @@ export function initializeTelemetry(): void {
     const options: AzureMonitorOpenTelemetryOptions = {
       azureMonitorExporterOptions: {
         connectionString: connectionString,
-        // Disable retries for testing to see immediate results
+        credential: undefined, // Use connection string instead of credential
+        retryOptions: {
+          maxRetries: 3,
+          retryDelayInMs: 1000,
+        },
         disableOfflineStorage: false,
         storageDirectory: "/tmp/Microsoft/AzureMonitor",
       },

@@ -20,14 +20,14 @@ resource "azurerm_linux_web_app" "backend" {
   https_only                = true
   virtual_network_subnet_id = var.backend_subnet_id
   identity {
-    type         = "SystemAssigned"
+    type = "SystemAssigned"
   }
   site_config {
-    always_on                                     = true
-    container_registry_use_managed_identity       = true
-    minimum_tls_version                           = "1.3"
-    health_check_path                             = "/api/health"
-    health_check_eviction_time_in_min             = 2
+    always_on                               = true
+    container_registry_use_managed_identity = true
+    minimum_tls_version                     = "1.3"
+    health_check_path                       = "/api/health"
+    health_check_eviction_time_in_min       = 2
     application_stack {
       docker_image_name   = var.api_image
       docker_registry_url = var.container_registry_url
@@ -76,6 +76,9 @@ resource "azurerm_linux_web_app" "backend" {
     WEBSITES_PORT                                     = "3000"
     DOCKER_ENABLE_CI                                  = "true"
     APPLICATIONINSIGHTS_CONNECTION_STRING             = var.appinsights_connection_string
+    APPINSIGHTS_INSTRUMENTATIONKEY                    = var.appinsights_instrumentation_key
+    APPLICATIONINSIGHTS_FORCE_PUBLIC_INGESTION        = "true"
+    APPLICATIONINSIGHTS_AUTHENTICATION_STRING         = var.appinsights_connection_string
     APPLICATIONINSIGHTS_INSTRUMENTATION_LOGGING_LEVEL = "ALL"
     APPLICATIONINSIGHTS_LOG_DESTINATION               = "file+console"
     APPLICATIONINSIGHTS_LOGDIR                        = "/tmp"
@@ -227,15 +230,15 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
   service_plan_id           = azurerm_service_plan.backend.id
   virtual_network_subnet_id = var.backend_subnet_id
   https_only                = true
-identity {
+  identity {
     type = "SystemAssigned"
   }
   site_config {
-    always_on                                     = true
-    container_registry_use_managed_identity       = true
-    minimum_tls_version                           = "1.3"
-    health_check_path                             = "/"
-    health_check_eviction_time_in_min             = 10
+    always_on                               = true
+    container_registry_use_managed_identity = true
+    minimum_tls_version                     = "1.3"
+    health_check_path                       = "/"
+    health_check_eviction_time_in_min       = 10
     application_stack {
       docker_image_name   = "dbeaver/cloudbeaver:latest"
       docker_registry_url = "https://index.docker.io"
