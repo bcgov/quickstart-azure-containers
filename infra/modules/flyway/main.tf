@@ -12,8 +12,6 @@ resource "azurerm_container_group" "flyway" {
       metadata = {
         "SERVICE_NAME"  = "${var.app_name}-flyway"
         "RESOURCE_TYPE" = "ACI"
-        "RESOURCE_NAME" = azurerm_container_group.flyway.name
-        "RESOURCE_ID"   = azurerm_container_group.flyway.id
       }
       workspace_id  = var.log_analytics_workspace_id
       workspace_key = var.log_analytics_workspace_key
