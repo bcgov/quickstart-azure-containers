@@ -20,7 +20,7 @@ resource "azurerm_application_insights" "backend" {
   location            = var.location
   resource_group_name = var.resource_group_name
   application_type    = "other"
-  workspace_id        = azurerm_log_analytics_workspace.backend.id
+  workspace_id        = azurerm_log_analytics_workspace.backend.workspace_id
 
   tags = var.common_tags
   lifecycle {
