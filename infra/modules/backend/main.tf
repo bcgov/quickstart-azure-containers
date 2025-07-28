@@ -71,25 +71,38 @@ resource "azurerm_linux_web_app" "backend" {
     }
   }
   app_settings = {
-    NODE_ENV                                          = var.node_env
-    PORT                                              = "80"
-    WEBSITES_PORT                                     = "3000"
-    DOCKER_ENABLE_CI                                  = "true"
+    NODE_ENV = var.node_env
+
+    # Application Insights settings
     APPLICATIONINSIGHTS_CONNECTION_STRING             = var.appinsights_connection_string
     APPINSIGHTS_INSTRUMENTATIONKEY                    = var.appinsights_instrumentation_key
+    APPLICATIONINSIGHTS_DISABLE_MANAGED_IDENTITY      = "true"
     APPLICATIONINSIGHTS_FORCE_PUBLIC_INGESTION        = "true"
     APPLICATIONINSIGHTS_AUTHENTICATION_STRING         = var.appinsights_connection_string
     APPLICATIONINSIGHTS_INSTRUMENTATION_LOGGING_LEVEL = "ALL"
     APPLICATIONINSIGHTS_LOG_DESTINATION               = "file+console"
     APPLICATIONINSIGHTS_LOGDIR                        = "/tmp"
-    WEBSITE_WARMUP_PATH                               = "/api/health"
-    POSTGRES_HOST                                     = var.postgres_host
-    POSTGRES_USER                                     = var.postgresql_admin_username
-    POSTGRES_PASSWORD                                 = var.db_master_password
-    POSTGRES_DATABASE                                 = var.database_name
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE               = "false"
-    WEBSITE_ENABLE_SYNC_UPDATE_SITE                   = "1"
-    FORCE_REDEPLOY                                    = null_resource.trigger_backend.id
+
+    # OpenTelemetry specific overrides
+    OTEL_EXPORTER_AZURE_MONITOR_CONNECTION_STRING = var.appinsights_connection_string
+    OTEL_AZURE_MONITOR_DISABLE_OFFLINE_STORAGE    = "false"
+    OTEL_AZURE_MONITOR_STORAGE_DIRECTORY          = "/tmp/Microsoft/AzureMonitor"
+
+    # PostgreSQL settings
+    POSTGRES_HOST     = var.postgres_host
+    POSTGRES_USER     = var.postgresql_admin_username
+    POSTGRES_PASSWORD = var.db_master_password
+    POSTGRES_DATABASE = var.database_name
+
+    # Website settings
+    WEBSITE_WARMUP_PATH                 = "/api/health"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
+    WEBSITE_ENABLE_SYNC_UPDATE_SITE     = "1"
+    PORT                                = "80"
+    WEBSITES_PORT                       = "3000"
+    DOCKER_ENABLE_CI                    = "true"
+    FORCE_REDEPLOY                      = null_resource.trigger_backend.id
+
   }
   logs {
     detailed_error_messages = true
