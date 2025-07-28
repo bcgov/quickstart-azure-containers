@@ -68,7 +68,7 @@ module "flyway" {
   postgresql_admin_username    = var.postgresql_admin_username
   resource_group_name          = azurerm_resource_group.main.name
 
-  depends_on = [module.postgresql, module.monitoring]
+  depends_on = [module.postgresql]
 }
 
 
@@ -102,7 +102,7 @@ module "frontend" {
   repo_name                             = var.repo_name
   resource_group_name                   = azurerm_resource_group.main.name
 
-  depends_on = [module.frontdoor, module.monitoring, module.network]
+  depends_on = [module.frontdoor, module.network]
 }
 
 module "backend" {
