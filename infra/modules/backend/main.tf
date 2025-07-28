@@ -346,10 +346,6 @@ resource "azurerm_monitor_diagnostic_setting" "backend_diagnostics" {
     category = "AppServicePlatformLogs"
   }
 
-  enabled_log {
-    category = "AuditEvent"
-  }
-
   enabled_metric {
     category = "AllMetrics"
   }
