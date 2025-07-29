@@ -1,5 +1,5 @@
 # Build
-FROM node:22.16.0-slim AS build
+FROM node:22.17.1-slim AS build
 
 # Copy, build static files; see .dockerignore for exclusions
 WORKDIR /app
@@ -8,7 +8,7 @@ ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 RUN npm run deploy
 
 # Dependencies
-FROM node:22.16.0-slim AS dependencies
+FROM node:22.17.1-slim AS dependencies
 
 # Copy, build static files; see .dockerignore for exclusions
 WORKDIR /app
@@ -17,7 +17,7 @@ ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 RUN npm ci --ignore-scripts --no-update-notifier --omit=dev
 
 # Deploy using minimal Distroless image
-FROM node:22.16.0
+FROM node:22.17.0
 ENV NODE_ENV=production
 
 # Copy app and dependencies
