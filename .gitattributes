@@ -1,4 +1,4 @@
-# Autodetect text files and forces unix eols, so Windows does not break them
+# Autodetect text files and force unix eols, so Windows does not break them
 * text=auto eol=lf
 
 # Force images/fonts to be handled as binaries
