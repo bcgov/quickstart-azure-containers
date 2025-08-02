@@ -59,7 +59,7 @@ variable "db_master_password" {
 variable "enable_psql_sidecar" {
   description = "Whether to enable the CloudBeaver database management container"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "flyway_image" {

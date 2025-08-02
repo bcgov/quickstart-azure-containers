@@ -21,16 +21,14 @@ resource "azurerm_linux_web_app" "frontend" {
   virtual_network_subnet_id = var.frontend_subnet_id
   https_only                = true
   identity {
-    type         = "UserAssigned"
-    identity_ids = [var.user_assigned_identity_id]
+    type = "SystemAssigned"
   }
   site_config {
-    always_on                                     = true
-    container_registry_use_managed_identity       = true
-    container_registry_managed_identity_client_id = var.user_assigned_identity_client_id
-    minimum_tls_version                           = "1.3"
-    health_check_path                             = "/"
-    health_check_eviction_time_in_min             = 2
+    always_on                               = true
+    container_registry_use_managed_identity = true
+    minimum_tls_version                     = "1.3"
+    health_check_path                       = "/"
+    health_check_eviction_time_in_min       = 2
     application_stack {
       docker_image_name   = var.frontend_image
       docker_registry_url = var.container_registry_url
@@ -57,14 +55,12 @@ resource "azurerm_linux_web_app" "frontend" {
     ip_restriction_default_action = "Deny"
   }
   app_settings = {
-    PORT                                  = "80"
-    WEBSITES_PORT                         = "3000"
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
-    DOCKER_ENABLE_CI                      = "true"
-    APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
-    VITE_BACKEND_URL                      = "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net"
-    LOG_LEVEL                             = "info"
+    PORT                                = "80"
+    WEBSITES_PORT                       = "3000"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
+    DOCKER_ENABLE_CI                    = "true"
+    VITE_BACKEND_URL                    = "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net"
+    LOG_LEVEL                           = "info"
   }
   logs {
     detailed_error_messages = true
@@ -81,25 +77,6 @@ resource "azurerm_linux_web_app" "frontend" {
     ignore_changes = [tags]
   }
 
-}
-
-# Frontend Diagnostics
-resource "azurerm_monitor_diagnostic_setting" "frontend_diagnostics" {
-  name                       = "${var.app_name}-frontend-diagnostics"
-  target_resource_id         = azurerm_linux_web_app.frontend.id
-  log_analytics_workspace_id = var.log_analytics_workspace_id
-  enabled_log {
-    category = "AppServiceHTTPLogs"
-  }
-  enabled_log {
-    category = "AppServiceConsoleLogs"
-  }
-  enabled_log {
-    category = "AppServiceAppLogs"
-  }
-  enabled_log {
-    category = "AppServicePlatformLogs"
-  }
 }
 
 resource "azurerm_cdn_frontdoor_endpoint" "frontend_fd_endpoint" {

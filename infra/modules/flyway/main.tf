@@ -9,6 +9,10 @@ resource "azurerm_container_group" "flyway" {
   }
   diagnostics {
     log_analytics {
+      metadata = {
+        "SERVICE_NAME"  = "${var.app_name}-flyway"
+        "RESOURCE_TYPE" = "ACI"
+      }
       workspace_id  = var.log_analytics_workspace_id
       workspace_key = var.log_analytics_workspace_key
     }

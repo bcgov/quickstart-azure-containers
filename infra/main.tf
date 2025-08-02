@@ -12,14 +12,6 @@ resource "azurerm_resource_group" "main" {
     ]
   }
 }
-# User Assigned Managed Identity
-resource "azurerm_user_assigned_identity" "app_service_identity" {
-  depends_on          = [azurerm_resource_group.main]
-  location            = var.location
-  name                = "${var.app_name}-as-identity"
-  resource_group_name = var.resource_group_name
-  tags                = var.common_tags
-}
 
 # -------------
 # Modules based on Dependency
@@ -59,6 +51,7 @@ module "postgresql" {
 
   depends_on = [module.network]
 }
+
 module "monitoring" {
   source = "./modules/monitoring"
 
@@ -69,7 +62,7 @@ module "monitoring" {
   log_analytics_sku            = var.log_analytics_sku
   resource_group_name          = azurerm_resource_group.main.name
 
-  depends_on = [azurerm_resource_group.main, module.network]
+  depends_on = [azurerm_resource_group.main]
 }
 
 module "flyway" {
@@ -88,7 +81,7 @@ module "flyway" {
   postgresql_admin_username    = var.postgresql_admin_username
   resource_group_name          = azurerm_resource_group.main.name
 
-  depends_on = [module.postgresql, module.monitoring]
+  depends_on = [module.postgresql]
 }
 
 
@@ -111,8 +104,6 @@ module "frontend" {
   app_env                               = var.app_env
   app_name                              = var.app_name
   app_service_sku_name_frontend         = var.app_service_sku_name_frontend
-  appinsights_connection_string         = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key       = module.monitoring.appinsights_instrumentation_key
   common_tags                           = var.common_tags
   frontend_frontdoor_resource_guid      = module.frontdoor.frontdoor_resource_guid
   frontend_image                        = var.frontend_image
@@ -123,10 +114,8 @@ module "frontend" {
   log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
   repo_name                             = var.repo_name
   resource_group_name                   = azurerm_resource_group.main.name
-  user_assigned_identity_client_id      = azurerm_user_assigned_identity.app_service_identity.client_id
-  user_assigned_identity_id             = azurerm_user_assigned_identity.app_service_identity.id
 
-  depends_on = [module.frontdoor, module.monitoring, module.network]
+  depends_on = [module.frontdoor, module.network]
 }
 
 module "backend" {
@@ -137,9 +126,9 @@ module "backend" {
   app_name                                = var.app_name
   app_service_sku_name_backend            = var.app_service_sku_name_backend
   app_service_subnet_id                   = module.network.app_service_subnet_id
+  backend_subnet_id                       = module.network.app_service_subnet_id
   appinsights_connection_string           = module.monitoring.appinsights_connection_string
   appinsights_instrumentation_key         = module.monitoring.appinsights_instrumentation_key
-  backend_subnet_id                       = module.network.app_service_subnet_id
   common_tags                             = var.common_tags
   database_name                           = var.database_name
   db_master_password                      = var.db_master_password
@@ -153,8 +142,6 @@ module "backend" {
   private_endpoint_subnet_id              = module.network.private_endpoint_subnet_id
   repo_name                               = var.repo_name
   resource_group_name                     = azurerm_resource_group.main.name
-  user_assigned_identity_client_id        = azurerm_user_assigned_identity.app_service_identity.client_id
-  user_assigned_identity_id               = azurerm_user_assigned_identity.app_service_identity.id
 
   depends_on = [module.frontend, module.flyway]
 }

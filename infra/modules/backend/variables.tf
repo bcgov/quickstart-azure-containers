@@ -107,13 +107,11 @@ variable "location" {
   type        = string
   nullable    = false
 }
-
 variable "log_analytics_workspace_id" {
-  description = "The resource ID of the Log Analytics workspace for diagnostics."
+  description = "The ID of the Log Analytics Workspace for monitoring."
   type        = string
   nullable    = false
 }
-
 variable "node_env" {
   description = "The Node.js environment (e.g., production, development)."
   type        = string
@@ -150,14 +148,3 @@ variable "resource_group_name" {
   nullable    = false
 }
 
-variable "user_assigned_identity_client_id" {
-  description = "The client ID of the user-assigned managed identity for the backend."
-  type        = string
-  nullable    = false
-}
-
-variable "user_assigned_identity_id" {
-  description = "The resource ID of the user-assigned managed identity for the backend."
-  type        = string
-  nullable    = false
-}

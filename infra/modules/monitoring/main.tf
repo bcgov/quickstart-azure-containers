@@ -23,6 +23,10 @@ resource "azurerm_application_insights" "main" {
   application_type    = "other"
   workspace_id        = azurerm_log_analytics_workspace.main.id
 
+  # Allow public network access
+  internet_ingestion_enabled = true # Allow public ingestion
+  internet_query_enabled     = true # Allow public queries
+
   tags = var.common_tags
   lifecycle {
     ignore_changes = [

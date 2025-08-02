@@ -10,17 +10,6 @@ variable "app_name" {
   nullable    = false
 }
 
-variable "appinsights_connection_string" {
-  description = "The Application Insights connection string for monitoring."
-  type        = string
-  nullable    = false
-}
-
-variable "appinsights_instrumentation_key" {
-  description = "The Application Insights instrumentation key."
-  type        = string
-  nullable    = false
-}
 
 variable "common_tags" {
   description = "A map of tags to apply to resources."
@@ -72,11 +61,10 @@ variable "location" {
 }
 
 variable "log_analytics_workspace_id" {
-  description = "The resource ID of the Log Analytics workspace for diagnostics."
+  description = "The ID of the Log Analytics Workspace for monitoring."
   type        = string
   nullable    = false
 }
-
 variable "repo_name" {
   description = "The repository name, used for resource naming."
   type        = string
@@ -85,18 +73,6 @@ variable "repo_name" {
 
 variable "resource_group_name" {
   description = "The name of the resource group in which to create resources."
-  type        = string
-  nullable    = false
-}
-
-variable "user_assigned_identity_client_id" {
-  description = "The client ID of the user-assigned managed identity for the frontend."
-  type        = string
-  nullable    = false
-}
-
-variable "user_assigned_identity_id" {
-  description = "The resource ID of the user-assigned managed identity for the frontend."
   type        = string
   nullable    = false
 }

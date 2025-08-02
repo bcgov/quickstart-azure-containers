@@ -20,16 +20,14 @@ resource "azurerm_linux_web_app" "backend" {
   https_only                = true
   virtual_network_subnet_id = var.backend_subnet_id
   identity {
-    type         = "UserAssigned"
-    identity_ids = [var.user_assigned_identity_id]
+    type = "SystemAssigned"
   }
   site_config {
-    always_on                                     = true
-    container_registry_use_managed_identity       = true
-    container_registry_managed_identity_client_id = var.user_assigned_identity_client_id
-    minimum_tls_version                           = "1.3"
-    health_check_path                             = "/api/health"
-    health_check_eviction_time_in_min             = 2
+    always_on                               = true
+    container_registry_use_managed_identity = true
+    minimum_tls_version                     = "1.3"
+    health_check_path                       = "/api/health"
+    health_check_eviction_time_in_min       = 2
     application_stack {
       docker_image_name   = var.api_image
       docker_registry_url = var.container_registry_url
@@ -73,19 +71,38 @@ resource "azurerm_linux_web_app" "backend" {
     }
   }
   app_settings = {
-    NODE_ENV                              = var.node_env
-    PORT                                  = "80"
-    WEBSITES_PORT                         = "3000"
-    DOCKER_ENABLE_CI                      = "true"
-    APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
-    POSTGRES_HOST                         = var.postgres_host
-    POSTGRES_USER                         = var.postgresql_admin_username
-    POSTGRES_PASSWORD                     = var.db_master_password
-    POSTGRES_DATABASE                     = var.database_name
-    WEBSITE_SKIP_RUNNING_KUDUAGENT        = "false"
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
-    WEBSITE_ENABLE_SYNC_UPDATE_SITE       = "1"
+    NODE_ENV = var.node_env
+
+    # Application Insights settings
+    APPLICATIONINSIGHTS_CONNECTION_STRING             = var.appinsights_connection_string
+    APPINSIGHTS_INSTRUMENTATIONKEY                    = var.appinsights_instrumentation_key
+    APPLICATIONINSIGHTS_DISABLE_MANAGED_IDENTITY      = "true"
+    APPLICATIONINSIGHTS_FORCE_PUBLIC_INGESTION        = "true"
+    APPLICATIONINSIGHTS_AUTHENTICATION_STRING         = var.appinsights_connection_string
+    APPLICATIONINSIGHTS_INSTRUMENTATION_LOGGING_LEVEL = "ALL"
+    APPLICATIONINSIGHTS_LOG_DESTINATION               = "file+console"
+    APPLICATIONINSIGHTS_LOGDIR                        = "/tmp"
+
+    # OpenTelemetry specific overrides
+    OTEL_EXPORTER_AZURE_MONITOR_CONNECTION_STRING = var.appinsights_connection_string
+    OTEL_AZURE_MONITOR_DISABLE_OFFLINE_STORAGE    = "false"
+    OTEL_AZURE_MONITOR_STORAGE_DIRECTORY          = "/tmp/Microsoft/AzureMonitor"
+
+    # PostgreSQL settings
+    POSTGRES_HOST     = var.postgres_host
+    POSTGRES_USER     = var.postgresql_admin_username
+    POSTGRES_PASSWORD = var.db_master_password
+    POSTGRES_DATABASE = var.database_name
+
+    # Website settings
+    WEBSITE_WARMUP_PATH                 = "/api/health"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
+    WEBSITE_ENABLE_SYNC_UPDATE_SITE     = "1"
+    PORT                                = "80"
+    WEBSITES_PORT                       = "3000"
+    DOCKER_ENABLE_CI                    = "true"
+    FORCE_REDEPLOY                      = null_resource.trigger_backend.id
+
   }
   logs {
     detailed_error_messages = true
@@ -102,6 +119,13 @@ resource "azurerm_linux_web_app" "backend" {
     ignore_changes = [tags]
   }
 }
+resource "null_resource" "trigger_backend" {
+  triggers = {
+    always_run = timestamp()
+  }
+}
+
+
 
 # Backend Autoscaler
 resource "azurerm_monitor_autoscale_setting" "backend_autoscale" {
@@ -220,16 +244,14 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
   virtual_network_subnet_id = var.backend_subnet_id
   https_only                = true
   identity {
-    type         = "UserAssigned"
-    identity_ids = [var.user_assigned_identity_id]
+    type = "SystemAssigned"
   }
   site_config {
-    always_on                                     = true
-    container_registry_use_managed_identity       = true
-    container_registry_managed_identity_client_id = var.user_assigned_identity_client_id
-    minimum_tls_version                           = "1.3"
-    health_check_path                             = "/"
-    health_check_eviction_time_in_min             = 10
+    always_on                               = true
+    container_registry_use_managed_identity = true
+    minimum_tls_version                     = "1.3"
+    health_check_path                       = "/"
+    health_check_eviction_time_in_min       = 10
     application_stack {
       docker_image_name   = "dbeaver/cloudbeaver:latest"
       docker_registry_url = "https://index.docker.io"
@@ -238,26 +260,24 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
     app_command_line = "/bin/sh -c 'mkdir -p /opt/cloudbeaver/workspace && echo \"CloudBeaver starting with persistent workspace...\" && /opt/cloudbeaver/run-server.sh'"
   }
   app_settings = {
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
-    DOCKER_ENABLE_CI                      = "true"
-    APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
-    WEBSITES_PORT                         = "8978"
-    PORT                                  = "8978"
-    CB_SERVER_NAME                        = var.app_name
-    CB_SERVER_URL                         = "https://${var.app_name}-cloudbeaver-app.azurewebsites.net"
-    CB_ADMIN_NAME                         = random_string.cloudbeaver_admin_name[0].result
-    CB_ADMIN_PASSWORD                     = random_password.cloudbeaver_admin_password[0].result
-    POSTGRES_HOST                         = var.postgres_host
-    POSTGRES_USER                         = var.postgresql_admin_username
-    POSTGRES_PASSWORD                     = var.db_master_password
-    POSTGRES_DATABASE                     = var.database_name
-    POSTGRES_PORT                         = "5432"
-    CB_LOCAL_HOST_ACCESS                  = "false"
-    CB_ENABLE_REVERSEPROXY_AUTH           = "false"
-    CB_DEV_MODE                           = "false"
-    AZURE_STORAGE_CONNECTION_STRING       = azurerm_storage_account.cloudbeaver[0].primary_connection_string
-    WORKSPACE_PATH                        = "/opt/cloudbeaver/workspace"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
+    DOCKER_ENABLE_CI                    = "true"
+    WEBSITES_PORT                       = "8978"
+    PORT                                = "8978"
+    CB_SERVER_NAME                      = var.app_name
+    CB_SERVER_URL                       = "https://${var.app_name}-cloudbeaver-app.azurewebsites.net"
+    CB_ADMIN_NAME                       = random_string.cloudbeaver_admin_name[0].result
+    CB_ADMIN_PASSWORD                   = random_password.cloudbeaver_admin_password[0].result
+    POSTGRES_HOST                       = var.postgres_host
+    POSTGRES_USER                       = var.postgresql_admin_username
+    POSTGRES_PASSWORD                   = var.db_master_password
+    POSTGRES_DATABASE                   = var.database_name
+    POSTGRES_PORT                       = "5432"
+    CB_LOCAL_HOST_ACCESS                = "false"
+    CB_ENABLE_REVERSEPROXY_AUTH         = "false"
+    CB_DEV_MODE                         = "false"
+    AZURE_STORAGE_CONNECTION_STRING     = azurerm_storage_account.cloudbeaver[0].primary_connection_string
+    WORKSPACE_PATH                      = "/opt/cloudbeaver/workspace"
   }
   logs {
     detailed_error_messages = true
@@ -291,5 +311,9 @@ resource "azurerm_monitor_diagnostic_setting" "backend_diagnostics" {
   }
   enabled_log {
     category = "AppServicePlatformLogs"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
   }
 }

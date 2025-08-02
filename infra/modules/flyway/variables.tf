@@ -58,7 +58,6 @@ variable "log_analytics_workspace_key" {
   type        = string
   nullable    = false
 }
-
 variable "postgres_host" {
   description = "The FQDN of the PostgreSQL server."
   type        = string
