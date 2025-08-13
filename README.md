@@ -404,6 +404,79 @@ resource "azurerm_application_insights" "main" {
 }
 ```
 
+### PostgreSQL Backups & Point-In-Time Recovery (PITR)
+
+Azure PostgreSQL Flexible Server automatically supports point-in-time restore (PITR) to any moment within the configured backup retention window (`postgres_backup_retention_period`).
+
+Key points:
+- PITR window = retention days (7–35) you set in Terraform.
+- Geo-redundant backup (`postgres_geo_redundant_backup_enabled = true`) improves DR but adds cost.
+- Restores create a new server; you then repoint apps / rotate connection strings.
+
+Restore example (CLI):
+```bash
+az postgres flexible-server restore \
+  --resource-group <rg> \
+  --name <new-server-name> \
+  --source-server <current-server-name> \
+  --restore-time "2025-08-12T15:04:05Z"
+```
+
+### PostgreSQL Logging & Cost Tuning
+
+Variables controlling verbosity:
+- `postgres_enable_server_logs`: Master toggle for connection / duration logging.
+- `postgres_log_statement_mode`: none | ddl | mod | all (default ddl). Avoid `all` in production unless debugging.
+- `postgres_log_min_duration_statement_ms`: Slow query threshold (default 500 ms). Lower value = more logs & cost.
+- `postgres_track_io_timing`: Enables IO timing (slight overhead, useful for perf diagnostics).
+- `postgres_pg_stat_statements_max`: Controls number of statements tracked; higher values consume more memory.
+
+Recommendations:
+| Scenario | log_statement | log_min_duration_statement_ms | Notes |
+|----------|---------------|--------------------------------|-------|
+| Prod steady state | ddl | 500–1000 | Focus on schema changes + slow queries |
+| Perf investigation | mod or all | 100–250 | Temporarily increase verbosity |
+| Heavy cost pressure | none | 1000–2000 | Minimize ingestion volume |
+
+If you disable full statement logging (`none`/`ddl`) ensure slow query threshold captures problematic queries (set <= 1000 ms initially).
+
+### Metric Alert Customization
+
+Metric alerts are enabled when `postgres_alerts_enabled = true`. Customize or add alerts via `postgres_metric_alerts` map. Default keys: `cpu_percent`, `storage_used`, `active_connections`.
+
+Example override in `terraform.tfvars`:
+```hcl
+postgres_alerts_enabled = true
+postgres_alert_emails   = ["dba-team@example.com", "oncall@example.com"]
+postgres_metric_alerts = {
+  cpu_percent = {
+    metric_name = "cpu_percent"
+    operator    = "GreaterThan"
+    threshold   = 75
+    aggregation = "Average"
+    description = "CPU > 75% (tuned)"
+  }
+  failed_connections = {
+    metric_name = "connections_failed"
+    operator    = "GreaterThan"
+    threshold   = 5
+    aggregation = "Total"
+    description = "Failed connections spike"
+  }
+}
+```
+
+Supported metric names (common): `cpu_percent`, `storage_used`, `active_connections`, `connections_failed`, `deadlocks`, `serverlog_storage_percent`.
+
+Action Group:
+- Created only if `postgres_alert_emails` is non-empty.
+- Add/remove emails without recreating alerts (resource uses dynamic receivers).
+
+### High Availability SKU Validation
+
+If `postgres_ha_enabled = true`, Terraform validates that `postgres_sku_name` starts with `GP_` or `MO_` (General Purpose / Memory Optimized). Adjust SKU before enabling HA to avoid apply failure.
+
+
 #### Log Analytics Workspace
 ```hcl
 resource "azurerm_log_analytics_workspace" "main" {

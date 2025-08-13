@@ -1,13 +1,13 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["metrics", "multiSchema"]
+  previewFeatures = ["metrics"]
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "audit", "pies"]
+  schemas  = ["app", "audit", "pies"]
 }
 
 model users {
@@ -15,7 +15,7 @@ model users {
   name  String  @db.VarChar(200)
   email String  @db.VarChar(200)
   
-  @@schema("public")
+  @@schema("app")
 }
 
 // Audit schema tables
