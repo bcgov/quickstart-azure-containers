@@ -178,10 +178,16 @@ resource "azurerm_postgresql_flexible_server_configuration" "pg_stat_statements_
 
 # Send diagnostics to Log Analytics (metrics & logs) if enabled
 resource "azurerm_monitor_diagnostic_setting" "postgres_diagnostics" {
-  count                      = var.enable_diagnostic_insights && length(var.log_analytics_workspace_id) > 0 ? 1 : 0
+  count                      = var.enable_diagnostic_insights ? 1 : 0
   name                       = "${var.app_name}-postgres-diagnostics"
   target_resource_id         = azurerm_postgresql_flexible_server.postgresql.id
   log_analytics_workspace_id = var.log_analytics_workspace_id
+  lifecycle {
+    precondition {
+      condition     = var.enable_diagnostic_insights ? (var.log_analytics_workspace_id != "") : true
+      error_message = "Diagnostics enabled but log_analytics_workspace_id is empty. Provide a workspace id."
+    }
+  }
 
   dynamic "enabled_log" {
     for_each = var.diagnostic_log_categories
