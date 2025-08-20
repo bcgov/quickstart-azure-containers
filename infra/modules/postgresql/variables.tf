@@ -195,7 +195,6 @@ variable "postgres_alert_emails" {
   description = "List of email addresses to receive PostgreSQL alerts"
   type        = list(string)
   nullable    = false
-
 }
 
 variable "postgres_metric_alerts" {
