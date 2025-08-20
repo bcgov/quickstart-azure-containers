@@ -52,12 +52,6 @@ variable "database_name" {
   nullable    = false
 }
 
-variable "db_master_password" {
-  description = "The password for the PostgreSQL admin user."
-  type        = string
-  sensitive   = true
-  nullable    = false
-}
 
 variable "geo_redundant_backup_enabled" {
   description = "Enable geo-redundant backup"

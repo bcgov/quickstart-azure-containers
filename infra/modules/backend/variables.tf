@@ -93,12 +93,18 @@ variable "enable_psql_sidecar" {
 variable "frontend_frontdoor_resource_guid" {
   description = "The resource GUID for the Front Door service associated with the frontend App Service."
   type        = string
-  nullable    = false
+  nullable    = true
 }
 
 variable "frontend_possible_outbound_ip_addresses" {
   description = "Possible outbound IP addresses for the frontend App Service."
   type        = string
+  nullable    = false
+}
+
+variable "frontdoor_enabled" {
+  description = "Whether Front Door is enabled. Controls backend IP restrictions for Front Door headers."
+  type        = bool
   nullable    = false
 }
 

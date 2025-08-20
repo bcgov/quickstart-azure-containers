@@ -48,26 +48,33 @@ resource "azurerm_linux_web_app" "backend" {
         priority                  = 100
       }
     }
-    ip_restriction {
-      service_tag               = "AzureFrontDoor.Backend"
-      ip_address                = null
-      virtual_network_subnet_id = null
-      action                    = "Allow"
-      priority                  = 100
-      headers {
-        x_azure_fdid      = [var.frontend_frontdoor_resource_guid]
-        x_fd_health_probe = []
-        x_forwarded_for   = []
-        x_forwarded_host  = []
+    dynamic "ip_restriction" {
+      for_each = var.frontdoor_enabled ? [1] : []
+      content {
+        service_tag               = "AzureFrontDoor.Backend"
+        ip_address                = null
+        virtual_network_subnet_id = null
+        action                    = "Allow"
+        priority                  = 100
+        headers {
+          x_azure_fdid      = [var.frontend_frontdoor_resource_guid]
+          x_fd_health_probe = []
+          x_forwarded_for   = []
+          x_forwarded_host  = []
+        }
+        name = "Allow traffic from Front Door"
       }
-      name = "Allow traffic from Front Door"
     }
-    ip_restriction {
-      name        = "DenyAll"
-      action      = "Deny"
-      priority    = 500
-      ip_address  = "0.0.0.0/0"
-      description = "Deny all other traffic"
+    # When Front Door disabled, allow all traffic unless further restrictions desired.
+    dynamic "ip_restriction" {
+      for_each = var.frontdoor_enabled ? [1] : []
+      content {
+        name        = "DenyAll"
+        action      = "Deny"
+        priority    = 500
+        ip_address  = "0.0.0.0/0"
+        description = "Deny all other traffic"
+      }
     }
   }
   app_settings = {

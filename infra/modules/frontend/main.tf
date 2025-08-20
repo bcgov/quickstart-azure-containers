@@ -38,21 +38,35 @@ resource "azurerm_linux_web_app" "frontend" {
       allowed_origins     = ["*"]
       support_credentials = false
     }
-    ip_restriction {
-      service_tag               = "AzureFrontDoor.Backend"
-      ip_address                = null
-      virtual_network_subnet_id = null
-      action                    = "Allow"
-      priority                  = 100
-      headers {
-        x_azure_fdid      = [var.frontend_frontdoor_resource_guid]
-        x_fd_health_probe = []
-        x_forwarded_for   = []
-        x_forwarded_host  = []
+    dynamic "ip_restriction" {
+      for_each = var.frontdoor_enabled ? [1] : []
+      content {
+        service_tag               = "AzureFrontDoor.Backend"
+        ip_address                = null
+        virtual_network_subnet_id = null
+        action                    = "Allow"
+        priority                  = 100
+        headers {
+          x_azure_fdid      = [var.frontend_frontdoor_resource_guid]
+          x_fd_health_probe = []
+          x_forwarded_for   = []
+          x_forwarded_host  = []
+        }
+        name = "Allow traffic from Front Door"
       }
-      name = "Allow traffic from Front Door"
     }
-    ip_restriction_default_action = "Deny"
+    # If Front Door disabled, allow all (could refine with IP restrictions as needed)
+    dynamic "ip_restriction" {
+      for_each = var.frontdoor_enabled ? [] : [1]
+      content {
+        name                      = "AllowAll"
+        action                    = "Allow"
+        priority                  = 100
+        ip_address                = "0.0.0.0/0"
+        virtual_network_subnet_id = null
+      }
+    }
+    ip_restriction_default_action = var.frontdoor_enabled ? "Deny" : "Allow"
   }
   app_settings = {
     PORT                                  = "80"
@@ -101,11 +115,13 @@ resource "azurerm_monitor_diagnostic_setting" "frontend_diagnostics" {
 }
 
 resource "azurerm_cdn_frontdoor_endpoint" "frontend_fd_endpoint" {
+  count                    = var.frontdoor_enabled ? 1 : 0
   name                     = "${var.repo_name}-${var.app_env}-frontend-fd"
   cdn_frontdoor_profile_id = var.frontend_frontdoor_id
 }
 
 resource "azurerm_cdn_frontdoor_origin_group" "frontend_origin_group" {
+  count                    = var.frontdoor_enabled ? 1 : 0
   name                     = "${var.repo_name}-${var.app_env}-frontend-origin-group"
   cdn_frontdoor_profile_id = var.frontend_frontdoor_id
   session_affinity_enabled = true
@@ -118,8 +134,9 @@ resource "azurerm_cdn_frontdoor_origin_group" "frontend_origin_group" {
 }
 
 resource "azurerm_cdn_frontdoor_origin" "frontend_app_service_origin" {
+  count                         = var.frontdoor_enabled ? 1 : 0
   name                          = "${var.repo_name}-${var.app_env}-frontend-origin"
-  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.frontend_origin_group.id
+  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.frontend_origin_group[0].id
 
   enabled                        = true
   host_name                      = azurerm_linux_web_app.frontend.default_hostname
@@ -132,10 +149,11 @@ resource "azurerm_cdn_frontdoor_origin" "frontend_app_service_origin" {
 }
 
 resource "azurerm_cdn_frontdoor_route" "frontend_route" {
+  count                         = var.frontdoor_enabled ? 1 : 0
   name                          = "${var.repo_name}-${var.app_env}-frontend-fd"
-  cdn_frontdoor_endpoint_id     = azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint.id
-  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.frontend_origin_group.id
-  cdn_frontdoor_origin_ids      = [azurerm_cdn_frontdoor_origin.frontend_app_service_origin.id]
+  cdn_frontdoor_endpoint_id     = azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint[0].id
+  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.frontend_origin_group[0].id
+  cdn_frontdoor_origin_ids      = [azurerm_cdn_frontdoor_origin.frontend_app_service_origin[0].id]
 
   supported_protocols    = ["Http", "Https"]
   patterns_to_match      = ["/*"]
@@ -144,6 +162,7 @@ resource "azurerm_cdn_frontdoor_route" "frontend_route" {
   https_redirect_enabled = true
 }
 resource "azurerm_cdn_frontdoor_security_policy" "frontend_fd_security_policy" {
+  count                    = var.frontdoor_enabled ? 1 : 0
   name                     = "${var.app_name}-frontend-fd-waf-security-policy"
   cdn_frontdoor_profile_id = var.frontend_frontdoor_id
 
@@ -153,7 +172,7 @@ resource "azurerm_cdn_frontdoor_security_policy" "frontend_fd_security_policy" {
 
       association {
         domain {
-          cdn_frontdoor_domain_id = azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint.id
+          cdn_frontdoor_domain_id = azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint[0].id
         }
         patterns_to_match = ["/*"]
       }

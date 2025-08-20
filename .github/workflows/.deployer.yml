@@ -30,7 +30,6 @@ on:
       
       
 env:
-    TG_VERSION: 0.63.6
     TF_VERSION: 1.12.2
     TF_LOG: ERROR
     AZURE_REGION: Canada Central
@@ -57,10 +56,6 @@ jobs:
       with:
         terraform_version: ${{ env.TF_VERSION }}
     
-    - name: Setup Terragrunt
-      uses: autero1/action-terragrunt@aefb0a43c4f5503a91fefb307745c4d51c26ed0e # v3
-      with:
-        terragrunt-version: ${{ env.TG_VERSION }}
     - name: Image Tags
       id: image-tags
       shell: bash
@@ -73,23 +68,37 @@ jobs:
         echo "flyway-image=$FLYWAY_IMAGE" >> $GITHUB_OUTPUT
         echo "frontend-image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
     
-    - name: Terragrunt ${{inputs.command}}
-      working-directory: terragrunt/${{ inputs.environment_name }}
-      env:
-          target_env: ${{ inputs.environment_name }}
-          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-          vnet_resource_group_name: ${{ secrets.VNET_RESOURCE_GROUP_NAME }} 
-          vnet_name: ${{ secrets.VNET_NAME }}
-          flyway_image: ${{ steps.image-tags.outputs.flyway-image }}
-          api_image: ${{ steps.image-tags.outputs.api-image }}
-          stack_prefix: ${{ inputs.stack_prefix }}
-          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-          db_master_password: ${{ secrets.DB_MASTER_PASSWORD }}
-          repo_name: ${{ github.event.repository.name }}
-          frontend_image: ${{ steps.image-tags.outputs.frontend-image }}
-          app_env: ${{ inputs.app_env }}
+    - name: Terraform Init
+      working-directory: terraform
       run: |
-          # Run terraform
-          terragrunt run-all ${{inputs.command}} --terragrunt-non-interactive
-    
+        # Initialize the Terraform backend
+        terraform init \
+          -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT_NAME }}" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=${{ inputs.environment_name }}.tfstate" \
+          -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+          -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+          -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+          -backend-config="use_oidc=true" \
+
+    - name: Terraform ${{inputs.command}}
+      working-directory: terraform
+      run: |
+        # Run terraform with exporting all these env vars declared above with export TF_VAR_var_name
+          export TF_VAR_target_env=${{ inputs.environment_name }}
+          export TF_VAR_azure_subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          export TF_VAR_azure_tenant_id=${{ secrets.AZURE_TENANT_ID }}
+          export TF_VAR_vnet_resource_group_name=${{ secrets.VNET_RESOURCE_GROUP_NAME }}
+          export TF_VAR_vnet_name=${{ secrets.VNET_NAME }}
+          export TF_VAR_flyway_image=${{ steps.image-tags.outputs.flyway-image }}
+          export TF_VAR_api_image=${{ steps.image-tags.outputs.api-image }}
+          export TF_VAR_stack_prefix=${{ inputs.stack_prefix }}
+          export TF_VAR_azure_client_id=${{ secrets.AZURE_CLIENT_ID }}
+          export TF_VAR_db_master_password=${{ secrets.DB_MASTER_PASSWORD }}
+          export TF_VAR_repo_name=${{ github.event.repository.name }}
+          export TF_VAR_frontend_image=${{ steps.image-tags.outputs.frontend-image }}
+          export TF_VAR_app_env=${{ inputs.app_env }}
+          export TF_VAR_enable_psql_sidecar=${{ vars.CLOUDBEAVER_ENABLED || false }}
+          export TF_VAR_vnet_address_space=${{ secrets.VNET_ADDRESS_SPACE }}
+          # now run terraform apply auto approve
+          terraform ${{ inputs.command }} -auto-approve

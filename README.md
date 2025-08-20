@@ -26,7 +26,6 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 - **Azure CLI** v2.50.0+ - [Installation Guide](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 - **GitHub CLI** v2.0.0+ - [Installation Guide](https://cli.github.com/)
 - **Terraform** v1.5.0+ - [Installation Guide](https://developer.hashicorp.com/terraform/downloads)
-- **Terragrunt** v0.50.0+ - [Installation Guide](https://terragrunt.gruntwork.io/docs/getting-started/install/)
 - **Docker** or **Podman** - [Docker Installation](https://docs.docker.com/get-docker/)
 
 ### Required Accounts & Permissions
@@ -81,12 +80,6 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 │   ├── sql/                   # SQL migration scripts
 │   ├── Dockerfile             # Migration runner container
 │   └── entrypoint.sh          # Migration execution script
-├── terragrunt/                # Environment-specific configurations
-│   ├── terragrunt.hcl         # Root configuration
-│   ├── dev/                   # Development environment
-│   ├── test/                  # Testing environment
-│   ├── prod/                  # Production environment
-│   └── tools/                 # Tools/utilities environment
 ├── docker-compose.yml         # Local development stack
 ├── initial-azure-setup.sh     # Azure setup automation script
 └── package.json               # Monorepo configuration

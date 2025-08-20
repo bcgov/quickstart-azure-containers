@@ -49,7 +49,6 @@ module "postgresql" {
   backup_retention_period       = var.postgres_backup_retention_period
   common_tags                   = var.common_tags
   database_name                 = var.database_name
-  db_master_password            = var.db_master_password
   diagnostic_log_categories     = var.postgres_diagnostic_log_categories
   diagnostic_metric_categories  = var.postgres_diagnostic_metric_categories
   diagnostic_retention_days     = var.postgres_diagnostic_retention_days
@@ -89,7 +88,7 @@ module "flyway" {
   app_name                     = var.app_name
   container_instance_subnet_id = module.network.container_instance_subnet_id
   database_name                = module.postgresql.database_name
-  db_master_password           = var.db_master_password
+  db_master_password           = module.postgresql.db_master_password
   dns_servers                  = module.network.dns_servers
   flyway_image                 = var.flyway_image
   location                     = var.location
@@ -103,9 +102,10 @@ module "flyway" {
 }
 
 module "frontdoor" {
-  source = "./modules/frontdoor"
-
+  source              = "./modules/frontdoor"
+  count               = var.frontdoor_enabled ? 1 : 0
   app_name            = var.app_name
+  enable_frontdoor    = var.frontdoor_enabled
   common_tags         = var.common_tags
   frontdoor_sku_name  = var.frontdoor_sku_name
   resource_group_name = azurerm_resource_group.main.name
@@ -122,17 +122,18 @@ module "frontend" {
   appinsights_connection_string         = module.monitoring.appinsights_connection_string
   appinsights_instrumentation_key       = module.monitoring.appinsights_instrumentation_key
   common_tags                           = var.common_tags
-  frontend_frontdoor_id                 = module.frontdoor.frontdoor_id
-  frontend_frontdoor_resource_guid      = module.frontdoor.frontdoor_resource_guid
+  frontdoor_enabled                     = var.frontdoor_enabled
+  frontend_frontdoor_id                 = var.frontdoor_enabled ? module.frontdoor[0].frontdoor_id : null
+  frontend_frontdoor_resource_guid      = var.frontdoor_enabled ? module.frontdoor[0].frontdoor_resource_guid : null
   frontend_image                        = var.frontend_image
   frontend_subnet_id                    = module.network.app_service_subnet_id
-  frontdoor_frontend_firewall_policy_id = module.frontdoor.firewall_policy_id
+  frontdoor_frontend_firewall_policy_id = var.frontdoor_enabled ? module.frontdoor[0].firewall_policy_id : null
   location                              = var.location
   log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
   repo_name                             = var.repo_name
   resource_group_name                   = azurerm_resource_group.main.name
 
-  depends_on = [module.frontdoor, module.monitoring, module.network]
+  depends_on = [module.monitoring, module.network]
 }
 
 module "backend" {
@@ -148,9 +149,10 @@ module "backend" {
   backend_subnet_id                       = module.network.app_service_subnet_id
   common_tags                             = var.common_tags
   database_name                           = var.database_name
-  db_master_password                      = var.db_master_password
+  db_master_password                      = module.postgresql.db_master_password
   enable_psql_sidecar                     = var.enable_psql_sidecar
-  frontend_frontdoor_resource_guid        = module.frontdoor.frontdoor_resource_guid
+  frontdoor_enabled                       = var.frontdoor_enabled
+  frontend_frontdoor_resource_guid        = var.frontdoor_enabled ? module.frontdoor[0].frontdoor_resource_guid : null
   frontend_possible_outbound_ip_addresses = module.frontend.possible_outbound_ip_addresses
   location                                = var.location
   log_analytics_workspace_id              = module.monitoring.log_analytics_workspace_id

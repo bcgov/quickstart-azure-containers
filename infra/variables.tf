@@ -46,15 +46,6 @@ variable "database_name" {
   default     = "app"
 }
 
-variable "db_master_password" {
-  description = "Master password for the PostgreSQL server"
-  type        = string
-  sensitive   = true
-  validation {
-    condition     = length(var.db_master_password) >= 12
-    error_message = "The db_master_password must be at least 12 characters long."
-  }
-}
 
 variable "enable_psql_sidecar" {
   description = "Whether to enable the CloudBeaver database management container"
@@ -70,6 +61,12 @@ variable "flyway_image" {
 variable "frontend_image" {
   description = "The image for the Frontend container"
   type        = string
+}
+
+variable "frontdoor_enabled" {
+  description = "Enable Azure Front Door (set false to expose App Service directly)"
+  type        = bool
+  default     = false
 }
 
 variable "frontdoor_sku_name" {
@@ -96,6 +93,18 @@ variable "log_analytics_sku" {
   default     = "PerGB2018"
 }
 
+variable "postgres_alert_emails" {
+  description = "List of email addresses to receive PostgreSQL alerts"
+  type        = list(string)
+  default     = []
+}
+
+variable "postgres_alerts_enabled" {
+  description = "Enable creation of PostgreSQL metric alerts and action group"
+  type        = bool
+  default     = false
+}
+
 variable "postgres_auto_grow_enabled" {
   description = "Enable auto-grow for PostgreSQL Flexible Server storage"
   type        = bool
@@ -112,11 +121,76 @@ variable "postgres_backup_retention_period" {
   }
 }
 
+variable "postgres_diagnostic_log_categories" {
+  description = "List of PostgreSQL diagnostic log categories to enable"
+  type        = list(string)
+  default     = ["PostgreSQLLogs"]
+}
 
-variable "postgres_maintenance_window_enabled" {
-  description = "Enable a fixed maintenance window for PostgreSQL Flexible Server (controls patching & potentially backup scheduling stability)."
+variable "postgres_diagnostic_metric_categories" {
+  description = "List of PostgreSQL diagnostic metric categories to enable"
+  type        = list(string)
+  default     = ["AllMetrics"]
+}
+
+variable "postgres_diagnostic_retention_days" {
+  description = "Retention (days) for diagnostics sent via diagnostic setting (0 disables per-setting retention)"
+  type        = number
+  default     = 7
+  validation {
+    condition     = var.postgres_diagnostic_retention_days >= 0 && var.postgres_diagnostic_retention_days <= 365
+    error_message = "postgres_diagnostic_retention_days must be between 0 and 365."
+  }
+}
+
+variable "postgres_enable_diagnostic_insights" {
+  description = "Enable Azure Monitor diagnostic settings for PostgreSQL server"
+  type        = bool
+  default     = true
+}
+
+variable "postgres_enable_server_logs" {
+  description = "Enable detailed PostgreSQL server logs (connections, disconnections, duration, statements)"
+  type        = bool
+  default     = true
+}
+
+variable "postgres_geo_redundant_backup_enabled" {
+  description = "Enable geo-redundant backup for PostgreSQL Flexible Server"
   type        = bool
   default     = false
+}
+
+variable "postgres_ha_enabled" {
+  description = "Enable high availability for PostgreSQL Flexible Server"
+  type        = bool
+  default     = false
+}
+
+variable "postgres_is_postgis_enabled" {
+  description = "Enable PostGIS extension for PostgreSQL Flexible Server"
+  type        = bool
+  default     = false
+}
+
+variable "postgres_log_min_duration_statement_ms" {
+  description = "Sets log_min_duration_statement in ms (-1 disables; 0 logs all statements)."
+  type        = number
+  default     = 500
+  validation {
+    condition     = var.postgres_log_min_duration_statement_ms >= -1
+    error_message = "postgres_log_min_duration_statement_ms must be >= -1."
+  }
+}
+
+variable "postgres_log_statement_mode" {
+  description = "Value for log_statement (none | ddl | mod | all). If postgres_enable_server_logs=false this is overridden to none."
+  type        = string
+  default     = "ddl"
+  validation {
+    condition     = contains(["none", "ddl", "mod", "all"], var.postgres_log_statement_mode)
+    error_message = "postgres_log_statement_mode must be one of: none, ddl, mod, all"
+  }
 }
 
 variable "postgres_maintenance_day_of_week" {
@@ -149,76 +223,10 @@ variable "postgres_maintenance_start_minute" {
   }
 }
 
-variable "postgres_geo_redundant_backup_enabled" {
-  description = "Enable geo-redundant backup for PostgreSQL Flexible Server"
+variable "postgres_maintenance_window_enabled" {
+  description = "Enable a fixed maintenance window for PostgreSQL Flexible Server (controls patching & potentially backup scheduling stability)."
   type        = bool
   default     = false
-}
-
-variable "postgres_ha_enabled" {
-  description = "Enable high availability for PostgreSQL Flexible Server"
-  type        = bool
-  default     = false
-}
-
-variable "postgres_is_postgis_enabled" {
-  description = "Enable PostGIS extension for PostgreSQL Flexible Server"
-  type        = bool
-  default     = false
-}
-
-variable "postgres_enable_server_logs" {
-  description = "Enable detailed PostgreSQL server logs (connections, disconnections, duration, statements)"
-  type        = bool
-  default     = true
-}
-
-variable "postgres_log_statement_mode" {
-  description = "Value for log_statement (none | ddl | mod | all). If postgres_enable_server_logs=false this is overridden to none."
-  type        = string
-  default     = "ddl"
-  validation {
-    condition     = contains(["none", "ddl", "mod", "all"], var.postgres_log_statement_mode)
-    error_message = "postgres_log_statement_mode must be one of: none, ddl, mod, all"
-  }
-}
-
-variable "postgres_log_min_duration_statement_ms" {
-  description = "Sets log_min_duration_statement in ms (-1 disables; 0 logs all statements)."
-  type        = number
-  default     = 500
-  validation {
-    condition     = var.postgres_log_min_duration_statement_ms >= -1
-    error_message = "postgres_log_min_duration_statement_ms must be >= -1."
-  }
-}
-
-variable "postgres_track_io_timing" {
-  description = "Enable track_io_timing (true/false). Minor overhead; useful for performance diagnostics."
-  type        = bool
-  default     = true
-}
-
-variable "postgres_pg_stat_statements_max" {
-  description = "Value for pg_stat_statements.max (number of statements tracked)."
-  type        = number
-  default     = 5000
-  validation {
-    condition     = var.postgres_pg_stat_statements_max >= 100
-    error_message = "postgres_pg_stat_statements_max must be >= 100."
-  }
-}
-
-variable "postgres_alerts_enabled" {
-  description = "Enable creation of PostgreSQL metric alerts and action group"
-  type        = bool
-  default     = false
-}
-
-variable "postgres_alert_emails" {
-  description = "List of email addresses to receive PostgreSQL alerts"
-  type        = list(string)
-  default     = []
 }
 
 variable "postgres_metric_alerts" {
@@ -255,31 +263,13 @@ variable "postgres_metric_alerts" {
   }
 }
 
-variable "postgres_enable_diagnostic_insights" {
-  description = "Enable Azure Monitor diagnostic settings for PostgreSQL server"
-  type        = bool
-  default     = true
-}
-
-variable "postgres_diagnostic_log_categories" {
-  description = "List of PostgreSQL diagnostic log categories to enable"
-  type        = list(string)
-  default     = ["PostgreSQLLogs"]
-}
-
-variable "postgres_diagnostic_metric_categories" {
-  description = "List of PostgreSQL diagnostic metric categories to enable"
-  type        = list(string)
-  default     = ["AllMetrics"]
-}
-
-variable "postgres_diagnostic_retention_days" {
-  description = "Retention (days) for diagnostics sent via diagnostic setting (0 disables per-setting retention)"
+variable "postgres_pg_stat_statements_max" {
+  description = "Value for pg_stat_statements.max (number of statements tracked)."
   type        = number
-  default     = 7
+  default     = 5000
   validation {
-    condition     = var.postgres_diagnostic_retention_days >= 0 && var.postgres_diagnostic_retention_days <= 365
-    error_message = "postgres_diagnostic_retention_days must be between 0 and 365."
+    condition     = var.postgres_pg_stat_statements_max >= 100
+    error_message = "postgres_pg_stat_statements_max must be >= 100."
   }
 }
 
@@ -307,6 +297,12 @@ variable "postgres_storage_mb" {
     condition     = var.postgres_storage_mb >= 32768 && var.postgres_storage_mb % 1024 == 0
     error_message = "postgres_storage_mb must be >= 32768 and a multiple of 1024."
   }
+}
+
+variable "postgres_track_io_timing" {
+  description = "Enable track_io_timing (true/false). Minor overhead; useful for performance diagnostics."
+  type        = bool
+  default     = true
 }
 
 variable "postgres_version" {

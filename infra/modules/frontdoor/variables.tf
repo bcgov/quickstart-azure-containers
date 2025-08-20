@@ -21,3 +21,9 @@ variable "resource_group_name" {
   type        = string
   nullable    = false
 }
+
+variable "enable_frontdoor" {
+  description = "Whether Front Door is enabled (provided for interface consistency)."
+  type        = bool
+  nullable    = false
+}

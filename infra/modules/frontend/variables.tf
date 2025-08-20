@@ -38,13 +38,13 @@ variable "container_registry_url" {
 variable "frontend_frontdoor_id" {
   description = "The ID of the Front Door profile for the frontend."
   type        = string
-  nullable    = false
+  nullable    = true
 }
 
 variable "frontend_frontdoor_resource_guid" {
   description = "The resource GUID of the Front Door profile for the frontend."
   type        = string
-  nullable    = false
+  nullable    = true
 }
 
 variable "frontend_image" {
@@ -62,7 +62,7 @@ variable "frontend_subnet_id" {
 variable "frontdoor_frontend_firewall_policy_id" {
   description = "The resource ID of the Front Door firewall policy for the frontend."
   type        = string
-  nullable    = false
+  nullable    = true
 }
 
 variable "location" {
@@ -93,5 +93,11 @@ variable "resource_group_name" {
 variable "app_service_sku_name_frontend" {
   description = "The SKU name for the frontend App Service plan."
   type        = string
+  nullable    = false
+}
+
+variable "frontdoor_enabled" {
+  description = "Whether Front Door is enabled. When false, frontend is exposed directly via its default hostname."
+  type        = bool
   nullable    = false
 }
