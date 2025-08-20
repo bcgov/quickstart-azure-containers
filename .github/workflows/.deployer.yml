@@ -79,7 +79,7 @@ jobs:
           -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
           -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
           -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-          -backend-config="use_oidc=true" \
+          -backend-config="use_oidc=true"
 
     - name: Terraform ${{inputs.command}}
       working-directory: infra
@@ -100,5 +100,9 @@ jobs:
           export TF_VAR_app_env=${{ inputs.app_env }}
           export TF_VAR_enable_psql_sidecar=${{ vars.CLOUDBEAVER_ENABLED || false }}
           export TF_VAR_vnet_address_space=${{ secrets.VNET_ADDRESS_SPACE }}
-          # now run terraform apply auto approve
-          terraform ${{ inputs.command }} -auto-approve
+          # now run terraform command with conditional auto-approve
+          if [[ "${{ inputs.command }}" == "apply" || "${{ inputs.command }}" == "destroy" ]]; then
+            terraform ${{ inputs.command }} -auto-approve
+          else
+            terraform ${{ inputs.command }}
+          fi
