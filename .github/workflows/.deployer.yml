@@ -95,7 +95,6 @@ jobs:
           export TF_VAR_api_image=${{ steps.image-tags.outputs.api-image }}
           export TF_VAR_stack_prefix=${{ inputs.stack_prefix }}
           export TF_VAR_azure_client_id=${{ secrets.AZURE_CLIENT_ID }}
-          export TF_VAR_db_master_password=${{ secrets.DB_MASTER_PASSWORD }}
           export TF_VAR_repo_name=${{ github.event.repository.name }}
           export TF_VAR_frontend_image=${{ steps.image-tags.outputs.frontend-image }}
           export TF_VAR_app_env=${{ inputs.app_env }}
