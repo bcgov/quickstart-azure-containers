@@ -532,7 +532,7 @@ inputs = {
   app_service_sku_name_frontend = "B1"
   postgres_sku_name            = "B_Standard_B1ms"
   backend_autoscale_enabled    = false
-  enable_psql_sidecar         = true
+  enable_cloudbeaver         = true
 }
 ```
 
@@ -547,7 +547,7 @@ inputs = {
   app_service_sku_name_frontend = "P1V3"
   postgres_sku_name            = "GP_Standard_D2s_v3"
   backend_autoscale_enabled    = true
-  enable_psql_sidecar         = false
+  enable_cloudbeaver         = false
   postgres_ha_enabled         = true
 }
 ```

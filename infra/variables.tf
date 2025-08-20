@@ -47,7 +47,7 @@ variable "database_name" {
 }
 
 
-variable "enable_psql_sidecar" {
+variable "enable_cloudbeaver" {
   description = "Whether to enable the CloudBeaver database management container"
   type        = bool
   default     = true
@@ -63,7 +63,7 @@ variable "frontend_image" {
   type        = string
 }
 
-variable "frontdoor_enabled" {
+variable "enable_frontdoor" {
   description = "Enable Azure Front Door (set false to expose App Service directly)"
   type        = bool
   default     = false
@@ -99,13 +99,13 @@ variable "postgres_alert_emails" {
   default     = []
 }
 
-variable "postgres_alerts_enabled" {
+variable "enable_postgres_alerts" {
   description = "Enable creation of PostgreSQL metric alerts and action group"
   type        = bool
   default     = false
 }
 
-variable "postgres_auto_grow_enabled" {
+variable "enable_postgres_auto_grow" {
   description = "Enable auto-grow for PostgreSQL Flexible Server storage"
   type        = bool
   default     = true
@@ -155,19 +155,19 @@ variable "postgres_enable_server_logs" {
   default     = true
 }
 
-variable "postgres_geo_redundant_backup_enabled" {
+variable "enable_postgres_geo_redundant_backup" {
   description = "Enable geo-redundant backup for PostgreSQL Flexible Server"
   type        = bool
   default     = false
 }
 
-variable "postgres_ha_enabled" {
+variable "enable_postgres_ha" {
   description = "Enable high availability for PostgreSQL Flexible Server"
   type        = bool
   default     = false
 }
 
-variable "postgres_is_postgis_enabled" {
+variable "enable_postgres_is_postgis" {
   description = "Enable PostGIS extension for PostgreSQL Flexible Server"
   type        = bool
   default     = false
@@ -223,7 +223,7 @@ variable "postgres_maintenance_start_minute" {
   }
 }
 
-variable "postgres_maintenance_window_enabled" {
+variable "enable_postgres_maintenance_window" {
   description = "Enable a fixed maintenance window for PostgreSQL Flexible Server (controls patching & potentially backup scheduling stability)."
   type        = bool
   default     = false
@@ -278,8 +278,8 @@ variable "postgres_sku_name" {
   type        = string
   default     = "B_Standard_B1ms"
   validation {
-    condition     = !var.postgres_ha_enabled || can(regex("^(GP_|MO_)", var.postgres_sku_name))
-    error_message = "High availability requires a General Purpose (GP_) or Memory Optimized (MO_) SKU. Change postgres_sku_name or disable postgres_ha_enabled."
+    condition     = !var.enable_postgres_ha || can(regex("^(GP_|MO_)", var.postgres_sku_name))
+    error_message = "High availability requires a General Purpose (GP_) or Memory Optimized (MO_) SKU. Change postgres_sku_name or disable enable_postgres_ha."
   }
 }
 

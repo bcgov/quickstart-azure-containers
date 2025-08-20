@@ -39,7 +39,7 @@ resource "azurerm_linux_web_app" "frontend" {
       support_credentials = false
     }
     dynamic "ip_restriction" {
-      for_each = var.frontdoor_enabled ? [1] : []
+      for_each = var.enable_frontdoor ? [1] : []
       content {
         service_tag               = "AzureFrontDoor.Backend"
         ip_address                = null
@@ -57,7 +57,7 @@ resource "azurerm_linux_web_app" "frontend" {
     }
     # If Front Door disabled, allow all (could refine with IP restrictions as needed)
     dynamic "ip_restriction" {
-      for_each = var.frontdoor_enabled ? [] : [1]
+      for_each = var.enable_frontdoor ? [] : [1]
       content {
         name                      = "AllowAll"
         action                    = "Allow"
@@ -66,7 +66,7 @@ resource "azurerm_linux_web_app" "frontend" {
         virtual_network_subnet_id = null
       }
     }
-    ip_restriction_default_action = var.frontdoor_enabled ? "Deny" : "Allow"
+    ip_restriction_default_action = var.enable_frontdoor ? "Deny" : "Allow"
   }
   app_settings = {
     PORT                                  = "80"
@@ -115,13 +115,13 @@ resource "azurerm_monitor_diagnostic_setting" "frontend_diagnostics" {
 }
 
 resource "azurerm_cdn_frontdoor_endpoint" "frontend_fd_endpoint" {
-  count                    = var.frontdoor_enabled ? 1 : 0
+  count                    = var.enable_frontdoor ? 1 : 0
   name                     = "${var.repo_name}-${var.app_env}-frontend-fd"
   cdn_frontdoor_profile_id = var.frontend_frontdoor_id
 }
 
 resource "azurerm_cdn_frontdoor_origin_group" "frontend_origin_group" {
-  count                    = var.frontdoor_enabled ? 1 : 0
+  count                    = var.enable_frontdoor ? 1 : 0
   name                     = "${var.repo_name}-${var.app_env}-frontend-origin-group"
   cdn_frontdoor_profile_id = var.frontend_frontdoor_id
   session_affinity_enabled = true
@@ -134,7 +134,7 @@ resource "azurerm_cdn_frontdoor_origin_group" "frontend_origin_group" {
 }
 
 resource "azurerm_cdn_frontdoor_origin" "frontend_app_service_origin" {
-  count                         = var.frontdoor_enabled ? 1 : 0
+  count                         = var.enable_frontdoor ? 1 : 0
   name                          = "${var.repo_name}-${var.app_env}-frontend-origin"
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.frontend_origin_group[0].id
 
@@ -149,7 +149,7 @@ resource "azurerm_cdn_frontdoor_origin" "frontend_app_service_origin" {
 }
 
 resource "azurerm_cdn_frontdoor_route" "frontend_route" {
-  count                         = var.frontdoor_enabled ? 1 : 0
+  count                         = var.enable_frontdoor ? 1 : 0
   name                          = "${var.repo_name}-${var.app_env}-frontend-fd"
   cdn_frontdoor_endpoint_id     = azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint[0].id
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.frontend_origin_group[0].id
@@ -162,7 +162,7 @@ resource "azurerm_cdn_frontdoor_route" "frontend_route" {
   https_redirect_enabled = true
 }
 resource "azurerm_cdn_frontdoor_security_policy" "frontend_fd_security_policy" {
-  count                    = var.frontdoor_enabled ? 1 : 0
+  count                    = var.enable_frontdoor ? 1 : 0
   name                     = "${var.app_name}-frontend-fd-waf-security-policy"
   cdn_frontdoor_profile_id = var.frontend_frontdoor_id
 

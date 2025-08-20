@@ -96,7 +96,7 @@ variable "app_service_sku_name_frontend" {
   nullable    = false
 }
 
-variable "frontdoor_enabled" {
+variable "enable_frontdoor" {
   description = "Whether Front Door is enabled. When false, frontend is exposed directly via its default hostname."
   type        = bool
   nullable    = false

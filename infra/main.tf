@@ -45,7 +45,7 @@ module "postgresql" {
   source = "./modules/postgresql"
 
   app_name                      = var.app_name
-  auto_grow_enabled             = var.postgres_auto_grow_enabled
+  enable_auto_grow              = var.enable_postgres_auto_grow
   backup_retention_period       = var.postgres_backup_retention_period
   common_tags                   = var.common_tags
   database_name                 = var.database_name
@@ -54,9 +54,9 @@ module "postgresql" {
   diagnostic_retention_days     = var.postgres_diagnostic_retention_days
   enable_diagnostic_insights    = var.postgres_enable_diagnostic_insights
   enable_server_logs            = var.postgres_enable_server_logs
-  geo_redundant_backup_enabled  = var.postgres_geo_redundant_backup_enabled
-  ha_enabled                    = var.postgres_ha_enabled
-  is_postgis_enabled            = var.postgres_is_postgis_enabled
+  enable_geo_redundant_backup   = var.enable_postgres_geo_redundant_backup
+  enable_ha                     = var.enable_postgres_ha
+  enable_is_postgis             = var.enable_postgres_is_postgis
   location                      = var.location
   log_analytics_workspace_id    = module.monitoring.log_analytics_workspace_id
   log_min_duration_statement_ms = var.postgres_log_min_duration_statement_ms
@@ -64,14 +64,14 @@ module "postgresql" {
   maintenance_day_of_week       = var.postgres_maintenance_day_of_week
   maintenance_start_hour        = var.postgres_maintenance_start_hour
   maintenance_start_minute      = var.postgres_maintenance_start_minute
-  maintenance_window_enabled    = var.postgres_maintenance_window_enabled
+  enable_maintenance_window     = var.enable_postgres_maintenance_window
   pg_stat_statements_max        = var.postgres_pg_stat_statements_max
   postgres_version              = var.postgres_version
   postgresql_admin_username     = var.postgresql_admin_username
   postgresql_sku_name           = var.postgres_sku_name
   postgresql_storage_mb         = var.postgres_storage_mb
   postgres_alert_emails         = var.postgres_alert_emails
-  postgres_alerts_enabled       = var.postgres_alerts_enabled
+  enable_postgres_alerts        = var.enable_postgres_alerts
   postgres_metric_alerts        = var.postgres_metric_alerts
   private_endpoint_subnet_id    = module.network.private_endpoint_subnet_id
   resource_group_name           = azurerm_resource_group.main.name
@@ -103,9 +103,9 @@ module "flyway" {
 
 module "frontdoor" {
   source              = "./modules/frontdoor"
-  count               = var.frontdoor_enabled ? 1 : 0
+  count               = var.enable_frontdoor ? 1 : 0
   app_name            = var.app_name
-  enable_frontdoor    = var.frontdoor_enabled
+  enable_frontdoor    = var.enable_frontdoor
   common_tags         = var.common_tags
   frontdoor_sku_name  = var.frontdoor_sku_name
   resource_group_name = azurerm_resource_group.main.name
@@ -122,12 +122,12 @@ module "frontend" {
   appinsights_connection_string         = module.monitoring.appinsights_connection_string
   appinsights_instrumentation_key       = module.monitoring.appinsights_instrumentation_key
   common_tags                           = var.common_tags
-  frontdoor_enabled                     = var.frontdoor_enabled
-  frontend_frontdoor_id                 = var.frontdoor_enabled ? module.frontdoor[0].frontdoor_id : null
-  frontend_frontdoor_resource_guid      = var.frontdoor_enabled ? module.frontdoor[0].frontdoor_resource_guid : null
+  enable_frontdoor                      = var.enable_frontdoor
+  frontend_frontdoor_id                 = var.enable_frontdoor ? module.frontdoor[0].frontdoor_id : null
+  frontend_frontdoor_resource_guid      = var.enable_frontdoor ? module.frontdoor[0].frontdoor_resource_guid : null
   frontend_image                        = var.frontend_image
   frontend_subnet_id                    = module.network.app_service_subnet_id
-  frontdoor_frontend_firewall_policy_id = var.frontdoor_enabled ? module.frontdoor[0].firewall_policy_id : null
+  frontdoor_frontend_firewall_policy_id = var.enable_frontdoor ? module.frontdoor[0].firewall_policy_id : null
   location                              = var.location
   log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
   repo_name                             = var.repo_name
@@ -150,9 +150,9 @@ module "backend" {
   common_tags                             = var.common_tags
   database_name                           = var.database_name
   db_master_password                      = module.postgresql.db_master_password
-  enable_psql_sidecar                     = var.enable_psql_sidecar
-  frontdoor_enabled                       = var.frontdoor_enabled
-  frontend_frontdoor_resource_guid        = var.frontdoor_enabled ? module.frontdoor[0].frontdoor_resource_guid : null
+  enable_cloudbeaver                      = var.enable_cloudbeaver
+  enable_frontdoor                        = var.enable_frontdoor
+  frontend_frontdoor_resource_guid        = var.enable_frontdoor ? module.frontdoor[0].frontdoor_resource_guid : null
   frontend_possible_outbound_ip_addresses = module.frontend.possible_outbound_ip_addresses
   location                                = var.location
   log_analytics_workspace_id              = module.monitoring.log_analytics_workspace_id

@@ -40,7 +40,7 @@ variable "appinsights_instrumentation_key" {
   nullable    = false
 }
 
-variable "backend_autoscale_enabled" {
+variable "enable_backend_autoscale" {
   description = "Whether autoscaling is enabled for the backend App Service plan."
   type        = bool
   default     = true
@@ -84,7 +84,7 @@ variable "db_master_password" {
   nullable    = false
 }
 
-variable "enable_psql_sidecar" {
+variable "enable_cloudbeaver" {
   description = "Whether to enable the CloudBeaver PostgreSQL sidecar."
   type        = bool
   default     = false
@@ -102,7 +102,7 @@ variable "frontend_possible_outbound_ip_addresses" {
   nullable    = false
 }
 
-variable "frontdoor_enabled" {
+variable "enable_frontdoor" {
   description = "Whether Front Door is enabled. Controls backend IP restrictions for Front Door headers."
   type        = bool
   nullable    = false

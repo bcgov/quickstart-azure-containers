@@ -1,6 +1,6 @@
 output "frontend_url" {
   description = "The URL of the frontend application (Front Door if enabled else App Service)"
-  value       = var.frontdoor_enabled && can(azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint[0].host_name) ? "https://${azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint[0].host_name}" : "https://${azurerm_linux_web_app.frontend.default_hostname}"
+  value       = var.enable_frontdoor && can(azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint[0].host_name) ? "https://${azurerm_cdn_frontdoor_endpoint.frontend_fd_endpoint[0].host_name}" : "https://${azurerm_linux_web_app.frontend.default_hostname}"
 
 }
 

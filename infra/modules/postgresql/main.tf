@@ -11,20 +11,23 @@ resource "azurerm_postgresql_flexible_server" "postgresql" {
   administrator_login    = var.postgresql_admin_username
   administrator_password = random_password.postgres_master_password.result
 
-  sku_name                     = var.postgresql_sku_name
-  version                      = var.postgres_version
-  zone                         = var.zone
-  storage_mb                   = var.postgresql_storage_mb
-  backup_retention_days        = var.backup_retention_period
-  geo_redundant_backup_enabled = var.geo_redundant_backup_enabled
+  sku_name              = var.postgresql_sku_name
+  version               = var.postgres_version
+  zone                  = var.zone
+  storage_mb            = var.postgresql_storage_mb
+  backup_retention_days = var.backup_retention_period
+
+  geo_redundant_backup_enabled = var.enable_geo_redundant_backup
 
   # Not allowed to be public in Azure Landing Zone
   # Public network access is disabled to comply with Azure Landing Zone security requirements
   public_network_access_enabled = false
 
   # High availability configuration
+  # when enabled, the standby server will be created in the specified availability zone
+  # and compute charges for standby will be added
   dynamic "high_availability" {
-    for_each = var.ha_enabled ? [1] : []
+    for_each = var.enable_ha ? [1] : []
     content {
       mode                      = "ZoneRedundant"
       standby_availability_zone = var.standby_availability_zone
@@ -32,7 +35,7 @@ resource "azurerm_postgresql_flexible_server" "postgresql" {
   }
 
   # Auto-scaling configuration  
-  auto_grow_enabled = var.auto_grow_enabled
+  auto_grow_enabled = var.enable_auto_grow
   tags              = var.common_tags
 
   # Lifecycle block to handle automatic DNS zone associations by Azure Policy
@@ -43,7 +46,7 @@ resource "azurerm_postgresql_flexible_server" "postgresql" {
   }
 
   dynamic "maintenance_window" {
-    for_each = var.maintenance_window_enabled ? [1] : []
+    for_each = var.enable_maintenance_window ? [1] : []
     content {
       day_of_week  = var.maintenance_day_of_week
       start_hour   = var.maintenance_start_hour
@@ -212,7 +215,7 @@ resource "azurerm_monitor_diagnostic_setting" "postgres_diagnostics" {
 
 # PostgreSQL Alerts & Action Group (conditional)
 resource "azurerm_monitor_action_group" "postgres" {
-  count               = var.postgres_alerts_enabled && length(var.postgres_alert_emails) > 0 ? 1 : 0
+  count               = var.enable_postgres_alerts && length(var.postgres_alert_emails) > 0 ? 1 : 0
   name                = "${var.app_name}-pg-ag"
   resource_group_name = var.resource_group_name
   short_name          = "pgag"
@@ -228,7 +231,7 @@ resource "azurerm_monitor_action_group" "postgres" {
 }
 
 resource "azurerm_monitor_metric_alert" "postgres" {
-  for_each                 = var.postgres_alerts_enabled ? var.postgres_metric_alerts : {}
+  for_each                 = var.enable_postgres_alerts ? var.postgres_metric_alerts : {}
   name                     = "${var.app_name}-pg-${each.key}"
   resource_group_name      = var.resource_group_name
   scopes                   = [azurerm_postgresql_flexible_server.postgresql.id]
@@ -249,7 +252,7 @@ resource "azurerm_monitor_metric_alert" "postgres" {
   }
 
   dynamic "action" {
-    for_each = var.postgres_alerts_enabled && length(var.postgres_alert_emails) > 0 ? [1] : []
+    for_each = var.enable_postgres_alerts && length(var.postgres_alert_emails) > 0 ? [1] : []
     content {
       action_group_id = azurerm_monitor_action_group.postgres[0].id
     }
@@ -260,7 +263,7 @@ resource "azurerm_monitor_metric_alert" "postgres" {
 
 # Enable PostGIS extension
 resource "azurerm_postgresql_flexible_server_configuration" "azure_extensions" {
-  count     = var.is_postgis_enabled ? 1 : 0
+  count     = var.enable_is_postgis ? 1 : 0
   name      = "azure.extensions"
   server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = "POSTGIS"

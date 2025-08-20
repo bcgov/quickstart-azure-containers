@@ -49,7 +49,7 @@ resource "azurerm_linux_web_app" "backend" {
       }
     }
     dynamic "ip_restriction" {
-      for_each = var.frontdoor_enabled ? [1] : []
+      for_each = var.enable_frontdoor ? [1] : []
       content {
         service_tag               = "AzureFrontDoor.Backend"
         ip_address                = null
@@ -67,7 +67,7 @@ resource "azurerm_linux_web_app" "backend" {
     }
     # When Front Door disabled, allow all traffic unless further restrictions desired.
     dynamic "ip_restriction" {
-      for_each = var.frontdoor_enabled ? [1] : []
+      for_each = var.enable_frontdoor ? [1] : []
       content {
         name        = "DenyAll"
         action      = "Deny"
@@ -114,7 +114,7 @@ resource "azurerm_monitor_autoscale_setting" "backend_autoscale" {
   resource_group_name = var.resource_group_name
   location            = var.location
   target_resource_id  = azurerm_service_plan.backend.id
-  enabled             = var.backend_autoscale_enabled
+  enabled             = var.enable_backend_autoscale
   profile {
     name = "default"
     capacity {
@@ -163,7 +163,7 @@ resource "azurerm_monitor_autoscale_setting" "backend_autoscale" {
 
 # CloudBeaver Storage Account (optional)
 resource "azurerm_storage_account" "cloudbeaver" {
-  count                           = var.enable_psql_sidecar ? 1 : 0
+  count                           = var.enable_cloudbeaver ? 1 : 0
   name                            = "${replace(var.app_name, "-", "")}cbstorage"
   resource_group_name             = var.resource_group_name
   location                        = var.location
@@ -178,14 +178,14 @@ resource "azurerm_storage_account" "cloudbeaver" {
 }
 
 resource "azurerm_storage_share" "cloudbeaver_workspace" {
-  count              = var.enable_psql_sidecar ? 1 : 0
+  count              = var.enable_cloudbeaver ? 1 : 0
   name               = "${var.app_name}-cb-workspace"
   storage_account_id = azurerm_storage_account.cloudbeaver[0].id
   quota              = 10
 }
 
 resource "azurerm_private_endpoint" "cloudbeaver_storage" {
-  count               = var.enable_psql_sidecar ? 1 : 0
+  count               = var.enable_cloudbeaver ? 1 : 0
   name                = "${var.app_name}-cb-storage-pe"
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -203,7 +203,7 @@ resource "azurerm_private_endpoint" "cloudbeaver_storage" {
 }
 
 resource "random_string" "cloudbeaver_admin_name" {
-  count   = var.enable_psql_sidecar ? 1 : 0
+  count   = var.enable_cloudbeaver ? 1 : 0
   length  = 12
   special = false
   upper   = false
@@ -211,13 +211,13 @@ resource "random_string" "cloudbeaver_admin_name" {
 }
 
 resource "random_password" "cloudbeaver_admin_password" {
-  count   = var.enable_psql_sidecar ? 1 : 0
+  count   = var.enable_cloudbeaver ? 1 : 0
   length  = 16
   special = true
 }
 
 resource "azurerm_linux_web_app" "psql_sidecar" {
-  count                     = var.enable_psql_sidecar ? 1 : 0
+  count                     = var.enable_cloudbeaver ? 1 : 0
   name                      = "${var.repo_name}-${var.app_env}-cloudbeaver"
   resource_group_name       = var.resource_group_name
   location                  = var.location
