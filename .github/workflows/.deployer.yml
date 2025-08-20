@@ -69,7 +69,7 @@ jobs:
         echo "frontend-image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
     
     - name: Terraform Init
-      working-directory: terraform
+      working-directory: infra
       run: |
         # Initialize the Terraform backend
         terraform init \
@@ -82,7 +82,7 @@ jobs:
           -backend-config="use_oidc=true" \
 
     - name: Terraform ${{inputs.command}}
-      working-directory: terraform
+      working-directory: infra
       run: |
         # Run terraform with exporting all these env vars declared above with export TF_VAR_var_name
           export TF_VAR_target_env=${{ inputs.environment_name }}
