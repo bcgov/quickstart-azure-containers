@@ -67,6 +67,20 @@ jobs:
         echo "api-image=$API_IMAGE" >> $GITHUB_OUTPUT
         echo "flyway-image=$FLYWAY_IMAGE" >> $GITHUB_OUTPUT
         echo "frontend-image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
+    
+    - name: Terraform Init
+      working-directory: infra
+      run: |
+        # Initialize the Terraform backend
+        terraform init \
+          -backend-config="resource_group_name=${{ secrets.VNET_RESOURCE_GROUP_NAME }}" \
+          -backend-config="storage_account_name=qacatfstate${{ inputs.environment_name }}" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=${{ inputs.stack_prefix }}/${{ inputs.environment_name }}/terraform.tfstate" \
+          -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+          -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+          -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+          -backend-config="use_oidc=true"
 
     - name: Terraform ${{inputs.command}}
       working-directory: infra
@@ -88,18 +102,6 @@ jobs:
           export TF_VAR_app_name=${{ inputs.stack_prefix }}-${{ inputs.app_env }}
           export TF_VAR_enable_psql_sidecar=${{ vars.CLOUDBEAVER_ENABLED || false }}
           export TF_VAR_vnet_address_space=${{ secrets.VNET_ADDRESS_SPACE }}
-          
-          # Initialize the Terraform backend
-          terraform init \
-            -backend-config="resource_group_name=${{ secrets.VNET_RESOURCE_GROUP_NAME }}" \
-            -backend-config="storage_account_name=qacatfstate${{ inputs.environment_name }}" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=${{ inputs.stack_prefix }}/${{ inputs.environment_name }}/terraform.tfstate" \
-            -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-            -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-            -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-            -backend-config="use_oidc=true"
-          
           # now run terraform command with conditional auto-approve
           if [[ "${{ inputs.command }}" == "apply" || "${{ inputs.command }}" == "destroy" ]]; then
             terraform ${{ inputs.command }} -auto-approve -input=false
