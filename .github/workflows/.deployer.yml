@@ -39,7 +39,7 @@ permissions:
 jobs:
  infra:
   environment: ${{ inputs.environment_name }}
-  name: Terragrunt ${{inputs.command}}  ${{ inputs.environment_name }}
+  name: Terraform ${{inputs.command}}  ${{ inputs.environment_name }}
   runs-on: ubuntu-24.04
   steps:
     - name: Checkout
@@ -73,9 +73,9 @@ jobs:
       run: |
         # Initialize the Terraform backend
         terraform init \
-          -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT_NAME }}" \
+          -backend-config="storage_account_name=qacatfstate${{ inputs.environment_name }}" \
           -backend-config="container_name=tfstate" \
-          -backend-config="key=${{ inputs.environment_name }}.tfstate" \
+          -backend-config="key=${{ inputs.stack_prefix }}/${{ inputs.environment_name }}/terraform.tfstate" \
           -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
           -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
           -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
