@@ -589,7 +589,14 @@ add_to_security_group() {
                 # Member already exists - this is success
                 log_success "Managed identity was already a member of group '$group'"
                 success=1
-            elif [[ ${PIPESTATUS[0]} -eq 0 ]]; then
+            local add_output
+            add_output=$(az ad group member add --group "$group" --member-id "$PRINCIPAL_ID" 2>&1)
+            local add_exit_code=$?
+            if echo "$add_output" | grep -qi "already exist"; then
+                # Member already exists - this is success
+                log_success "Managed identity was already a member of group '$group'"
+                success=1
+            elif [[ $add_exit_code -eq 0 ]]; then
                 # Command succeeded
                 log_success "Successfully added managed identity $PRINCIPAL_ID to group '$group'"
                 success=1
