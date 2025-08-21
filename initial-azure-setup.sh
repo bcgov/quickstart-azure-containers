@@ -574,6 +574,7 @@ add_to_security_group() {
                 success=1
                 echo
                 # proceed to summary
+                return 0
             fi
         fi
         
