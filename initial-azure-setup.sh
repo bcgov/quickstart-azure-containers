@@ -565,6 +565,7 @@ add_to_security_group() {
                 # Single group flow ends here
                 echo
                 # proceed to summary
+                return
             fi
             
             # Check if managed identity is already a member (robust check)
