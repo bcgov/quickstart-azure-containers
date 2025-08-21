@@ -12,17 +12,17 @@
 # - Configures OIDC federated identity credentials (no secrets needed!)
 # - Sets up Azure storage account for Terraform state management
 # - Optionally creates GitHub environment and secrets automatically
-# - Assigns necessary Azure roles for deployment permissions
+# - Adds managed identity to security group for deployment permissions
 # 
 # Role is managed by platform team, see this link:: https://developer.gov.bc.ca/docs/default/component/public-cloud-techdocs/azure/design-build-deploy/user-management/
 # Examples:
 #   # Basic setup for development environment
 #   ./initial-azure-setup.sh -g "ABCD-dev-networking" -n "myapp-dev-identity" \
-#     -r "myorg/myapp" -e "dev" --assign-roles "DO_PuC_Azure_Live_abc123_Contributors" --create-storage
+#     -r "myorg/myapp" -e "dev" --create-storage
 #
-#   # Production setup with auto GitHub secrets creation
+#   # Production setup with custom security group
 #   ./initial-azure-setup.sh -g "ABCD-prod-networking" -n "myapp-prod-identity" \
-#     -r "myorg/myapp" -e "prod" --assign-roles "DO_PuC_Azure_Live_abc123_Contributors" \
+#     -r "myorg/myapp" -e "prod" --security-group "DO_PuC_Azure_Live_ABCD_Contributor" \
 #     --create-storage --create-github-secrets
 # 
 # =============================================================================
@@ -33,7 +33,7 @@
 #
 # Azure Requirements:
 # - Azure CLI installed and logged in (run: az login)
-# - Appropriate permissions in Azure subscription (Contributor-Owner)
+# - Appropriate permissions in Azure subscription (Owner of security group DO_PuC_Azure_Live_{LicensePlate}_Contributor)
 #
 # GitHub Requirements (optional):
 # - GitHub CLI installed (for auto secret creation with --create-github-secrets)
@@ -43,16 +43,16 @@
 #   • admin:repo_hook (if using webhooks)
 #   • admin:org (if repository is in an organization)
 #
-# Important Post-Setup Action (If You are not a Contributor Owner in the subscription):
+# Important Post-Setup Action (If You are not an Owner of the security group):
 # After running this setup script, a project lead must manually add the newly
-# created Azure User-Assigned Managed Identity to the appropriate Entra ID group
-# that assigns the Contributor role for this project.
+# created Azure User-Assigned Managed Identity to the appropriate Entra ID security group
+# that provides the necessary permissions for this project.
 #
-# Manual Steps Required After Script Completion:
+# Manual Steps Required After Script Completion (Only if the script is run by a non-owner):
 #   1. Note the managed identity name from the script output
-#   2. In the Entra ID admin portal, locate the appropriate project group
-#   3. Add the managed identity to the group that grants Contributor access
-#   4. Verify the group assignment is complete before running GitHub Actions
+#   2. In the Entra ID admin portal, locate the appropriate security group (e.g., DO_PuC_Azure_Live_{LicensePlate}_Contributor)
+#   3. Add the managed identity to the security group that grants the required permissions
+#   4. Verify the group membership is complete before running GitHub Actions
 #
 # For more information on role management, see:
 # https://developer.gov.bc.ca/docs/default/component/public-cloud-techdocs/azure/design-build-deploy/user-management/
@@ -152,9 +152,9 @@ REQUIRED OPTIONS:
     -e, --environment           GitHub environment name (dev, test, prod, etc.)
 
 OPTIONAL OPTIONS:
-    -ar, --assign-roles         Azure roles to assign (comma-separated)
-                               Example: "Contributor,Storage Account Contributor"
-                               If not specified, no roles will be assigned
+    -sg, --security-group      Security group to add managed identity to
+                               Example: "DO_PuC_Azure_Live_ABCD_Contributor"
+                               If not specified, will auto-detect from resource group
     
     --contributor-scope         Scope for role assignment (default: subscription level)
                                Example: "/subscriptions/xxx/resourceGroups/yyy"
@@ -178,35 +178,34 @@ EXAMPLES:
     # Basic development environment setup
     $0 -g "ABCD-dev-networking" -n "myapp-dev-identity" \
        -r "myorg/myapp" -e "dev" \
-       --assign-roles "Contributor" \
        --create-storage
 
-    # Production setup with auto GitHub integration
+    # Production setup with custom security group
     $0 -g "ABCD-prod-networking" -n "myapp-prod-identity" \
        -r "myorg/myapp" -e "prod" \
-       --assign-roles "Contributor,Storage Account Contributor" \
+       --security-group "DO_PuC_Azure_Live_ABCD_Contributor" \
        --create-storage --create-github-secrets
 
     # Preview changes without execution (recommended first run)
     $0 -g "ABCD-dev-networking" -n "myapp-dev-identity" \
        -r "myorg/myapp" -e "dev" \
-       --assign-roles "Contributor" \
        --create-storage --dry-run
 
-    # Custom storage account with specific scope
+    # Custom storage account with security group
     $0 -g "ABCD-test-networking" -n "myapp-test-identity" \
        -r "myorg/myapp" -e "test" \
-       --assign-roles "Contributor" \
-       --contributor-scope "/subscriptions/xxx/resourceGroups/ABCD-test-rg" \
+       --security-group "DO_PuC_Azure_Live_ABCD_Contributor" \
        --create-storage --storage-account "myapptesttfstate"
 
 NOTES:
     • Resource group should be your Azure Landing Zone networking resource group
     • GitHub repository format must be: owner/repository (e.g., bcgov/myapp)
     • Environment names are case-sensitive and should match your GitHub environments
+    • Security group will be auto-detected from resource group name (license plate extraction)
     • Storage account names are auto-generated as: tfstate{repo}{env} (sanitized)
     • Use --dry-run first to preview what will be created
     • Requires Azure CLI logged in and GitHub CLI (optional) for auto-secrets
+    • User must be owner of security group for automatic assignment
 
 =============================================================================
 EOF
@@ -219,13 +218,12 @@ EOF
 # Default values for optional parameters
 GITHUB_ENVIRONMENT=""              # Will be set by user input
 CONTRIBUTOR_SCOPE=""               # Defaults to subscription level if not specified
-ADDITIONAL_ROLES=""               # Additional roles beyond the main ones
+SECURITY_GROUP=""                # Security group to add managed identity to
 STORAGE_ACCOUNT=""                # Auto-generated based on repo name if not specified
 STORAGE_CONTAINER="tfstate"       # Standard container name for Terraform state
 CREATE_STORAGE=false             # Whether to create storage account
 DRY_RUN=false                   # Whether to preview changes only
 CREATE_GITHUB_SECRETS=false     # Whether to auto-create GitHub secrets
-ASSIGN_ROLES=""                 # Roles to assign to the managed identity
 
 # =============================================================================
 # Command Line Argument Parsing
@@ -248,16 +246,12 @@ while [[ $# -gt 0 ]]; do
             GITHUB_ENVIRONMENT="$2"
             shift 2
             ;;
-        -ar|--assign-roles)
-            ASSIGN_ROLES="$2"
+        -sg|--security-group)
+            SECURITY_GROUP="$2"
             shift 2
             ;;
         --contributor-scope)
             CONTRIBUTOR_SCOPE="$2"
-            shift 2
-            ;;
-        --additional-roles)
-            ADDITIONAL_ROLES="$2"
             shift 2
             ;;
         --storage-account)
@@ -475,48 +469,155 @@ get_identity_details() {
 }
 
 # ================================================================================
-# Assign specified Azure roles to the managed identity for deployment permissions
+# Extract license plate from resource group name for security group auto-detection
+# Expected format: {LicensePlate}-{environment}-{suffix} (e.g., ABCD-dev-networking)
 # ================================================================================
-assign_roles() {
-    # Skip role assignment if no roles specified
-    if [[ -z "$ASSIGN_ROLES" ]]; then
-        log_info "No roles specified for assignment. Skipping role assignment."
-        log_info "You can manually assign roles later or re-run with --assign-roles parameter"
+extract_license_plate() {
+    local rg_name="$1"
+    # Extract the first part before the first hyphen
+    local license_plate=$(echo "$rg_name" | cut -d'-' -f1)
+    echo "$license_plate"
+}
+
+# ================================================================================
+# Generate default security group name based on license plate
+# ================================================================================
+generate_default_security_group() {
+    local license_plate="$1"
+    echo "DO_PuC_Azure_Live_${license_plate}_Contributor"
+}
+
+# ================================================================================
+# Check if current user is owner of the specified security group
+# ================================================================================
+check_group_ownership() {
+    local group_name="$1"
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_info "[DRY-RUN] Would check ownership of group '$group_name'"
         return 0
     fi
     
-    log_info "Assigning Azure roles to managed identity..."
-    
-    # Set default scope to subscription level if not provided
-    if [[ -z "$CONTRIBUTOR_SCOPE" ]]; then
-        if [[ "$DRY_RUN" == "false" ]]; then
-            CONTRIBUTOR_SCOPE="/subscriptions/$(az account show --query "id" --output tsv)"
-        else
-            CONTRIBUTOR_SCOPE="[DRY-RUN-SUBSCRIPTION-SCOPE]"
-        fi
+    # Get current user's object ID
+    local current_user_id=$(az ad signed-in-user show --query "id" --output tsv 2>/dev/null)
+    if [[ -z "$current_user_id" ]]; then
+        log_warning "Could not determine current user ID for group ownership check"
+        return 1
     fi
-
-    log_info "Role assignment scope: $CONTRIBUTOR_SCOPE"
     
-    # Split comma-separated roles and assign each one
-    local roles_list=(${ASSIGN_ROLES//,/ })
-    for role in "${roles_list[@]}"; do
-        log_info "Processing role: '$role'"
+    # Check if group exists
+    local group_id=$(az ad group show --group "$group_name" --query "id" --output tsv 2>/dev/null)
+    if [[ -z "$group_id" ]]; then
+        log_warning "Security group '$group_name' does not exist"
+        return 1
+    fi
+    
+    # Check if current user is owner of the group
+    local is_owner=$(az ad group owner list --group "$group_name" --query "[?id=='$current_user_id'].id" --output tsv 2>/dev/null)
+    if [[ -n "$is_owner" ]]; then
+        log_info "Current user is owner of security group '$group_name'"
+        return 0
+    else
+        log_warning "Current user is not an owner of security group '$group_name'"
+        return 1
+    fi
+}
+
+# ================================================================================
+# Add managed identity to a security group instead of direct role assignment
+# ================================================================================
+add_to_security_group() {
+    # Extract license plate from resource group if no security group specified
+    if [[ -z "$SECURITY_GROUP" ]]; then
+        local license_plate=$(extract_license_plate "$RESOURCE_GROUP")
+        local default_group=$(generate_default_security_group "$license_plate")
+
+        log_info "No security group specified. Auto-detected license plate: '$license_plate'"
+        log_info "Default security group: '$default_group'"
         
-        # Check if role is already assigned to make operation idempotent
+        # Check if user is owner of the default group
+        if ! check_group_ownership "$default_group"; then
+            log_warning "Skipping security group assignment due to insufficient permissions or missing group"
+            log_warning "Manual action required: Add managed identity '$IDENTITY_NAME' to security group '$default_group' in Azure Portal"
+            return 0
+        fi
+        
+        SECURITY_GROUP="$default_group"
+    fi
+    
+    log_info "Adding managed identity to security group..."
+
+    local group="$SECURITY_GROUP"
+    local success=0
+    local failed=0
+
+    # Trim whitespace
+    group=$(echo "$group" | xargs)
+
+    log_info "Processing security group: '$group'"
+        
+        # Check if group exists
         if [[ "$DRY_RUN" == "false" ]]; then
-            local existing_count=$(az role assignment list --assignee "$CLIENT_ID" --role "$role" --scope "$CONTRIBUTOR_SCOPE" --query "length(@)" --output tsv)
-            if [[ "$existing_count" -gt 0 ]]; then
-                log_warning "Role '$role' already assigned to managed identity. Skipping."
-                continue
+            local group_id=$(az ad group show --group "$group" --query "id" --output tsv 2>/dev/null)
+            if [[ -z "$group_id" ]]; then
+                log_warning "Security group '$group' does not exist. Skipping."
+                failed=1
+                # Single group flow ends here
+                echo
+                # proceed to summary
+                return
+            fi
+            
+            # Check if managed identity is already a member (robust check)
+            if az ad group member check --group "$group" --member-id "$PRINCIPAL_ID" --query value -o tsv 2>/dev/null | grep -qi '^true$'; then
+                log_success "Managed identity is already a member of group '$group'. No action needed."
+                success=1
+                echo
+                # proceed to summary
+                return 0
             fi
         fi
         
-        execute_command "az role assignment create --assignee '$CLIENT_ID' --role '$role' --scope '$CONTRIBUTOR_SCOPE'" \
-            "Assigning '$role' role to managed identity"
-    done
+        # Add managed identity to the group
+        if [[ "$DRY_RUN" == "true" ]]; then
+            log_info "[DRY-RUN] Would add managed identity $PRINCIPAL_ID to security group '$group'"
+        else
+            log_info "Attempting to add managed identity $PRINCIPAL_ID to security group '$group'..."
+
+            # Try to add the member, handling the "already exists" case properly
+            local add_output
+            add_output=$(az ad group member add --group "$group" --member-id "$PRINCIPAL_ID" 2>&1)
+            local add_exit_code=$?
+            if echo "$add_output" | grep -qi "already exist"; then
+                # Member already exists - this is success
+                log_success "Managed identity was already a member of group '$group'"
+                success=1
+            elif [[ $add_exit_code -eq 0 ]]; then
+                # Command succeeded
+                log_success "Successfully added managed identity $PRINCIPAL_ID to group '$group'"
+                success=1
+            else
+                # Command failed for other reasons; double-check membership to treat idempotent add as success
+                if az ad group member check --group "$group" --member-id "$PRINCIPAL_ID" --query value -o tsv 2>/dev/null | grep -qi '^true$'; then
+                    log_success "Managed identity is a member of group '$group'"
+                    success=1
+                else
+                    log_error "Failed to add managed identity $PRINCIPAL_ID to group '$group'"
+                    failed=1
+                fi
+            fi
+        fi
     
-    log_success "Role assignments completed successfully"
+    # Summary of results
+    if [[ $success -gt 0 ]]; then
+        log_success "Managed identity associated with security group"
+    fi
+    
+    if [[ $failed -gt 0 ]]; then
+        log_error "Security group association failed. Manual action required in Azure Portal."
+    fi
+    
+    log_info "Security group assignment process completed"
 }
 
 
@@ -573,27 +674,6 @@ Repository Secrets:
 - AZURE_CLIENT_ID: $CLIENT_ID
 - AZURE_SUBSCRIPTION_ID: $(az account show --query "id" --output tsv 2>/dev/null || echo "[SUBSCRIPTION-ID]")
 - AZURE_TENANT_ID: $(az account show --query "tenantId" --output tsv 2>/dev/null || echo "[TENANT-ID]")
-
-Optional Terraform Environment Variables (if using Terraform):
-- ARM_USE_AZUREAD: true
-- ARM_SUBSCRIPTION_ID: $(az account show --query "id" --output tsv 2>/dev/null || echo "[SUBSCRIPTION-ID]")
-- ARM_TENANT_ID: $(az account show --query "tenantId" --output tsv 2>/dev/null || echo "[TENANT-ID]")
-- ARM_CLIENT_ID: $CLIENT_ID
-
-Example GitHub Actions workflow step:
-```
-- name: Azure Login
-  uses: azure/login@v1
-  with:
-    client-id: \${{ secrets.AZURE_CLIENT_ID }}
-    tenant-id: \${{ secrets.AZURE_TENANT_ID }}
-    subscription-id: \${{ secrets.AZURE_SUBSCRIPTION_ID }}
-```
-
-For environment-specific deployments, make sure to:
-1. Create a GitHub environment named '$GITHUB_ENVIRONMENT' (if using environment-based auth)
-2. Configure environment protection rules as needed
-3. Add the secrets to the environment scope
 
 Managed Identity Details:
 - Name: $IDENTITY_NAME
@@ -668,46 +748,29 @@ create_terraform_storage() {
 }
 
 # ================================================================================
-# Assign storage-specific roles to managed identity for Terraform state access
+# Note about storage-specific permissions for Terraform state access
+# Storage permissions are typically handled through the main security group membership
 # ================================================================================
 assign_storage_roles() {
     if [[ "$CREATE_STORAGE" != "true" ]]; then
         return 0
     fi
     
-    log_info "Assigning storage-specific roles to managed identity..."
+    log_info "Storage access permissions..."
+    log_info "Storage permissions are managed through security group membership"
+    log_info "Ensure the security group has appropriate storage permissions:"
+    log_info "  - Storage Blob Data Contributor"
+    log_info "  - Storage Account Contributor"
     
-    # Get storage account resource ID
+    # Get storage account resource ID for reference
     if [[ "$DRY_RUN" == "false" ]]; then
         STORAGE_ACCOUNT_ID=$(az storage account show --name "$STORAGE_ACCOUNT" --resource-group "$RESOURCE_GROUP" --query "id" --output tsv)
+        log_info "Storage Account ID: $STORAGE_ACCOUNT_ID"
     else
-        STORAGE_ACCOUNT_ID="[DRY-RUN-STORAGE-ACCOUNT-ID]"
+        log_info "[DRY-RUN] Would note storage account permissions requirements"
     fi
     
-    # Required roles for Terraform state management
-    STORAGE_ROLES=(
-        "Storage Blob Data Contributor"
-        "Storage Account Contributor"
-    )
-    
-    for role in "${STORAGE_ROLES[@]}"; do
-        # Check if role already assigned to make it idempotent
-        if [[ "$DRY_RUN" == "false" ]]; then
-            if az role assignment list --assignee "$CLIENT_ID" --role "$role" --scope "$STORAGE_ACCOUNT_ID" --query "length(@)" --output tsv | grep -q '0'; then
-                log_info "No existing role assignment found for role '$role'"
-            else
-                log_warning "Role '$role' already assigned to managed identity. Skipping assignment."
-                continue
-            fi
-        fi
-        execute_command "az role assignment create \
-            --assignee '$CLIENT_ID' \
-            --role '$role' \
-            --scope '$STORAGE_ACCOUNT_ID'" \
-            "Assigning '$role' role for storage account"
-    done
-    
-    log_success "Storage roles assigned successfully"
+    log_success "Storage permissions documentation completed"
 }
 
 
@@ -734,43 +797,6 @@ terraform {
   }
 }
 
-Environment variables for Terraform (add to GitHub Actions):
-- ARM_USE_AZUREAD: true
-- ARM_SUBSCRIPTION_ID: $(az account show --query "id" --output tsv 2>/dev/null || echo "[SUBSCRIPTION-ID]")
-- ARM_TENANT_ID: $(az account show --query "tenantId" --output tsv 2>/dev/null || echo "[TENANT-ID]")
-- ARM_CLIENT_ID: $CLIENT_ID
-
-Example GitHub Actions workflow step for Terraform:
-```
-- name: Setup Terraform
-  uses: hashicorp/setup-terraform@v2
-  with:
-    terraform_version: 1.5.0
-
-- name: Terraform Init
-  run: terraform init
-  env:
-    ARM_USE_AZUREAD: true
-    ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-    ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-
-- name: Terraform Plan
-  run: terraform plan
-  env:
-    ARM_USE_AZUREAD: true
-    ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-    ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-
-- name: Terraform Apply
-  run: terraform apply -auto-approve
-  env:
-    ARM_USE_AZUREAD: true
-    ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-    ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-```
 
 Storage Account Details:
 - Name: $STORAGE_ACCOUNT
@@ -803,12 +829,17 @@ verify_setup() {
             log_error "Federated credential not found"
             return 1
         fi
-        # Check role assignments
-        ROLE_COUNT=$(az role assignment list --assignee "$CLIENT_ID" --scope "$CONTRIBUTOR_SCOPE" --query "length(@)" --output tsv)
-        if [[ "$ROLE_COUNT" -gt 0 ]]; then
-            log_success "Role assignments configured ($ROLE_COUNT roles)"
+        # Check group membership
+        if [[ -n "$SECURITY_GROUP" ]]; then
+            local group=$(echo "$SECURITY_GROUP" | xargs)
+            log_info "Checking membership for group: $group , with principal ID: $PRINCIPAL_ID"
+            if az ad group member check --group "$group" --member-id "$PRINCIPAL_ID" --query value -o tsv 2>/dev/null | grep -qi '^true$'; then
+                log_success "Security group membership confirmed"
+            else
+                log_warning "Managed identity is not a member of the specified security group"
+            fi
         else
-            log_warning "! No role assignments found"
+            log_warning "No security group specified for verification"
         fi
         
         # Check storage account if created
@@ -889,7 +920,7 @@ EOF
     
 
     # Add secrets to the environment
-    log_info "Adding secrets to GitHub environment '$GITHUB_ENVIRONMENT'..."
+    log_info "Adding secrets and variables to GitHub environment '$GITHUB_ENVIRONMENT'..."
     # Add environment-specific secrets
     gh secret set AZURE_CLIENT_ID \
         --repo "$GITHUB_REPO" \
@@ -911,8 +942,13 @@ EOF
         --repo "$GITHUB_REPO" \
         --env "$GITHUB_ENVIRONMENT" \
         --body "$RESOURCE_GROUP"
+    
+    gh variable set STORAGE_ACCOUNT_NAME \
+        --repo "$GITHUB_REPO" \
+        --env "$GITHUB_ENVIRONMENT" \
+        --body "$STORAGE_ACCOUNT"
 
-    log_success "Secrets added to GitHub environment '$GITHUB_ENVIRONMENT'."
+    log_success "Secrets and variables added to GitHub environment '$GITHUB_ENVIRONMENT'."
     return 0
 
 }
@@ -948,8 +984,8 @@ main() {
         sleep 10
     fi
 
-    # Step 5: Assign Azure roles for deployment permissions
-    assign_roles
+    # Step 5: Add managed identity to the security group for deployment permissions
+    add_to_security_group
     
     # Step 6: Create Terraform state storage if requested
     create_terraform_storage
