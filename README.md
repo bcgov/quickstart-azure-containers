@@ -108,48 +108,14 @@ The `initial-azure-setup.sh` script automates the complete Azure environment set
 - **Azure subscription** with appropriate permissions
 - **Existing Azure Landing Zone** resource group
 
-#### Basic Setup Command
+#### Initial Setup for GHA and Terraform 
 
 ```bash
 # Make the setup script executable
 chmod +x initial-azure-setup.sh
-
-# Run with required parameters
-./initial-azure-setup.sh \
-  --resource-group "ABCD-dev-networking" \
-  --identity-name "my-app-github-identity" \
-  --github-repo "myorg/my-azure-app" \
-  --environment "dev" \
-  --assign-roles "Contributor" \
-  --create-storage \
-  --create-github-secrets
 ```
+- follow the instruction in the header section of the file.
 
-#### Advanced Setup Examples
-
-```bash
-# Production setup with custom storage and multiple roles
-./initial-azure-setup.sh \
-  --resource-group "ABCD-prod-networking" \
-  --identity-name "my-app-prod-identity" \
-  --github-repo "myorg/my-azure-app" \
-  --environment "prod" \
-  --assign-roles "Contributor,Storage Account Contributor" \
-  --contributor-scope "/subscriptions/your-subscription-id" \
-  --create-storage \
-  --storage-account "myappprodtfstate" \
-  --create-github-secrets
-
-# Dry run to preview changes
-./initial-azure-setup.sh \
-  --resource-group "ABCD-dev-networking" \
-  --identity-name "my-app-github-identity" \
-  --github-repo "myorg/my-azure-app" \
-  --environment "dev" \
-  --assign-roles "Contributor" \
-  --create-storage \
-  --dry-run
-```
 
 #### What the Setup Script Does
 
@@ -173,24 +139,10 @@ chmod +x initial-azure-setup.sh
   - `VNET_RESOURCE_GROUP_NAME`
 
 **⚡ Azure Permissions:**
-- Assigns specified roles to the managed identity
+- Assigns security group to the managed identity aligned with landing zone policy.
 - Configures storage-specific permissions for Terraform state management
 - Validates all configurations and provides verification
 
-#### Script Parameters Reference
-
-| Parameter | Required | Description | Example |
-|-----------|----------|-------------|---------|
-| `--resource-group` | ✅ | Landing Zone resource group name | `ABCD-dev-networking` |
-| `--identity-name` | ✅ | Name for the managed identity | `my-app-github-identity` |
-| `--github-repo` | ✅ | Repository in format owner/repo | `myorg/my-azure-app` |
-| `--environment` | ✅ | GitHub environment name | `dev`, `test`, `prod` |
-| `--assign-roles` | ❌ | Comma-separated Azure roles | `Contributor,Storage Account Contributor` |
-| `--contributor-scope` | ❌ | Scope for role assignment | `/subscriptions/xxx` (default: subscription) |
-| `--create-storage` | ❌ | Create Terraform state storage | Flag (no value) |
-| `--storage-account` | ❌ | Custom storage account name | `myapptfstate` (auto-generated if not specified) |
-| `--create-github-secrets` | ❌ | Auto-create GitHub secrets | Flag (requires GitHub CLI) |
-| `--dry-run` | ❌ | Preview changes without execution | Flag (no value) |
 
 #### Post-Setup Verification
 
@@ -220,10 +172,6 @@ VNET_NAME=<landing-zone-vnet-name>
 VNET_RESOURCE_GROUP_NAME=<landing-zone-rg-name>
 ```
 
-#### Additional Repository Secrets (Application-Specific)
-```bash
-DB_MASTER_PASSWORD=<secure-database-password-min-12-chars>
-```
 
 💡 **Tip**: The setup script outputs the exact values to use for these secrets if you didn't use auto-creation.
 
