@@ -63,6 +63,37 @@ variable "frontend_image" {
   type        = string
 }
 
+# Container Apps Configuration
+variable "enable_container_apps" {
+  description = "Enable Azure Container Apps alongside App Service"
+  type        = bool
+  default     = false
+}
+
+variable "container_apps_cpu" {
+  description = "CPU allocation for Container Apps (in cores)"
+  type        = number
+  default     = 0.5
+}
+
+variable "container_apps_memory" {
+  description = "Memory allocation for Container Apps"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "container_apps_min_replicas" {
+  description = "Minimum number of replicas for Container Apps"
+  type        = number
+  default     = 1
+}
+
+variable "container_apps_max_replicas" {
+  description = "Maximum number of replicas for Container Apps"
+  type        = number
+  default     = 3
+}
+
 variable "enable_frontdoor" {
   description = "Enable Azure Front Door (set false to expose App Service directly)"
   type        = bool

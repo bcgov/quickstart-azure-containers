@@ -18,6 +18,13 @@ variable "container_instance_subnet_name" {
   nullable    = false
 }
 
+variable "container_apps_subnet_name" {
+  description = "Name of the subnet for Container Apps"
+  type        = string
+  default     = "container-apps-subnet"
+  nullable    = false
+}
+
 variable "location" {
   description = "Azure region for resources"
   type        = string

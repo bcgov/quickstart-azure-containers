@@ -164,3 +164,33 @@ module "backend" {
 
   depends_on = [module.frontend, module.flyway]
 }
+
+# Container Apps Module (optional alongside App Service)
+module "container_apps" {
+  count  = var.enable_container_apps ? 1 : 0
+  source = "./modules/container-apps"
+
+  app_name                        = var.app_name
+  app_env                         = var.app_env
+  location                        = var.location
+  resource_group_name             = azurerm_resource_group.main.name
+  common_tags                     = var.common_tags
+  container_apps_subnet_id        = module.network.container_apps_subnet_id
+  log_analytics_workspace_id      = module.monitoring.log_analytics_workspace_id
+  log_analytics_workspace_key     = module.monitoring.log_analytics_workspace_key
+  backend_image                   = var.api_image
+  database_name                   = var.database_name
+  postgres_host                   = module.postgresql.postgres_host
+  postgresql_admin_username       = var.postgresql_admin_username
+  db_master_password              = module.postgresql.db_master_password
+  appinsights_connection_string   = module.monitoring.appinsights_connection_string
+  appinsights_instrumentation_key = module.monitoring.appinsights_instrumentation_key
+  app_service_frontend_url        = module.frontend.frontend_url
+  container_cpu                   = var.container_apps_cpu
+  container_memory                = var.container_apps_memory
+  min_replicas                    = var.container_apps_min_replicas
+  max_replicas                    = var.container_apps_max_replicas
+  enable_system_assigned_identity = true
+
+  depends_on = [module.network, module.monitoring, module.postgresql, module.frontend]
+}

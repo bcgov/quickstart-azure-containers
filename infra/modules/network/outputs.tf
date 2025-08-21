@@ -14,6 +14,11 @@ output "private_endpoint_subnet_id" {
   value       = azapi_resource.privateendpoints_subnet.id
 }
 
+output "container_apps_subnet_id" {
+  description = "The subnet ID for Container Apps Environment."
+  value       = azapi_resource.container_apps_subnet.id
+}
+
 output "dns_servers" {
   description = "The DNS servers for the virtual network."
   value       = data.azurerm_virtual_network.main.dns_servers
