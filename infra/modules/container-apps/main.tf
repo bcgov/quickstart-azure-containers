@@ -36,7 +36,7 @@ resource "azurerm_container_app_environment" "main" {
 # Backend Container App - API Service Only
 # -----------------------------------------------------------------------------
 resource "azurerm_container_app" "backend" {
-  name                         = "${var.app_name}-${var.app_env}-backend-ca"
+  name                         = "${var.app_name}-api"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = var.resource_group_name
   revision_mode                = "Single"
