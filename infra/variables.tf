@@ -67,7 +67,7 @@ variable "frontend_image" {
 variable "enable_container_apps" {
   description = "Enable Azure Container Apps alongside App Service"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "container_apps_cpu" {

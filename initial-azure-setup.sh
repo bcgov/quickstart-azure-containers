@@ -342,9 +342,9 @@ generate_storage_account_name() {
         # Sanitize environment name  
         local env_name=$(echo "$GITHUB_ENVIRONMENT" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
 
-        # Create base name: tfstate + repo + environment
-        # Example: tfstate + myapp + dev = tfstatemyappdev
-        local base_name="tfstate${repo_name}${env_name}"
+        # Create base name: tf + environment + repo
+        # Example: tf + dev + myapp = tfdevmyapp
+        local base_name="tf${env_name}${repo_name}"
 
         # Azure storage account name constraints: 3-24 characters, lowercase + numbers only
         if [[ ${#base_name} -gt 24 ]]; then
