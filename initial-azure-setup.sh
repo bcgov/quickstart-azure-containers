@@ -585,10 +585,6 @@ add_to_security_group() {
             log_info "Attempting to add managed identity $PRINCIPAL_ID to security group '$group'..."
 
             # Try to add the member, handling the "already exists" case properly
-            if az ad group member add --group "$group" --member-id "$PRINCIPAL_ID" 2>&1 | grep -qi "already exist"; then
-                # Member already exists - this is success
-                log_success "Managed identity was already a member of group '$group'"
-                success=1
             local add_output
             add_output=$(az ad group member add --group "$group" --member-id "$PRINCIPAL_ID" 2>&1)
             local add_exit_code=$?
@@ -924,7 +920,7 @@ EOF
     
 
     # Add secrets to the environment
-    log_info "Adding secrets to GitHub environment '$GITHUB_ENVIRONMENT'..."
+    log_info "Adding secrets and variables to GitHub environment '$GITHUB_ENVIRONMENT'..."
     # Add environment-specific secrets
     gh secret set AZURE_CLIENT_ID \
         --repo "$GITHUB_REPO" \
@@ -946,8 +942,13 @@ EOF
         --repo "$GITHUB_REPO" \
         --env "$GITHUB_ENVIRONMENT" \
         --body "$RESOURCE_GROUP"
+    
+    gh variable set STORAGE_ACCOUNT_NAME \
+        --repo "$GITHUB_REPO" \
+        --env "$GITHUB_ENVIRONMENT" \
+        --body "$STORAGE_ACCOUNT"
 
-    log_success "Secrets added to GitHub environment '$GITHUB_ENVIRONMENT'."
+    log_success "Secrets and variables added to GitHub environment '$GITHUB_ENVIRONMENT'."
     return 0
 
 }
