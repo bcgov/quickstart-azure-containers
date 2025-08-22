@@ -62,15 +62,34 @@ resource "azurerm_container_app" "backend" {
   }
 
   template {
-    max_replicas = var.max_replicas
-    min_replicas = var.min_replicas
-
+    max_replicas                     = var.max_replicas
+    min_replicas                     = var.min_replicas
+    termination_grace_period_seconds = 10
     container {
       name   = "backend"
       image  = var.backend_image
       cpu    = var.container_cpu
       memory = var.container_memory
-
+      startup_probe {
+        transport = "http"
+        path      = "/api/health"
+        port      = 3000
+        timeout   = 5
+      }
+      readiness_probe {
+        transport               = "http"
+        path                    = "/api/health"
+        port                    = 3000
+        timeout                 = 5
+        failure_count_threshold = 3
+      }
+      liveness_probe {
+        transport               = "http"
+        path                    = "/api/health"
+        port                    = 3000
+        timeout                 = 5
+        failure_count_threshold = 3
+      }
       env {
         name  = "NODE_ENV"
         value = "production"
@@ -116,6 +135,10 @@ resource "azurerm_container_app" "backend" {
         name  = "CORS_ORIGIN"
         value = var.app_service_frontend_url
       }
+    }
+    http_scale_rule {
+      name                = "http-scaling"
+      concurrent_requests = "20"
     }
   }
 
