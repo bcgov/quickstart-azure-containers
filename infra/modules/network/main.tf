@@ -184,6 +184,32 @@ resource "azurerm_network_security_group" "app_service" {
     source_port_range          = "*"
     destination_port_ranges    = ["80", "443"]
   }
+
+  # Allow outbound to Container Apps (for private backend access)
+  security_rule {
+    name                       = "AllowAppToContainerApps"
+    priority                   = 130
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = local.app_service_subnet_cidr
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443"]
+  }
+
+  # Allow inbound response from Container Apps
+  security_rule {
+    name                       = "AllowAppFromContainerApps"
+    priority                   = 131
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = local.container_apps_subnet_cidr
+    destination_address_prefix = local.app_service_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443"]
+  }
   tags = var.common_tags
   lifecycle {
     ignore_changes = [
@@ -380,6 +406,111 @@ resource "azurerm_network_security_group" "container_instance" {
   }
 }
 
+# NSG for Container Apps subnet
+resource "azurerm_network_security_group" "container_apps" {
+  name                = "${var.resource_group_name}-ca-nsg"
+  location            = var.location
+  resource_group_name = var.vnet_resource_group_name
+
+  # Allow Container Apps management traffic (required by Azure Container Apps)
+  security_rule {
+    name                       = "AllowContainerAppsManagement"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = "AzureLoadBalancer"
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
+
+  # Allow HTTPS traffic from internet (for public ingress)
+  security_rule {
+    name                       = "AllowHTTPSFromInternet"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = "*"
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "443"
+  }
+
+  # Allow HTTP traffic from internet (for public ingress)
+  security_rule {
+    name                       = "AllowHTTPFromInternet"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = "*"
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "80"
+  }
+
+  # Allow communication with private endpoints (PostgreSQL)
+  security_rule {
+    name                       = "AllowOutboundToPrivateEndpoints"
+    priority                   = 130
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.container_apps_subnet_cidr
+    destination_address_prefix = local.private_endpoints_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
+
+  # Allow inbound traffic from App Service (for private backend access)
+  security_rule {
+    name                       = "AllowInboundFromAppService"
+    priority                   = 140
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = local.app_service_subnet_cidr
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443"]
+  }
+
+  # Allow outbound response to App Service
+  security_rule {
+    name                       = "AllowOutboundToAppService"
+    priority                   = 141
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = local.container_apps_subnet_cidr
+    destination_address_prefix = local.app_service_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443"]
+  }
+
+  # Allow outbound internet access (for Container Registry, monitoring, etc.)
+  security_rule {
+    name                       = "AllowOutboundToInternet"
+    priority                   = 140
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.container_apps_subnet_cidr
+    destination_address_prefix = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
+
+  tags = var.common_tags
+  lifecycle {
+    ignore_changes = [
+      tags
+    ]
+  }
+}
+
 # Subnets
 resource "azapi_resource" "privateendpoints_subnet" {
   type      = "Microsoft.Network/virtualNetworks/subnets@2023-04-01"
@@ -456,6 +587,31 @@ resource "azapi_resource" "web_subnet" {
       networkSecurityGroup = {
         id = azurerm_network_security_group.web.id
       }
+    }
+  }
+  response_export_values = ["*"]
+}
+
+# Container Apps subnet for Container Apps Environment
+resource "azapi_resource" "container_apps_subnet" {
+  type      = "Microsoft.Network/virtualNetworks/subnets@2023-04-01"
+  name      = var.container_apps_subnet_name
+  parent_id = data.azurerm_virtual_network.main.id
+  locks     = [data.azurerm_virtual_network.main.id]
+  body = {
+    properties = {
+      addressPrefix = local.container_apps_subnet_cidr
+      networkSecurityGroup = {
+        id = azurerm_network_security_group.container_apps.id
+      }
+      delegations = [
+        {
+          name = "container-apps-delegation"
+          properties = {
+            serviceName = "Microsoft.App/environments"
+          }
+        }
+      ]
     }
   }
   response_export_values = ["*"]

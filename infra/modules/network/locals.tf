@@ -8,4 +8,5 @@ locals {
   web_subnet_cidr                = "${local.base_ip}.32/27"
   private_endpoints_subnet_cidr  = "${local.base_ip}.64/28"
   container_instance_subnet_cidr = "${local.base_ip}.80/28"
+  container_apps_subnet_cidr     = "${local.base_ip}.96/27" # For Container Apps Environment
 }
