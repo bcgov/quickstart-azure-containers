@@ -14,7 +14,6 @@ resource "azurerm_container_app_environment" "main" {
   log_analytics_workspace_id     = var.log_analytics_workspace_id
   infrastructure_subnet_id       = var.container_apps_subnet_id
   internal_load_balancer_enabled = true # Enable internal load balancer for private access
-
   # Consumption workload profile (serverless)
   workload_profile {
     name                  = "Consumption"
@@ -71,20 +70,20 @@ resource "azurerm_container_app" "backend" {
       cpu    = var.container_cpu
       memory = var.container_memory
       startup_probe {
-        transport = "http"
+        transport = "HTTP"
         path      = "/api/health"
         port      = 3000
         timeout   = 5
       }
       readiness_probe {
-        transport               = "http"
+        transport               = "HTTP"
         path                    = "/api/health"
         port                    = 3000
         timeout                 = 5
         failure_count_threshold = 3
       }
       liveness_probe {
-        transport               = "http"
+        transport               = "HTTP"
         path                    = "/api/health"
         port                    = 3000
         timeout                 = 5
