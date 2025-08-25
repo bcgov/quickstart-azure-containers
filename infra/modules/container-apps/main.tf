@@ -7,9 +7,6 @@
 # -----------------------------------------------------------------------------
 # Container Apps Environment with Consumption Workload Profile
 # -----------------------------------------------------------------------------
-data "azurerm_resource_group" "resource_group" {
-  name = var.resource_group_name
-}
 resource "azurerm_container_app_environment" "main" {
   name                               = "${var.app_name}-${var.app_env}-containerenv"
   location                           = var.location
@@ -34,27 +31,7 @@ resource "azurerm_container_app_environment" "main" {
     ignore_changes = [tags]
   }
 }
-data "azapi_resource" "container_app_env_existing" {
-  depends_on = [azurerm_container_app_environment.main]
-  type       = "Microsoft.App/managedEnvironments@2024-10-02-preview"
-  name       = azurerm_container_app_environment.main.name
-  parent_id  = data.azurerm_resource_group.resource_group.id
-}
-resource "azapi_update_resource" "container_app_env_public_network_access" {
-  depends_on = [data.azapi_resource.container_app_env_existing]
-  type       = "Microsoft.App/managedEnvironments@2024-10-02-preview"
-  name       = azurerm_container_app_environment.main.name
-  parent_id  = data.azurerm_resource_group.resource_group.id
 
-  body = {
-    properties = merge(
-      data.azapi_resource.container_app_env_existing.output.properties,
-      {
-        publicNetworkAccess = "Disabled"
-      }
-    )
-  }
-}
 
 # Private Endpoint for Container Apps Environment
 # Note: DNS zone association will be automatically managed by Azure Policy
