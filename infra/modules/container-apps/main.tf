@@ -7,6 +7,9 @@
 # -----------------------------------------------------------------------------
 # Container Apps Environment with Consumption Workload Profile
 # -----------------------------------------------------------------------------
+data "azurerm_resource_group" "resource_group" {
+  name = var.resource_group_name
+}
 resource "azurerm_container_app_environment" "main" {
   name                           = "${var.app_name}-${var.app_env}-containerenv"
   location                       = var.location
@@ -28,6 +31,44 @@ resource "azurerm_container_app_environment" "main" {
 
   lifecycle {
     ignore_changes = [tags]
+  }
+}
+# Disable public network access if private endpoint is being used
+resource "azapi_update_resource" "container_app_env_public_network_access" {
+  depends_on = [azurerm_container_app_environment.container_app_env]
+  type       = "Microsoft.App/managedEnvironments@2024-10-02-preview"
+  name       = azurerm_container_app_environment.main.name
+  parent_id  = data.azurerm_resource_group.resource_group.id
+
+  body = {
+    properties = {
+      publicNetworkAccess = "Disabled"
+    }
+  }
+}
+
+# Private Endpoint for Container Apps Environment
+# Note: DNS zone association will be automatically managed by Azure Policy
+resource "azurerm_private_endpoint" "containerapps" {
+  name                = "${var.app_name}-containerapps-pe"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  subnet_id           = var.container_apps_subnet_id
+
+  private_service_connection {
+    name                           = "${var.app_name}-containerapps-psc"
+    private_connection_resource_id = azurerm_container_app_environment.main.id
+    is_manual_connection           = false
+  }
+
+  tags = var.common_tags
+
+  # Lifecycle block to ignore DNS zone group changes managed by Azure Policy
+  lifecycle {
+    ignore_changes = [
+      private_dns_zone_group,
+      tags
+    ]
   }
 }
 
