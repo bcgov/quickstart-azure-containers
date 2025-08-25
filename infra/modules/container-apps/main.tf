@@ -11,12 +11,13 @@ data "azurerm_resource_group" "resource_group" {
   name = var.resource_group_name
 }
 resource "azurerm_container_app_environment" "main" {
-  name                           = "${var.app_name}-${var.app_env}-containerenv"
-  location                       = var.location
-  resource_group_name            = var.resource_group_name
-  log_analytics_workspace_id     = var.log_analytics_workspace_id
-  infrastructure_subnet_id       = var.container_apps_subnet_id
-  internal_load_balancer_enabled = true # Enable internal load balancer for private access
+  name                               = "${var.app_name}-${var.app_env}-containerenv"
+  location                           = var.location
+  resource_group_name                = var.resource_group_name
+  log_analytics_workspace_id         = var.log_analytics_workspace_id
+  infrastructure_subnet_id           = var.container_apps_subnet_id
+  infrastructure_resource_group_name = "ME-${var.resource_group_name}" # changing this will force , delete and recreate the managed environment
+  internal_load_balancer_enabled     = true                            # Enable internal load balancer for private access
   # Consumption workload profile (serverless)
   workload_profile {
     name                  = "Consumption"
@@ -33,23 +34,21 @@ resource "azurerm_container_app_environment" "main" {
     ignore_changes = [tags]
   }
 }
-# Get the existing Container App Environment to preserve Log Analytics configuration
 data "azapi_resource" "container_app_env_existing" {
   depends_on = [azurerm_container_app_environment.main]
   type       = "Microsoft.App/managedEnvironments@2024-10-02-preview"
   name       = azurerm_container_app_environment.main.name
   parent_id  = data.azurerm_resource_group.resource_group.id
 }
-# Disable public network access if private endpoint is being used
 resource "azapi_update_resource" "container_app_env_public_network_access" {
-  depends_on = [azurerm_container_app_environment.main]
+  depends_on = [azapi_resource.container_app_env_existing]
   type       = "Microsoft.App/managedEnvironments@2024-10-02-preview"
   name       = azurerm_container_app_environment.main.name
   parent_id  = data.azurerm_resource_group.resource_group.id
 
   body = {
     properties = merge(
-      jsondecode(data.azapi_resource.container_app_env_existing.output).properties,
+      data.azapi_resource.container_app_env_existing.output.properties,
       {
         publicNetworkAccess = "Disabled"
       }
