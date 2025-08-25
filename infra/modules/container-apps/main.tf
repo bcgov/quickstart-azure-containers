@@ -41,7 +41,7 @@ data "azapi_resource" "container_app_env_existing" {
   parent_id  = data.azurerm_resource_group.resource_group.id
 }
 resource "azapi_update_resource" "container_app_env_public_network_access" {
-  depends_on = [azapi_resource.container_app_env_existing]
+  depends_on = [data.azapi_resource.container_app_env_existing]
   type       = "Microsoft.App/managedEnvironments@2024-10-02-preview"
   name       = azurerm_container_app_environment.main.name
   parent_id  = data.azurerm_resource_group.resource_group.id
