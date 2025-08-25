@@ -33,6 +33,13 @@ resource "azurerm_container_app_environment" "main" {
     ignore_changes = [tags]
   }
 }
+# Get the existing Container App Environment to preserve Log Analytics configuration
+data "azapi_resource" "container_app_env_existing" {
+  depends_on = [azurerm_container_app_environment.main]
+  type       = "Microsoft.App/managedEnvironments@2024-10-02-preview"
+  name       = azurerm_container_app_environment.main.name
+  parent_id  = data.azurerm_resource_group.resource_group.id
+}
 # Disable public network access if private endpoint is being used
 resource "azapi_update_resource" "container_app_env_public_network_access" {
   depends_on = [azurerm_container_app_environment.main]
@@ -41,9 +48,12 @@ resource "azapi_update_resource" "container_app_env_public_network_access" {
   parent_id  = data.azurerm_resource_group.resource_group.id
 
   body = {
-    properties = {
-      publicNetworkAccess = "Disabled"
-    }
+    properties = merge(
+      jsondecode(data.azapi_resource.container_app_env_existing.output).properties,
+      {
+        publicNetworkAccess = "Disabled"
+      }
+    )
   }
 }
 
@@ -58,6 +68,7 @@ resource "azurerm_private_endpoint" "containerapps" {
   private_service_connection {
     name                           = "${var.app_name}-containerapps-psc"
     private_connection_resource_id = azurerm_container_app_environment.main.id
+    subresource_names              = ["managedEnvironments"]
     is_manual_connection           = false
   }
 
