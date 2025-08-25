@@ -190,6 +190,7 @@ module "container_apps" {
   container_memory                = var.container_apps_memory
   min_replicas                    = var.container_apps_min_replicas
   max_replicas                    = var.container_apps_max_replicas
+  private_endpoint_subnet_id      = module.network.private_endpoint_subnet_id
   enable_system_assigned_identity = true
 
   depends_on = [module.network, module.monitoring, module.postgresql, module.frontend]

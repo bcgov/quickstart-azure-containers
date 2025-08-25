@@ -63,7 +63,7 @@ resource "azurerm_private_endpoint" "containerapps" {
   name                = "${var.app_name}-containerapps-pe"
   location            = var.location
   resource_group_name = var.resource_group_name
-  subnet_id           = var.container_apps_subnet_id
+  subnet_id           = var.private_endpoint_subnet_id
 
   private_service_connection {
     name                           = "${var.app_name}-containerapps-psc"
