@@ -35,7 +35,7 @@ resource "azurerm_container_app_environment" "main" {
 }
 # Disable public network access if private endpoint is being used
 resource "azapi_update_resource" "container_app_env_public_network_access" {
-  depends_on = [azurerm_container_app_environment.container_app_env]
+  depends_on = [azurerm_container_app_environment.main]
   type       = "Microsoft.App/managedEnvironments@2024-10-02-preview"
   name       = azurerm_container_app_environment.main.name
   parent_id  = data.azurerm_resource_group.resource_group.id
