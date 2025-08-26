@@ -60,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Run TFLint
-        run: tflint -f compact
+        run: tflint --recursive -f compact
 
  
   deploy-to-tools:
