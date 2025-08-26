@@ -508,7 +508,7 @@ resource "azurerm_network_security_group" "container_apps" {
     source_address_prefix      = local.app_service_subnet_cidr
     destination_address_prefix = local.container_apps_subnet_cidr
     source_port_range          = "*"
-    destination_port_ranges    = "*"
+    destination_port_range     = "*"
   }
 
   # Allow outbound response to App Service
@@ -521,7 +521,7 @@ resource "azurerm_network_security_group" "container_apps" {
     source_address_prefix      = local.container_apps_subnet_cidr
     destination_address_prefix = local.app_service_subnet_cidr
     source_port_range          = "*"
-    destination_port_ranges    = "*"
+    destination_port_range     = "*"
   }
 
   # Allow outbound internet access (for Container Registry, monitoring, etc.)
