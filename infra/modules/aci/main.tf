@@ -1,4 +1,4 @@
-resource "azurerm_container_group" "flyway" {
+resource "azurerm_container_group" "busybox" {
   name                = "${var.app_name}-aci"
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -19,8 +19,10 @@ resource "azurerm_container_group" "flyway" {
     name     = "aci-tooling"
     image    = "nicolaka/netshoot:latest"
 
-    cpu    = "0.1"
-    memory = "0.3"
+    cpu          = "0.02"
+    memory       = "0.1"
+    cpu_limit    = "0.1"
+    memory_limit = "0.2"
 
     environment_variables = {
     }
