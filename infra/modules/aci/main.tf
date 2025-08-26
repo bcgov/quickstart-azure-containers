@@ -19,8 +19,8 @@ resource "azurerm_container_group" "busybox" {
     name     = "aci-tooling"
     image    = "nicolaka/netshoot:latest"
 
-    cpu    = "0.02"
-    memory = "0.1"
+    cpu    = "0.1"
+    memory = "0.2"
 
     environment_variables = {
     }
