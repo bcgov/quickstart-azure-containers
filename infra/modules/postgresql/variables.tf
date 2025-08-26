@@ -140,12 +140,6 @@ variable "diagnostic_metric_categories" {
   default     = ["AllMetrics"]
 }
 
-variable "diagnostic_retention_days" {
-  description = "Retention days for diagnostics (0 disables per-setting retention policy)"
-  type        = number
-  default     = 0
-}
-
 variable "location" {
   description = "Azure region for resources"
   type        = string

@@ -96,13 +96,6 @@ variable "log_analytics_workspace_id" {
   nullable    = false
 }
 
-variable "log_analytics_workspace_key" {
-  description = "Log Analytics Workspace key for Container Apps Environment"
-  type        = string
-  sensitive   = true
-  nullable    = false
-}
-
 variable "max_replicas" {
   description = "Maximum number of replicas for backend"
   type        = number
