@@ -30,6 +30,7 @@ resource "azurerm_container_app_environment" "main" {
   lifecycle {
     ignore_changes = [tags]
   }
+  logs_destination = "log-analytics"
 }
 
 
@@ -114,7 +115,7 @@ resource "azurerm_container_app" "backend" {
         value = var.postgresql_admin_username
       }
       env {
-        name  = "FLYWAY_PASSWORD"
+        name        = "FLYWAY_PASSWORD"
         secret_name = "postgres-password"
       }
       env {
@@ -222,6 +223,7 @@ resource "azurerm_container_app" "backend" {
   lifecycle {
     ignore_changes = [tags]
   }
+
 
   depends_on = [azurerm_container_app_environment.main]
 }
