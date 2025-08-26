@@ -82,24 +82,6 @@ module "postgresql" {
   depends_on = [module.network, module.monitoring]
 }
 
-module "flyway" {
-  source = "./modules/flyway"
-
-  app_name                     = var.app_name
-  container_instance_subnet_id = module.network.container_instance_subnet_id
-  database_name                = module.postgresql.database_name
-  db_master_password           = module.postgresql.db_master_password
-  dns_servers                  = module.network.dns_servers
-  flyway_image                 = var.flyway_image
-  location                     = var.location
-  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_workspaceId
-  log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
-  postgres_host                = module.postgresql.postgres_host
-  postgresql_admin_username    = var.postgresql_admin_username
-  resource_group_name          = azurerm_resource_group.main.name
-
-  depends_on = [module.postgresql, module.monitoring]
-}
 
 module "frontdoor" {
   source              = "./modules/frontdoor"
@@ -162,7 +144,7 @@ module "backend" {
   repo_name                               = var.repo_name
   resource_group_name                     = azurerm_resource_group.main.name
 
-  depends_on = [module.frontend, module.flyway]
+  depends_on = [module.frontend]
 }
 
 # Container Apps Module (optional alongside App Service)
@@ -190,6 +172,7 @@ module "container_apps" {
   container_memory                = var.container_apps_memory
   min_replicas                    = var.container_apps_min_replicas
   max_replicas                    = var.container_apps_max_replicas
+  migrations_image                = var.flyway_image
   private_endpoint_subnet_id      = module.network.private_endpoint_subnet_id
   enable_system_assigned_identity = true
 

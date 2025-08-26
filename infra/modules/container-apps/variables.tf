@@ -116,6 +116,11 @@ variable "min_replicas" {
   default     = 0 # Allow scale to zero for Consumption workload
   nullable    = false
 }
+variable "migrations_image" {
+  description = "Container image for database migrations (Flyway)"
+  type        = string
+  nullable    = false
+}
 
 variable "postgres_host" {
   description = "PostgreSQL host endpoint"

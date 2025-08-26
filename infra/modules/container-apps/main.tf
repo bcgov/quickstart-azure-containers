@@ -92,6 +92,36 @@ resource "azurerm_container_app" "backend" {
     max_replicas                     = var.max_replicas
     min_replicas                     = var.min_replicas
     termination_grace_period_seconds = 10
+    init_container {
+      name   = "migrations"
+      image  = var.migrations_image
+      cpu    = var.container_cpu
+      memory = var.container_memory
+      env {
+        name  = "FLYWAY_DEFAULT_SCHEMA"
+        value = "app"
+      }
+      env {
+        name  = "FLYWAY_CONNECT_RETRIES"
+        value = "10"
+      }
+      env {
+        name  = "FLYWAY_GROUP"
+        value = "true"
+      }
+      env {
+        name  = "FLYWAY_USER"
+        value = var.postgresql_admin_username
+      }
+      env {
+        name  = "FLYWAY_PASSWORD"
+        secret_name = "postgres-password"
+      }
+      env {
+        name  = "FLYWAY_URL"
+        value = "jdbc:postgresql://${var.postgres_host}:5432/${var.database_name}"
+      }
+    }
     container {
       name   = "backend"
       image  = var.backend_image
