@@ -11,7 +11,6 @@ resource "azurerm_container_app_environment" "main" {
   name                               = "${var.app_name}-${var.app_env}-containerenv"
   location                           = var.location
   resource_group_name                = var.resource_group_name
-  log_analytics_workspace_id         = var.log_analytics_workspace_id
   infrastructure_subnet_id           = var.container_apps_subnet_id
   infrastructure_resource_group_name = "ME-${var.resource_group_name}" # changing this will force , delete and recreate the managed environment
   internal_load_balancer_enabled     = true                            # Enable internal load balancer for private access
@@ -30,7 +29,7 @@ resource "azurerm_container_app_environment" "main" {
   lifecycle {
     ignore_changes = [tags]
   }
-  logs_destination = "log-analytics"
+  logs_destination = "azure-monitor"
 }
 
 
