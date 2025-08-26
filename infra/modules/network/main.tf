@@ -78,6 +78,29 @@ resource "azurerm_network_security_group" "privateendpoints" {
     source_port_range          = "*"
     destination_port_range     = "*"
   }
+  security_rule {
+    name                       = "AllowInboundFromContainerApps"
+    priority                   = 106
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.container_apps_subnet_cidr
+    destination_address_prefix = local.private_endpoints_subnet_cidr
+    destination_port_range     = "*"
+    source_port_range          = "*"
+  }
+
+  security_rule {
+    name                       = "AllowOutboundToContainerApps"
+    priority                   = 107
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_address_prefix      = local.private_endpoints_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
   tags = var.common_tags
   lifecycle {
     ignore_changes = [
@@ -463,6 +486,17 @@ resource "azurerm_network_security_group" "container_apps" {
     source_port_range          = "*"
     destination_port_range     = "*"
   }
+  security_rule {
+    name                       = "AllowInboundFromPrivateEndpoints"
+    priority                   = 131
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.private_endpoints_subnet_cidr
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
 
   # Allow inbound traffic from App Service (for private backend access)
   security_rule {
@@ -470,11 +504,11 @@ resource "azurerm_network_security_group" "container_apps" {
     priority                   = 140
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "Tcp"
+    protocol                   = "*"
     source_address_prefix      = local.app_service_subnet_cidr
     destination_address_prefix = local.container_apps_subnet_cidr
     source_port_range          = "*"
-    destination_port_ranges    = ["80", "443"]
+    destination_port_ranges    = "*"
   }
 
   # Allow outbound response to App Service
@@ -483,11 +517,11 @@ resource "azurerm_network_security_group" "container_apps" {
     priority                   = 141
     direction                  = "Outbound"
     access                     = "Allow"
-    protocol                   = "Tcp"
+    protocol                   = "*"
     source_address_prefix      = local.container_apps_subnet_cidr
     destination_address_prefix = local.app_service_subnet_cidr
     source_port_range          = "*"
-    destination_port_ranges    = ["80", "443"]
+    destination_port_ranges    = "*"
   }
 
   # Allow outbound internet access (for Container Registry, monitoring, etc.)

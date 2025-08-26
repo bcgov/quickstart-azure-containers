@@ -187,7 +187,7 @@ module "aci" {
   resource_group_name          = azurerm_resource_group.main.name
   common_tags                  = var.common_tags
   container_instance_subnet_id = module.network.container_instance_subnet_id
-  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_id
+  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_workspaceId
   log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
   dns_servers                  = module.network.dns_servers
 
