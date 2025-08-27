@@ -51,7 +51,6 @@ module "postgresql" {
   database_name                 = var.database_name
   diagnostic_log_categories     = var.postgres_diagnostic_log_categories
   diagnostic_metric_categories  = var.postgres_diagnostic_metric_categories
-  diagnostic_retention_days     = var.postgres_diagnostic_retention_days
   enable_diagnostic_insights    = var.postgres_enable_diagnostic_insights
   enable_server_logs            = var.postgres_enable_server_logs
   enable_geo_redundant_backup   = var.enable_postgres_geo_redundant_backup
@@ -87,7 +86,6 @@ module "frontdoor" {
   source              = "./modules/frontdoor"
   count               = var.enable_frontdoor ? 1 : 0
   app_name            = var.app_name
-  enable_frontdoor    = var.enable_frontdoor
   common_tags         = var.common_tags
   frontdoor_sku_name  = var.frontdoor_sku_name
   resource_group_name = azurerm_resource_group.main.name
@@ -159,7 +157,6 @@ module "container_apps" {
   common_tags                     = var.common_tags
   container_apps_subnet_id        = module.network.container_apps_subnet_id
   log_analytics_workspace_id      = module.monitoring.log_analytics_workspace_id
-  log_analytics_workspace_key     = module.monitoring.log_analytics_workspace_key
   backend_image                   = var.api_image
   database_name                   = var.database_name
   postgres_host                   = module.postgresql.postgres_host
