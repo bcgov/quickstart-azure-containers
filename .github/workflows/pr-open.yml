@@ -21,6 +21,7 @@ jobs:
     with:
       tags: |
         ${{ github.event.number || 'manual' }}
+        manual-${{ github.run_number }}
         latest
 
   plan-stack:
@@ -77,7 +78,7 @@ jobs:
     with:
       environment_name: tools
       command: apply
-      tag: manual
+      tag: manual-${{ github.run_number }}
       app_env: tools
     secrets: inherit
 
