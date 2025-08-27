@@ -164,16 +164,6 @@ variable "postgres_diagnostic_metric_categories" {
   default     = ["AllMetrics"]
 }
 
-variable "postgres_diagnostic_retention_days" {
-  description = "Retention (days) for diagnostics sent via diagnostic setting (0 disables per-setting retention)"
-  type        = number
-  default     = 7
-  validation {
-    condition     = var.postgres_diagnostic_retention_days >= 0 && var.postgres_diagnostic_retention_days <= 365
-    error_message = "postgres_diagnostic_retention_days must be between 0 and 365."
-  }
-}
-
 variable "postgres_enable_diagnostic_insights" {
   description = "Enable Azure Monitor diagnostic settings for PostgreSQL server"
   type        = bool
