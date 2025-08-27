@@ -292,3 +292,14 @@ resource "azurerm_postgresql_flexible_server_configuration" "azure_extensions" {
   ]
 }
 
+resource "azurerm_monitor_diagnostic_setting" "postgres_diagnostics" {
+  name                       = "${var.app_name}-postgres_diagnostics"
+  target_resource_id         = azurerm_postgresql_flexible_server.postgresql.id
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+  enabled_log {
+    category_group = "allLogs"
+  }
+  enabled_metric {
+    category = "AllMetrics"
+  }
+}

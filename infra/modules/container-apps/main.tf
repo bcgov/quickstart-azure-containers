@@ -242,12 +242,3 @@ resource "azurerm_monitor_diagnostic_setting" "container_app_env_diagnostics" {
     category = "AllMetrics"
   }
 }
-
-resource "azurerm_monitor_diagnostic_setting" "container_app_diagnostics" {
-  name                       = "${var.app_name}-ca-diagnostics"
-  target_resource_id         = azurerm_container_app.backend.id
-  log_analytics_workspace_id = var.log_analytics_workspace_id
-  enabled_metric {
-    category = "AllMetrics"
-  }
-}
