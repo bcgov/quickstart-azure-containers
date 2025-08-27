@@ -30,7 +30,7 @@ resource "azurerm_container_group" "busybox" {
     image    = "nicolaka/netshoot:latest"
 
     cpu    = ".02"
-    memory = ".05"
+    memory = ".1"
 
     environment_variables = {
     }
