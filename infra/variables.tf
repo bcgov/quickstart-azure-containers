@@ -395,7 +395,7 @@ variable "vnet_resource_group_name" {
 variable "enable_apim" {
   description = "Whether to enable API Management service"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "apim_publisher_name" {
