@@ -820,6 +820,14 @@ resource "azapi_resource" "apim_subnet" {
       networkSecurityGroup = {
         id = azurerm_network_security_group.apim.id
       }
+      delegations = [
+        {
+          name = "apim-delegation"
+          properties = {
+            serviceName = "Microsoft.Web/serverFarms"
+          }
+        }
+      ]
     }
   }
   response_export_values = ["*"]
