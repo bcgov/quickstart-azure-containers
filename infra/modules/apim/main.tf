@@ -24,7 +24,7 @@ resource "azurerm_api_management" "main" {
   sku_name            = var.sku_name
 
   # Security configurations
-  public_network_access_enabled = false
+  public_network_access_enabled = true
   virtual_network_type          = "External"
 
   virtual_network_configuration {
