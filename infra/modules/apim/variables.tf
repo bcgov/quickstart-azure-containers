@@ -46,57 +46,22 @@ variable "publisher_email" {
 }
 
 variable "sku_name" {
-  description = "The SKU of the API Management service. Possible values are Developer, Basic, Standard, StandardV2, Premium, and Consumption."
+  description = "The SKU of the API Management service. Possible values are StandardV2 and PremiumV2."
   type        = string
-  default     = "Developer"
+  default     = "StandardV2"
   validation {
     condition = contains([
-      "Developer", "Basic", "Standard", "StandardV2", "Premium", "Consumption"
+      "StandardV2", "PremiumV2"
     ], var.sku_name)
-    error_message = "The sku_name must be one of: Developer, Basic, Standard, StandardV2, Premium, Consumption."
+    error_message = "The sku_name must be one of: StandardV2, PremiumV2."
   }
 }
 
-variable "public_network_access_enabled" {
-  description = "Whether public network access is allowed for the API Management service."
-  type        = bool
-  default     = true
-}
 
 variable "subnet_id" {
   description = "The subnet ID for VNet integration. Leave null to disable VNet integration."
   type        = string
-  default     = null
-}
-
-variable "enable_system_assigned_identity" {
-  description = "Whether to enable system-assigned managed identity for the API Management service."
-  type        = bool
-  default     = true
-}
-
-variable "user_assigned_identity_ids" {
-  description = "List of user-assigned managed identity IDs to assign to the API Management service."
-  type        = list(string)
-  default     = []
-}
-
-variable "client_certificate_enabled" {
-  description = "Whether client certificate authentication is enabled."
-  type        = bool
-  default     = false
-}
-
-variable "gateway_disabled" {
-  description = "Whether the gateway is disabled."
-  type        = bool
-  default     = false
-}
-
-variable "zones" {
-  description = "Availability zones for the API Management service (Premium SKU only)."
-  type        = list(string)
-  default     = ["1", "2", "3"]
+  nullable    = false
 }
 
 # Diagnostic Settings
@@ -148,13 +113,6 @@ variable "custom_domain_configuration" {
     }))
   })
   default = null
-}
-
-# Event Grid
-variable "enable_eventgrid_system_topic" {
-  description = "Whether to create an Event Grid system topic for the API Management service."
-  type        = bool
-  default     = false
 }
 
 # Application Insights Integration
