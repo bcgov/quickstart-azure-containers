@@ -413,13 +413,7 @@ variable "apim_publisher_email" {
 variable "apim_sku_name" {
   description = "The SKU of the API Management service"
   type        = string
-  default     = "StandardV2" # this one or "PremiumV2" works in landing zone.
-  validation {
-    condition = contains([
-      "StandardV2", "PremiumV2"
-    ], var.apim_sku_name)
-    error_message = "The apim_sku_name must be one of: StandardV2, PremiumV2."
-  }
+  default     = "StandardV2_1" # this one or "PremiumV2" works in landing zone. `_1 ` is the capacity.
 }
 
 
