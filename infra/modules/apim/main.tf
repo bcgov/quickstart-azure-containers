@@ -118,7 +118,6 @@ resource "azurerm_api_management_logger" "appinsights" {
   name                = "appinsights-logger"
   api_management_name = azurerm_api_management.main.name
   resource_group_name = var.resource_group_name
-  resource_id         = var.application_insights_id
 
   application_insights {
     instrumentation_key = var.appinsights_instrumentation_key

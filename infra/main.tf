@@ -163,7 +163,6 @@ module "apim" {
   log_analytics_workspace_id         = module.monitoring.log_analytics_workspace_id
   enable_application_insights_logger = var.apim_enable_application_insights_logger
   appinsights_instrumentation_key    = module.monitoring.appinsights_instrumentation_key
-  application_insights_id            = module.monitoring.appinsights_id
 
   # Backend services configuration - connect to the deployed backend
   backend_services = {

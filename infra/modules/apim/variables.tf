@@ -171,11 +171,6 @@ variable "appinsights_instrumentation_key" {
   sensitive   = true
 }
 
-variable "application_insights_id" {
-  description = "The ID of the Application Insights resource."
-  type        = string
-  default     = null
-}
 
 # Global Policy
 variable "global_policy_xml" {
