@@ -73,11 +73,10 @@ resource "azurerm_monitor_diagnostic_setting" "apim" {
   }
 
   # Enable all available metric categories
-  dynamic "metric" {
+  dynamic "enabled_metric" {
     for_each = var.diagnostic_metric_categories
     content {
-      category = metric.value
-      enabled  = true
+      category = enabled_metric.value
     }
   }
 }
@@ -108,11 +107,10 @@ resource "azurerm_api_management_custom_domain" "main" {
   }
 }
 
-# Event Grid system topic has been removed due to deprecated source_arm_resource_id attribute
 
 # Application Insights Logger (for detailed API analytics)
 resource "azurerm_api_management_logger" "appinsights" {
-  count               = var.enable_application_insights_logger && var.appinsights_instrumentation_key != null ? 1 : 0
+  count               = var.appinsights_instrumentation_key != null ? 1 : 0
   name                = "appinsights-logger"
   api_management_name = azurerm_api_management.main.name
   resource_group_name = var.resource_group_name

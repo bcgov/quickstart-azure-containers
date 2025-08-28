@@ -119,8 +119,8 @@ variable "enable_application_insights_logger" {
 variable "appinsights_instrumentation_key" {
   description = "The Application Insights instrumentation key."
   type        = string
-  default     = null
   sensitive   = true
+  nullable    = false
 }
 
 
