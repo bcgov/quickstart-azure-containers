@@ -69,3 +69,10 @@ variable "web_subnet_name" {
   default     = "web-subnet"
   nullable    = false
 }
+
+variable "apim_subnet_name" {
+  description = "Name of the subnet for API Management"
+  type        = string
+  default     = "apim-subnet"
+  nullable    = false
+}

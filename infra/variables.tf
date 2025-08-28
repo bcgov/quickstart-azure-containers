@@ -73,19 +73,19 @@ variable "enable_container_apps" {
 variable "container_apps_cpu" {
   description = "CPU allocation for Container Apps (in cores)"
   type        = number
-  default     = 0.5
+  default     = 0.25
 }
 
 variable "container_apps_memory" {
   description = "Memory allocation for Container Apps"
   type        = string
-  default     = "1Gi"
+  default     = ".5Gi"
 }
 
 variable "container_apps_min_replicas" {
   description = "Minimum number of replicas for Container Apps"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "container_apps_max_replicas" {
@@ -386,4 +386,51 @@ variable "vnet_name" {
 variable "vnet_resource_group_name" {
   description = "Resource group name where the virtual network exists"
   type        = string
+}
+
+# -------------
+# API Management Variables
+# -------------
+
+variable "enable_apim" {
+  description = "Whether to enable API Management service"
+  type        = bool
+  default     = false
+}
+
+variable "apim_publisher_name" {
+  description = "The name of the publisher/company for APIM"
+  type        = string
+  default     = "BC Government"
+}
+
+variable "apim_publisher_email" {
+  description = "The email address of the publisher/company for APIM"
+  type        = string
+  default     = "no-reply@gov.bc.ca"
+}
+
+variable "apim_sku_name" {
+  description = "The SKU of the API Management service"
+  type        = string
+  default     = "StandardV2" # this one or "PremiumV2" works in landing zone.
+  validation {
+    condition = contains([
+      "StandardV2", "PremiumV2"
+    ], var.apim_sku_name)
+    error_message = "The apim_sku_name must be one of: StandardV2, PremiumV2."
+  }
+}
+
+
+variable "apim_enable_diagnostic_settings" {
+  description = "Whether to enable diagnostic settings for the API Management service"
+  type        = bool
+  default     = true
+}
+
+variable "apim_enable_application_insights_logger" {
+  description = "Whether to enable Application Insights logger for the API Management service"
+  type        = bool
+  default     = true
 }

@@ -233,6 +233,33 @@ resource "azurerm_network_security_group" "app_service" {
     source_port_range          = "*"
     destination_port_ranges    = ["80", "443"]
   }
+
+  # Allow inbound from APIM
+  security_rule {
+    name                       = "AllowInboundFromAPIM"
+    priority                   = 140
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.apim_subnet_cidr
+    destination_address_prefix = local.app_service_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443", "8080", "3000-9000"]
+  }
+
+  # Allow outbound response to APIM
+  security_rule {
+    name                       = "AllowOutboundToAPIM"
+    priority                   = 141
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.app_service_subnet_cidr
+    destination_address_prefix = local.apim_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443", "8080", "3000-9000"]
+  }
+
   tags = var.common_tags
   lifecycle {
     ignore_changes = [
@@ -545,6 +572,111 @@ resource "azurerm_network_security_group" "container_apps" {
   }
 }
 
+# NSG for APIM subnet
+resource "azurerm_network_security_group" "apim" {
+  name                = "${var.resource_group_name}-apim-nsg"
+  location            = var.location
+  resource_group_name = var.vnet_resource_group_name
+
+  # Allow APIM management traffic (required by Azure API Management)
+  security_rule {
+    name                       = "AllowAPIMManagement"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = "ApiManagement"
+    destination_address_prefix = local.apim_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "3443"
+  }
+
+  # Allow Azure Load Balancer
+  security_rule {
+    name                       = "AllowAzureLoadBalancer"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = "AzureLoadBalancer"
+    destination_address_prefix = local.apim_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
+
+  # Allow HTTPS inbound (for API gateway)
+  security_rule {
+    name                       = "AllowHTTPSInbound"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = "*"
+    destination_address_prefix = local.apim_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443"]
+  }
+
+  # Allow outbound to backend services
+  security_rule {
+    name                       = "AllowOutboundToBackend"
+    priority                   = 100
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.apim_subnet_cidr
+    destination_address_prefix = local.app_service_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443", "8080", "3000-9000"]
+  }
+
+  # Allow outbound to storage and SQL
+  security_rule {
+    name                       = "AllowOutboundToStorage"
+    priority                   = 110
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = local.apim_subnet_cidr
+    destination_address_prefix = "Storage"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+  }
+
+  # Allow outbound to SQL
+  security_rule {
+    name                       = "AllowOutboundToSQL"
+    priority                   = 120
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = local.apim_subnet_cidr
+    destination_address_prefix = "Sql"
+    source_port_range          = "*"
+    destination_port_range     = "1433"
+  }
+
+  # Allow outbound internet access
+  security_rule {
+    name                       = "AllowOutboundToInternet"
+    priority                   = 130
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.apim_subnet_cidr
+    destination_address_prefix = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
+
+  tags = var.common_tags
+  lifecycle {
+    ignore_changes = [
+      tags
+    ]
+  }
+}
+
 # Subnets
 resource "azapi_resource" "privateendpoints_subnet" {
   type      = "Microsoft.Network/virtualNetworks/subnets@2023-04-01"
@@ -646,6 +778,23 @@ resource "azapi_resource" "container_apps_subnet" {
           }
         }
       ]
+    }
+  }
+  response_export_values = ["*"]
+}
+
+# APIM subnet for API Management
+resource "azapi_resource" "apim_subnet" {
+  type      = "Microsoft.Network/virtualNetworks/subnets@2023-04-01"
+  name      = var.apim_subnet_name
+  parent_id = data.azurerm_virtual_network.main.id
+  locks     = [data.azurerm_virtual_network.main.id]
+  body = {
+    properties = {
+      addressPrefix = local.apim_subnet_cidr
+      networkSecurityGroup = {
+        id = azurerm_network_security_group.apim.id
+      }
     }
   }
   response_export_values = ["*"]

@@ -145,6 +145,39 @@ module "backend" {
   depends_on = [module.frontend]
 }
 
+# API Management Module (optional)
+module "apim" {
+  count  = var.enable_apim ? 1 : 0
+  source = "./modules/apim"
+
+  app_name                           = var.app_name
+  app_env                            = var.app_env
+  location                           = var.location
+  resource_group_name                = azurerm_resource_group.main.name
+  common_tags                        = var.common_tags
+  publisher_name                     = var.apim_publisher_name
+  publisher_email                    = var.apim_publisher_email
+  sku_name                           = var.apim_sku_name
+  subnet_id                          = module.network.apim_subnet_id
+  enable_diagnostic_settings         = var.apim_enable_diagnostic_settings
+  log_analytics_workspace_id         = module.monitoring.log_analytics_workspace_id
+  enable_application_insights_logger = var.apim_enable_application_insights_logger
+  appinsights_instrumentation_key    = module.monitoring.appinsights_instrumentation_key
+  application_insights_id            = module.monitoring.appinsights_id
+
+  # Backend services configuration - connect to the deployed backend
+  backend_services = {
+    "backend-api" = {
+      protocol    = "http"
+      url         = "https://${module.backend.backend_url}"
+      description = "Backend API service"
+      title       = "Backend API"
+    }
+  }
+
+  depends_on = [module.network, module.monitoring, module.backend]
+}
+
 # Container Apps Module (optional alongside App Service)
 module "container_apps" {
   count  = var.enable_container_apps ? 1 : 0
