@@ -619,7 +619,7 @@ resource "azurerm_network_security_group" "apim" {
 
   # Allow outbound to backend services
   security_rule {
-    name                       = "AllowOutboundToBackend"
+    name                       = "AllowOutboundToAppServices"
     priority                   = 100
     direction                  = "Outbound"
     access                     = "Allow"
@@ -627,7 +627,7 @@ resource "azurerm_network_security_group" "apim" {
     source_address_prefix      = local.apim_subnet_cidr
     destination_address_prefix = local.app_service_subnet_cidr
     source_port_range          = "*"
-    destination_port_ranges    = ["80", "443", "8080", "3000-9000"]
+    destination_port_ranges    = ["80", "443", "3000-9000"]
   }
 
   # Allow outbound to storage and SQL
@@ -667,6 +667,31 @@ resource "azurerm_network_security_group" "apim" {
     destination_address_prefix = "*"
     source_port_range          = "*"
     destination_port_range     = "*"
+  }
+  # Allow inbound from Container Apps
+  security_rule {
+    name                       = "AllowInboundFromContainerApps"
+    priority                   = 140
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.container_apps_subnet_cidr
+    destination_address_prefix = local.apim_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443", "3000-9000"]
+  }
+
+  # Allow outbound to Container Apps
+  security_rule {
+    name                       = "AllowOutboundToContainerApps"
+    priority                   = 141
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.apim_subnet_cidr
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443", "3000-9000"]
   }
 
   tags = var.common_tags
