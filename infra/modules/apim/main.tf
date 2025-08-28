@@ -25,7 +25,7 @@ resource "azurerm_api_management" "main" {
 
   # Security configurations
   public_network_access_enabled = false
-  virtual_network_type          = "Internal"
+  virtual_network_type          = "External"
 
   virtual_network_configuration {
     subnet_id = var.subnet_id
