@@ -244,7 +244,7 @@ resource "azurerm_network_security_group" "app_service" {
     source_address_prefix      = local.apim_subnet_cidr
     destination_address_prefix = local.app_service_subnet_cidr
     source_port_range          = "*"
-    destination_port_ranges    = ["80", "443", "8080", "3000-9000"]
+    destination_port_ranges    = ["80", "443", "3000-9000"]
   }
 
   # Allow outbound response to APIM
@@ -257,7 +257,7 @@ resource "azurerm_network_security_group" "app_service" {
     source_address_prefix      = local.app_service_subnet_cidr
     destination_address_prefix = local.apim_subnet_cidr
     source_port_range          = "*"
-    destination_port_ranges    = ["80", "443", "8080", "3000-9000"]
+    destination_port_ranges    = ["80", "443", "3000-9000"]
   }
 
   tags = var.common_tags
