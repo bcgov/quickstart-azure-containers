@@ -48,13 +48,7 @@ variable "publisher_email" {
 variable "sku_name" {
   description = "The SKU of the API Management service. Possible values are StandardV2 and PremiumV2."
   type        = string
-  default     = "StandardV2"
-  validation {
-    condition = contains([
-      "StandardV2", "PremiumV2"
-    ], var.sku_name)
-    error_message = "The sku_name must be one of: StandardV2, PremiumV2."
-  }
+  nullable    = false
 }
 
 
