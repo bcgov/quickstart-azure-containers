@@ -85,6 +85,61 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 └── package.json               # Monorepo configuration
 ```
 
+## Target Architecture
+```mermaid
+flowchart LR
+  
+  U[User]
+
+  subgraph Azure
+    direction LR
+
+    subgraph "Azure App Service (Linux)"
+      CADDY["Caddy Proxy - deterministic domain: appname.azurewebsites.net; TLS termination; reverse proxy; health checks; autoscale"]
+    end
+
+    subgraph "Azure Container Apps (Consumption, serverless)"
+      API["Node.js / NestJS API - containerized; scales 0..N; scale-to-zero; readiness/liveness; rolling updates"]
+    end
+
+    subgraph "Data Layer"
+      PG["Azure Database for PostgreSQL Flexible Server - SSL required; backups & PITR; HA optional; connection pooling recommended"]
+    end
+
+    subgraph "Observability"
+      AI["Application Insights - traces, dependencies, exceptions"]
+      LA["Log Analytics Workspace - logs, queries, alerts"]
+      METRICS["Azure Monitor Metrics - CPU, memory, RPS, latency"]
+    end
+  end
+
+  U -- "1 HTTPS GET https://appname.azurewebsites.net" --> CADDY
+  CADDY -- "2 Reverse proxy to /api/* (HTTP/2)" --> API
+  API -- "3 PostgreSQL TLS 5432 (parameterized queries)" --> PG
+  PG -- "4 Rows/Result" --> API
+  API -- "5 200 OK JSON" --> CADDY
+  CADDY -- "6 200 OK to client (gzip/brotli)" --> U
+
+  COLD["If idle: ACA cold-starts a replica on first request"]
+  API --- COLD
+
+  CADDY -. "access logs, traces" .-> AI
+  API -. "traces, dependencies, exceptions" .-> AI
+  API -. "container logs" .-> LA
+  CADDY -. "access/error logs" .-> LA
+  CADDY -. "HTTP metrics" .-> METRICS
+  API -. "service metrics" .-> METRICS
+  PG -. "DB metrics" .-> METRICS
+
+  NOTE1["Ingress: deterministic domain *.azurewebsites.net; optional custom domain with managed certs"]
+  NOTE2["Networking: public with firewall or private endpoint to DB; TLS mode=require"]
+  HEALTH["Health and scale: readiness/liveness probes; autoscale on RPS/CPU/custom; transient retry; connection pooling"]
+
+  CADDY --- NOTE1
+  PG --- NOTE2
+  API --- HEALTH
+  PG --- HEALTH
+```
 ## 🚀 Quick Start Guide
 
 ### 1. Clone and Setup Repository

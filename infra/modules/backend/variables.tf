@@ -46,12 +46,6 @@ variable "enable_backend_autoscale" {
   default     = true
 }
 
-variable "backend_depends_on" {
-  description = "A list of resources this backend depends on."
-  type        = list(any)
-  default     = []
-}
-
 variable "backend_subnet_id" {
   description = "The subnet ID for the backend App Service."
   type        = string
