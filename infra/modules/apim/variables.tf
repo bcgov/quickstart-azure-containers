@@ -113,7 +113,7 @@ variable "custom_domain_configuration" {
 variable "enable_application_insights_logger" {
   description = "Whether to enable Application Insights logger for the API Management service."
   type        = bool
-  default     = false
+  nullable    = false
 }
 
 variable "appinsights_instrumentation_key" {

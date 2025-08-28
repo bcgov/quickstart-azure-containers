@@ -110,7 +110,7 @@ resource "azurerm_api_management_custom_domain" "main" {
 
 # Application Insights Logger (for detailed API analytics)
 resource "azurerm_api_management_logger" "appinsights" {
-  count               = var.appinsights_instrumentation_key != null ? 1 : 0
+  count               = var.enable_application_insights_logger ? 1 : 0
   name                = "appinsights-logger"
   api_management_name = azurerm_api_management.main.name
   resource_group_name = var.resource_group_name
