@@ -13,6 +13,7 @@ resource "azurerm_container_app_environment" "main" {
   resource_group_name                = var.resource_group_name
   log_analytics_workspace_id         = var.log_analytics_workspace_id
   infrastructure_subnet_id           = var.container_apps_subnet_id
+  public_network_access              = "Disabled"                      # Disable public access to the environment
   infrastructure_resource_group_name = "ME-${var.resource_group_name}" # changing this will force , delete and recreate the managed environment
   internal_load_balancer_enabled     = true                            # Enable internal load balancer for private access
   # Consumption workload profile (serverless)
