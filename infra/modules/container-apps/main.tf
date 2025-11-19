@@ -201,9 +201,8 @@ resource "azurerm_container_app" "backend" {
     }
   }
 
-  # Internal ingress for private access from App Service
   ingress {
-    external_enabled = false # Internal only - accessible via private endpoint
+    external_enabled = true
     target_port      = 3000
     transport        = "http"
 

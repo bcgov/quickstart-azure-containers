@@ -234,8 +234,8 @@ resource "azurerm_network_security_group" "container_instance" {
     protocol                   = "*"
     source_address_prefix      = local.app_service_subnet_cidr
     destination_address_prefix = local.container_instance_subnet_cidr
-    source_port_ranges         = ["3000-9000"]
-    destination_port_ranges    = ["3000-9000"]
+    source_port_range          = "*"
+    destination_port_range     = "*"
   }
 
   security_rule {
@@ -246,8 +246,8 @@ resource "azurerm_network_security_group" "container_instance" {
     protocol                   = "*"
     destination_address_prefix = local.app_service_subnet_cidr
     source_address_prefix      = local.container_instance_subnet_cidr
-    source_port_ranges         = ["3000-9000"]
-    destination_port_ranges    = ["3000-9000"]
+    source_port_range          = "*"
+    destination_port_range     = "*"
   }
 
   # Allow inbound from Private Endpoints subnet to Container Instances subnet
@@ -297,6 +297,29 @@ resource "azurerm_network_security_group" "container_instance" {
     source_address_prefix      = local.container_instance_subnet_cidr
     source_port_range          = "*"
     destination_port_ranges    = ["80", "443"]
+  }
+  security_rule {
+    name                       = "AllowInboundFromContainerApps"
+    priority                   = 130
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.container_apps_subnet_cidr
+    destination_address_prefix = local.container_instance_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
+
+  security_rule {
+    name                       = "AllowOutboundToContainerApps"
+    priority                   = 140
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_address_prefix      = local.container_instance_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "*"
   }
   tags = var.common_tags
   lifecycle {
@@ -404,7 +427,7 @@ resource "azurerm_network_security_group" "container_apps" {
   # Allow outbound internet access (for Container Registry, monitoring, etc.)
   security_rule {
     name                       = "AllowOutboundToInternet"
-    priority                   = 140
+    priority                   = 142
     direction                  = "Outbound"
     access                     = "Allow"
     protocol                   = "*"
@@ -413,7 +436,30 @@ resource "azurerm_network_security_group" "container_apps" {
     source_port_range          = "*"
     destination_port_range     = "*"
   }
+  security_rule {
+    name                       = "AllowInboundFromContainerInstance"
+    priority                   = 144
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.container_instance_subnet_cidr
+    destination_address_prefix = local.container_apps_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
 
+  # Allow outbound response to App Service
+  security_rule {
+    name                       = "AllowOutboundToContainerInstance"
+    priority                   = 145
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = local.container_apps_subnet_cidr
+    destination_address_prefix = local.container_instance_subnet_cidr
+    source_port_range          = "*"
+    destination_port_range     = "*"
+  }
   tags = var.common_tags
   lifecycle {
     ignore_changes = [
