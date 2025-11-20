@@ -83,6 +83,6 @@
     "reflect-metadata": "^0.2.2"
   },
   "volta": {
-    "node": "22.21.1"
+    "node": "24.11.1"
   }
 }
