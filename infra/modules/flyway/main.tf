@@ -1,3 +1,17 @@
+terraform {
+  required_version = ">= 1.12.0"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "4.53.0"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = "3.2.4"
+    }
+  }
+}
+
 resource "azurerm_container_group" "flyway" {
   name                = "${var.app_name}-flyway"
   location            = var.location
@@ -14,12 +28,12 @@ resource "azurerm_container_group" "flyway" {
     }
   }
   container {
-    name   = "flyway"
-    image  = var.flyway_image
-    
+    name  = "flyway"
+    image = var.flyway_image
+
     cpu    = "0.1"
     memory = "0.3"
-    
+
     environment_variables = {
       FLYWAY_DEFAULT_SCHEMA  = "app"
       FLYWAY_CONNECT_RETRIES = "10"

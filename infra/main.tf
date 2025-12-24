@@ -51,7 +51,6 @@ module "postgresql" {
   database_name                 = var.database_name
   diagnostic_log_categories     = var.postgres_diagnostic_log_categories
   diagnostic_metric_categories  = var.postgres_diagnostic_metric_categories
-  diagnostic_retention_days     = var.postgres_diagnostic_retention_days
   enable_diagnostic_insights    = var.postgres_enable_diagnostic_insights
   enable_server_logs            = var.postgres_enable_server_logs
   enable_geo_redundant_backup   = var.enable_postgres_geo_redundant_backup
@@ -82,30 +81,11 @@ module "postgresql" {
   depends_on = [module.network, module.monitoring]
 }
 
-module "flyway" {
-  source = "./modules/flyway"
-
-  app_name                     = var.app_name
-  container_instance_subnet_id = module.network.container_instance_subnet_id
-  database_name                = module.postgresql.database_name
-  db_master_password           = module.postgresql.db_master_password
-  dns_servers                  = module.network.dns_servers
-  flyway_image                 = var.flyway_image
-  location                     = var.location
-  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_workspaceId
-  log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
-  postgres_host                = module.postgresql.postgres_host
-  postgresql_admin_username    = var.postgresql_admin_username
-  resource_group_name          = azurerm_resource_group.main.name
-
-  depends_on = [module.postgresql, module.monitoring]
-}
 
 module "frontdoor" {
   source              = "./modules/frontdoor"
   count               = var.enable_frontdoor ? 1 : 0
   app_name            = var.app_name
-  enable_frontdoor    = var.enable_frontdoor
   common_tags         = var.common_tags
   frontdoor_sku_name  = var.frontdoor_sku_name
   resource_group_name = azurerm_resource_group.main.name
@@ -162,5 +142,86 @@ module "backend" {
   repo_name                               = var.repo_name
   resource_group_name                     = azurerm_resource_group.main.name
 
-  depends_on = [module.frontend, module.flyway]
+  depends_on = [module.frontend]
+}
+
+# API Management Module (optional)
+module "apim" {
+  count  = var.enable_apim ? 1 : 0
+  source = "./modules/apim"
+
+  app_name                           = var.app_name
+  app_env                            = var.app_env
+  location                           = var.location
+  resource_group_name                = azurerm_resource_group.main.name
+  common_tags                        = var.common_tags
+  publisher_name                     = var.apim_publisher_name
+  publisher_email                    = var.apim_publisher_email
+  sku_name                           = var.apim_sku_name
+  subnet_id                          = module.network.apim_subnet_id
+  enable_diagnostic_settings         = var.apim_enable_diagnostic_settings
+  log_analytics_workspace_id         = module.monitoring.log_analytics_workspace_id
+  enable_application_insights_logger = var.apim_enable_application_insights_logger
+  appinsights_instrumentation_key    = module.monitoring.appinsights_instrumentation_key
+
+  # Backend services configuration - connect to the deployed backend
+  backend_services = {
+    "backend-api" = {
+      protocol    = "http"
+      url         = "https://${module.backend.backend_url}"
+      description = "Backend API service"
+      title       = "Backend API"
+    }
+  }
+
+  depends_on = [module.network, module.monitoring, module.backend]
+}
+
+# Container Apps Module (optional alongside App Service)
+module "container_apps" {
+  count  = var.enable_container_apps ? 1 : 0
+  source = "./modules/container-apps"
+
+  app_name                            = var.app_name
+  app_env                             = var.app_env
+  location                            = var.location
+  resource_group_name                 = azurerm_resource_group.main.name
+  common_tags                         = var.common_tags
+  container_apps_subnet_id            = module.network.container_apps_subnet_id
+  log_analytics_workspace_id          = module.monitoring.log_analytics_workspace_id
+  backend_image                       = var.api_image
+  database_name                       = var.database_name
+  postgres_host                       = module.postgresql.postgres_host
+  postgresql_admin_username           = var.postgresql_admin_username
+  db_master_password                  = module.postgresql.db_master_password
+  appinsights_connection_string       = module.monitoring.appinsights_connection_string
+  appinsights_instrumentation_key     = module.monitoring.appinsights_instrumentation_key
+  app_service_frontend_url            = module.frontend.frontend_url
+  container_cpu                       = var.container_apps_cpu
+  container_memory                    = var.container_apps_memory
+  min_replicas                        = var.container_apps_min_replicas
+  max_replicas                        = var.container_apps_max_replicas
+  migrations_image                    = var.flyway_image
+  private_endpoint_subnet_id          = module.network.private_endpoint_subnet_id
+  enable_system_assigned_identity     = true
+  log_analytics_workspace_customer_id = module.monitoring.log_analytics_workspace_workspaceId
+  log_analytics_workspace_key         = module.monitoring.log_analytics_workspace_key
+
+  depends_on = [module.network, module.monitoring, module.postgresql, module.frontend]
+}
+
+module "aci" {
+  source = "./modules/aci"
+
+  app_name                     = var.app_name
+  location                     = var.location
+  resource_group_name          = azurerm_resource_group.main.name
+  common_tags                  = var.common_tags
+  container_instance_subnet_id = module.network.container_instance_subnet_id
+  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_workspaceId
+  log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
+  dns_servers                  = module.network.dns_servers
+
+  depends_on = [module.network, module.monitoring, module.postgresql]
+
 }

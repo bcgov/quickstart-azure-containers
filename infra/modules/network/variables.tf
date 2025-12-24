@@ -18,6 +18,13 @@ variable "container_instance_subnet_name" {
   nullable    = false
 }
 
+variable "container_apps_subnet_name" {
+  description = "Name of the subnet for Container Apps"
+  type        = string
+  default     = "container-apps-subnet"
+  nullable    = false
+}
+
 variable "location" {
   description = "Azure region for resources"
   type        = string
@@ -56,9 +63,10 @@ variable "vnet_resource_group_name" {
   nullable    = false
 }
 
-variable "web_subnet_name" {
-  description = "Name of the web subnet for APIM deployment"
+
+variable "apim_subnet_name" {
+  description = "Name of the subnet for API Management"
   type        = string
-  default     = "web-subnet"
+  default     = "apim-subnet"
   nullable    = false
 }

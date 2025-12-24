@@ -63,6 +63,37 @@ variable "frontend_image" {
   type        = string
 }
 
+# Container Apps Configuration
+variable "enable_container_apps" {
+  description = "Enable Azure Container Apps alongside App Service"
+  type        = bool
+  default     = true
+}
+
+variable "container_apps_cpu" {
+  description = "CPU allocation for Container Apps (in cores)"
+  type        = number
+  default     = 0.25
+}
+
+variable "container_apps_memory" {
+  description = "Memory allocation for Container Apps"
+  type        = string
+  default     = ".5Gi"
+}
+
+variable "container_apps_min_replicas" {
+  description = "Minimum number of replicas for Container Apps"
+  type        = number
+  default     = 0
+}
+
+variable "container_apps_max_replicas" {
+  description = "Maximum number of replicas for Container Apps"
+  type        = number
+  default     = 3
+}
+
 variable "enable_frontdoor" {
   description = "Enable Azure Front Door (set false to expose App Service directly)"
   type        = bool
@@ -131,16 +162,6 @@ variable "postgres_diagnostic_metric_categories" {
   description = "List of PostgreSQL diagnostic metric categories to enable"
   type        = list(string)
   default     = ["AllMetrics"]
-}
-
-variable "postgres_diagnostic_retention_days" {
-  description = "Retention (days) for diagnostics sent via diagnostic setting (0 disables per-setting retention)"
-  type        = number
-  default     = 7
-  validation {
-    condition     = var.postgres_diagnostic_retention_days >= 0 && var.postgres_diagnostic_retention_days <= 365
-    error_message = "postgres_diagnostic_retention_days must be between 0 and 365."
-  }
 }
 
 variable "postgres_enable_diagnostic_insights" {
@@ -365,4 +386,45 @@ variable "vnet_name" {
 variable "vnet_resource_group_name" {
   description = "Resource group name where the virtual network exists"
   type        = string
+}
+
+# -------------
+# API Management Variables
+# -------------
+
+variable "enable_apim" {
+  description = "Whether to enable API Management service"
+  type        = bool
+  default     = true
+}
+
+variable "apim_publisher_name" {
+  description = "The name of the publisher/company for APIM"
+  type        = string
+  default     = "BC Government"
+}
+
+variable "apim_publisher_email" {
+  description = "The email address of the publisher/company for APIM"
+  type        = string
+  default     = "no-reply@gov.bc.ca"
+}
+
+variable "apim_sku_name" {
+  description = "The SKU of the API Management service"
+  type        = string
+  default     = "StandardV2_1" # this one or "PremiumV2" works in landing zone. `_1 ` is the capacity.
+}
+
+
+variable "apim_enable_diagnostic_settings" {
+  description = "Whether to enable diagnostic settings for the API Management service"
+  type        = bool
+  default     = true
+}
+
+variable "apim_enable_application_insights_logger" {
+  description = "Whether to enable Application Insights logger for the API Management service"
+  type        = bool
+  default     = true
 }

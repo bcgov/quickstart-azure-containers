@@ -379,3 +379,4 @@ pyrightconfig.json
 *.http
 *.tfvars
 *.tfstate*
+**/*instructions.md
