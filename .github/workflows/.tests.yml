@@ -29,13 +29,14 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: bcgov-nr/action-test-and-analyse@v1.3.0
+      - uses: bcgov-nr/action-test-and-analyse@v1.6.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_BACKEND }}
           NODE_ENV: unittest
         with:
           commands: |
             npm ci
+            npm run lint
             npm run test:cov
           dir: backend
           node_version: "22"
@@ -55,12 +56,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: bcgov/action-test-and-analyse@v1.3.0
+      - uses: bcgov/action-test-and-analyse@v1.6.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONTEND }}
         with:
           commands: |
             npm ci
+            npm run lint
             npm run test:cov
           dir: frontend
           node_version: "22"
@@ -82,9 +84,9 @@ jobs:
       security-events: write # This is required to upload SARIF results to the Security tab
     timeout-minutes: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4 # 0.32.0
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
         with:
           format: "sarif"
           output: "trivy-results.sarif"
@@ -94,6 +96,6 @@ jobs:
           severity: "CRITICAL,HIGH"
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-results.sarif"
