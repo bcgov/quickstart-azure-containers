@@ -7,6 +7,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
+import importPlugin from "eslint-plugin-import";
+import promisePlugin from "eslint-plugin-promise";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,15 +21,10 @@ const compat = new FlatCompat({
 export default [
   {
     ignores: [
-      "**/.git/",
-      "**/.github/",
-      "**/migrations/",
       "**/node_modules/",
-      "**/.happo.js",
       "**/dist/",
+      "**/.git/",
       "**/coverage/",
-      "backend/**",
-      "frontend/**",
     ],
   },
   ...compat.extends(
@@ -36,10 +33,12 @@ export default [
     "prettier",
   ),
   {
-    files: ["*.{js,mjs,ts}"],
+    files: ["**/*.ts"],
     plugins: {
       "@typescript-eslint": typescriptEslint,
       prettier,
+      import: importPlugin,
+      promise: promisePlugin,
     },
 
     languageOptions: {
@@ -71,6 +70,7 @@ export default [
       "no-undef": "off",
       "no-use-before-define": "off",
       semi: ["error", "always"],
+      
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -109,7 +109,32 @@ export default [
           prefer: "type-imports",
         },
       ],
+
+      // Import plugin rules
+      "import/order": [
+        "error",
+        {
+          groups: [
+            "builtin",
+            "external",
+            "internal",
+            "parent",
+            "sibling",
+            "index",
+          ],
+          "newlines-between": "always",
+          alphabetize: {
+            order: "asc",
+            caseInsensitive: true,
+          },
+        },
+      ],
+
+      // Promise plugin rules
+      "promise/catch-or-return": "error",
+      "promise/no-nesting": "warn",
     },
   },
   eslintPluginPrettierRecommended,
 ];
+
