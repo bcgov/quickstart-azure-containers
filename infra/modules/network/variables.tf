@@ -63,12 +63,6 @@ variable "vnet_resource_group_name" {
   nullable    = false
 }
 
-variable "web_subnet_name" {
-  description = "Name of the web subnet for APIM deployment"
-  type        = string
-  default     = "web-subnet"
-  nullable    = false
-}
 
 variable "apim_subnet_name" {
   description = "Name of the subnet for API Management"
