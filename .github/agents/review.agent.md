@@ -56,7 +56,7 @@ From `backend/` directory (as applicable):
 
 ## Frontend Review (React + Vite)
 
-Reference: [.github/agents/coding.agent.md](.github/agents/coding.agent.md)
+Reference: [.github/agents/coding.agent.md](./coding.agent.md)
 
 ### Environment variables (common pitfall)
 - **Development**: `VITE_API_BASE_URL` (Vite proxy + Axios client usage)
@@ -76,7 +76,7 @@ From `frontend/` directory (as applicable):
 
 ## Database & Migrations Review (Flyway)
 
-Reference: [.github/agents/coding.agent.md](.github/agents/coding.agent.md)
+Reference: [.github/agents/coding.agent.md](./coding.agent.md)
 
 - All schema changes must be Flyway SQL migrations under `migrations/sql/`.
 - Migration filenames must follow Flyway conventions (e.g., `V1.0.0__description.sql`).
