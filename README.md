@@ -40,11 +40,11 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 ```
 /quickstart-azure-containers
 ├── .github/                   # GitHub Actions CI/CD workflows & agents
+│   ├── codeowners             # Code ownership assignments
 │   ├── agents/                # GitHub Copilot custom agents
 │   │   ├── coding.agent.md    # Coding standards and best practices
 │   │   ├── review.agent.md    # Code review guidelines
 │   │   ├── instructions/      # Additional guidance (if applicable)
-│   │   └── codeowners         # Code ownership assignments
 │   ├── ISSUE_TEMPLATE/        # GitHub issue templates
 │   ├── graphics/              # Images for workflows/docs
 │   ├── pull_request_template.md # PR template
