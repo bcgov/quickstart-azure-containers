@@ -131,6 +131,11 @@ Treat the Azure Landing Zone docs in the bcgov/public-cloud-techdocs repo as aut
 - [Next Steps](https://raw.githubusercontent.com/bcgov/public-cloud-techdocs/refs/heads/main/docs/azure/design-build-deploy/next-steps.md)
 - [User Management](https://github.com/bcgov/public-cloud-techdocs/blob/main/docs/azure/design-build-deploy/user-management.md)
 
+### AVM Modules
+- Prefer Azure Verified Modules over raw resources **ONLY WHEN version is above 1.0.0**
+- Always pin to a specific version in module source
+- Include registry URL in comments for reference
+
 ## Local Development with Docker Compose
 
 ### Stack Overview
