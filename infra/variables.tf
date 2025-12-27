@@ -54,7 +54,7 @@ variable "enable_cloudbeaver" {
 }
 
 variable "enable_aci" {
-  description = "Whether to enable the ACI which is toolbox"
+  description = "Whether to enable the ACI toolbox"
   type        = bool
   default     = false
 }
