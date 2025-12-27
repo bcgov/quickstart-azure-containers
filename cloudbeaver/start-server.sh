@@ -3,17 +3,25 @@ set -e
 
 echo "Starting CloudBeaver configuration..."
 
+# The CloudBeaver server log shows the workspace is initialized at:
+#   /opt/cloudbeaver/workspace
+# In this repo/App Service config, WORKSPACE_PATH is set to that same path.
+: "${WORKSPACE_PATH:=/opt/cloudbeaver/workspace}"
+
+CONFIG_DIR="${WORKSPACE_PATH}/GlobalConfiguration/.dbeaver"
+CONFIG_FILE="${CONFIG_DIR}/data-sources.json"
+
 # Create the workspace directory structure
-mkdir -p "${WORKSPACE_PATH}/workspace/GlobalConfiguration/.dbeaver"
+mkdir -p "${CONFIG_DIR}"
 
 # Create the data sources configuration
-cat > "${WORKSPACE_PATH}/workspace/GlobalConfiguration/.dbeaver/data-sources.json" <<EOF
+cat > "${CONFIG_FILE}" <<EOF
 {
   "folders": {},
   "connections": {
     "postgres-main": {
       "provider": "postgresql",
-      "driver": "postgres-jdbc",
+      "driver": "postgresql_jdbc",
       "name": "PostgreSQL - ${POSTGRES_DATABASE}",
       "save-password": true,
       "show-system-objects": false,
@@ -50,7 +58,8 @@ cat > "${WORKSPACE_PATH}/workspace/GlobalConfiguration/.dbeaver/data-sources.jso
 }
 EOF
 
-echo "CloudBeaver configuration created. Starting server..."
+echo "CloudBeaver configuration created at ${CONFIG_FILE}. Starting server..."
 
 # Start the CloudBeaver server using the official launch script
+cd /opt/cloudbeaver
 exec ./launch-product.sh
