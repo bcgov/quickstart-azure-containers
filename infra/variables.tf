@@ -78,6 +78,11 @@ variable "enable_app_service_backend" {
     error_message = "Both App Service Backend and Container Apps cannot be disabled."
   }
 }
+variable "enable_database_migrations_aci" {
+  description = "Whether to enable the ACI for database migrations using Flyway"
+  type        = bool
+  default     = true
+}
 
 variable "flyway_image" {
   description = "The image for the Flyway container"

@@ -117,6 +117,26 @@ module "frontend" {
   depends_on = [module.monitoring, module.network]
 }
 
+module "flyway" {
+  count  = var.enable_database_migrations_aci ? 1 : 0
+  source = "./modules/flyway"
+
+  app_name                     = var.app_name
+  common_tags                  = var.common_tags
+  database_name                = var.database_name
+  flyway_image                 = var.flyway_image
+  location                     = var.location
+  container_instance_subnet_id = module.network.container_instance_subnet_id
+  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_workspaceId
+  log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
+  postgres_host                = module.postgresql.postgres_host
+  postgresql_admin_username    = var.postgresql_admin_username
+  db_master_password           = module.postgresql.db_master_password
+  resource_group_name          = azurerm_resource_group.main.name
+  dns_servers                  = module.network.dns_servers
+
+  depends_on = [module.network, module.postgresql]
+}
 module "backend" {
   count  = var.enable_app_service_backend ? 1 : 0
   source = "./modules/backend"
