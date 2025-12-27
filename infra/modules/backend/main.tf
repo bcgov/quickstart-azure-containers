@@ -233,8 +233,8 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
     health_check_path                       = "/"
     health_check_eviction_time_in_min       = 10
     application_stack {
-      docker_image_name   = "dbeaver/cloudbeaver:latest"
-      docker_registry_url = "https://index.docker.io"
+      docker_image_name   = var.cloudbeaver_image
+      docker_registry_url = var.container_registry_url
     }
     ftps_state       = "Disabled"
     app_command_line = "/opt/cloudbeaver/run-server.sh"

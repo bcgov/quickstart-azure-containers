@@ -163,8 +163,9 @@ module "backend" {
   private_endpoint_subnet_id              = module.network.private_endpoint_subnet_id
   repo_name                               = var.repo_name
   resource_group_name                     = azurerm_resource_group.main.name
-
-  depends_on = [module.frontend]
+  cloudbeaver_image                       = var.cloudbeaver_image
+  
+  depends_on                              = [module.frontend]
 }
 
 # API Management Module (optional)
