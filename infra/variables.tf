@@ -75,7 +75,7 @@ variable "enable_app_service_backend" {
   validation {
     # Valid when at least one backend hosting option is enabled.
     condition     = var.enable_container_apps || var.enable_app_service_backend
-    error_message = "Both App Service Backend and Container Apps cannot be disabled."
+    error_message = "At least one of App Service Backend or Container Apps must be enabled."
   }
 }
 variable "enable_database_migrations_aci" {
