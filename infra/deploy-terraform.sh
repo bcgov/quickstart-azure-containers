@@ -4,6 +4,22 @@
 # =============================================================================
 # Reusable script for Terraform operations (init, plan, apply, destroy, etc.)
 #
+# SECURITY NOTE: Sensitive Output Handling
+# ========================================
+# This script does NOT automatically output Terraform values after apply.
+# Sensitive credentials (connection strings, keys, tokens) must NEVER be
+# logged to CI/CD logs or terminal output where they could be exposed.
+#
+# Best practices for handling Terraform outputs:
+# 1. Mark all sensitive outputs as sensitive in Terraform (sensitive = true)
+# 2. Retrieve outputs only when needed through restricted channels
+# 3. Use managed identities instead of credentials when possible
+# 4. Store secrets in Azure Key Vault, not in logs
+# 5. Audit access to logs containing credential exposure
+#
+# To retrieve a specific output safely:
+#   ./infra/deploy-terraform.sh output <output_name>
+#
 # Usage (from repo root):
 #   ./infra/deploy-terraform.sh <command> [options]
 #
@@ -65,8 +81,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Script is now inside infra/, so INFRA_DIR is the same as SCRIPT_DIR
 INFRA_DIR="${SCRIPT_DIR}"
 TFVARS_FILE="${INFRA_DIR}/terraform.tfvars"
-
-FRONTEND_DIR="${SCRIPT_DIR}/../frontend"
 
 # Backend configuration
 BACKEND_RESOURCE_GROUP="${BACKEND_RESOURCE_GROUP}"
@@ -180,7 +194,8 @@ setup_azure_auth() {
     if [[ -n "${TF_VAR_subscription_id:-}" ]]; then
         SUBSCRIPTION_ID="${TF_VAR_subscription_id}"
     elif [[ -f "$TFVARS_FILE" ]]; then
-        SUBSCRIPTION_ID=$(grep -E "^subscription_id\s*=" "$TFVARS_FILE" | sed 's/.*=\s*"\(.*\)".*/\1/' | tr -d ' ')
+        # Handle both quoted and unquoted values: subscription_id = "value" or subscription_id = value
+        SUBSCRIPTION_ID=$(grep -E "^subscription_id\s*=" "$TFVARS_FILE" | sed 's/.*=\s*["'\'']*\([^"'\'']*\)["'\'']*\s*$/\1/' | tr -d ' ')
     fi
     
     if [[ -n "${SUBSCRIPTION_ID:-}" ]]; then
@@ -258,7 +273,18 @@ setup_variables_source() {
 # =============================================================================
 tf_init() {
     log_info "Initializing Terraform..."
-    log_info "Backend: ${BACKEND_STORAGE_ACCOUNT}/${BACKEND_CONTAINER_NAME}/${BACKEND_STATE_KEY}"
+    
+    # Set defaults for backend configuration if not provided
+    : ${BACKEND_RESOURCE_GROUP:="${TF_VAR_vnet_resource_group_name:-}"}
+    : ${BACKEND_CONTAINER_NAME:="tfstate"}
+    : ${BACKEND_STATE_KEY:="terraform.tfstate"}
+    
+    # Validate backend configuration
+    if [[ -z "${BACKEND_STORAGE_ACCOUNT}" ]]; then
+        log_error "BACKEND_STORAGE_ACCOUNT not set, exiting"
+        exit 1
+    fi
+    
     cd "$INFRA_DIR"
 
     local init_args=()
@@ -267,13 +293,18 @@ tf_init() {
         init_args+=("-input=false")
     fi
 
-    terraform init -upgrade "${init_args[@]}" \
-        -backend-config="resource_group_name=${BACKEND_RESOURCE_GROUP}" \
-        -backend-config="storage_account_name=${BACKEND_STORAGE_ACCOUNT}" \
-        -backend-config="container_name=${BACKEND_CONTAINER_NAME}" \
-        -backend-config="key=${BACKEND_STATE_KEY}" \
-        -backend-config="use_oidc=${ARM_USE_OIDC:-false}" \
-        "$@"
+    # Only pass backend config if all required variables are set
+    if [[ -n "${BACKEND_RESOURCE_GROUP}" && -n "${BACKEND_STORAGE_ACCOUNT}" ]]; then
+        terraform init -upgrade "${init_args[@]}" \
+            -backend-config="resource_group_name=${BACKEND_RESOURCE_GROUP}" \
+            -backend-config="storage_account_name=${BACKEND_STORAGE_ACCOUNT}" \
+            -backend-config="container_name=${BACKEND_CONTAINER_NAME}" \
+            -backend-config="key=${BACKEND_STATE_KEY}" \
+            -backend-config="use_oidc=${ARM_USE_OIDC:-false}" \
+            "$@"
+    else
+        terraform init -upgrade "${init_args[@]}" "$@"
+    fi
     
     log_success "Terraform initialized"
 }
@@ -289,9 +320,9 @@ ensure_initialized() {
         return
     fi
 
-    # Modules are installed under .terraform/modules; config changes can add new modules
-    if [[ ! -d ".terraform/modules" ]] || [[ -z "$(ls -A .terraform/modules 2>/dev/null)" ]]; then
-        log_warning "Terraform modules not installed. Running init..."
+    # Modules are installed under .terraform/modules; check for manifest.json (created by terraform init)
+    if [[ ! -f ".terraform/modules/manifest.json" ]]; then
+        log_warning "Terraform modules not properly installed. Running init..."
         tf_init
         return
     fi
@@ -362,10 +393,24 @@ tf_apply() {
     
     log_success "Apply complete"
     
-    # Automatically show outputs after successful apply
-    log_info ""
-    log_info "=== Deployment Outputs ==="
-    tf_output
+    # SECURITY: Do NOT automatically output all Terraform outputs after apply.
+    # Sensitive outputs (connection strings, keys, credentials) must NOT be logged
+    # or printed to CI logs where they could be exposed to unauthorized users.
+    # 
+    # To safely retrieve outputs:
+    # 1. Mark all sensitive outputs as sensitive in Terraform (sensitive = true)
+    # 2. Retrieve outputs only through restricted, purpose-specific mechanisms:
+    #    - Deploy to managed identities (no credentials needed)
+    #    - Use Azure Key Vault integration (outputs stored as secrets)
+    #    - Run: terraform output <output_name> (retrieve one at a time as needed)
+    # 
+    # Examples of sensitive outputs to protect:
+    # - appinsights_connection_string
+    # - appinsights_instrumentation_key
+    # - log_analytics_workspace_key
+    # - database_password
+    # - api_keys
+    # - access_tokens
 
 }
 

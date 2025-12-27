@@ -320,8 +320,8 @@ fi
 
 # If subscription ID is provided, validate its format
 if [[ -n "${SUBSCRIPTION_ID:-}" ]]; then
-    # Basic UUID format validation (8-4-4-4-12 hex characters)
-    if [[ ! "$SUBSCRIPTION_ID" =~ ^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$ ]]; then
+    # Basic UUID format validation (8-4-4-4-12 hex characters, case-insensitive)
+    if [[ ! "$SUBSCRIPTION_ID" =~ ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$ ]]; then
         log_error "Invalid subscription ID format!"
         log_error "Expected UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
         log_error "Received: '$SUBSCRIPTION_ID'"
@@ -526,14 +526,18 @@ install_github_cli() {
         linux)
             if command_exists apt-get; then
                 log_info "Using apt package manager"
-                sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-                sudo apt-add-repository https://cli.github.com/packages
+                curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+                echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
                 sudo apt update
                 sudo apt install -y gh
-            elif command_exists yum; then
-                log_info "Using yum package manager"
+            elif command_exists dnf; then
+                log_info "Using dnf package manager"
                 sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
                 sudo dnf install -y gh
+            elif command_exists yum; then
+                log_info "Using yum package manager"
+                sudo yum-config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+                sudo yum install -y gh
             else
                 log_error "No supported package manager found. Please install GitHub CLI manually."
                 log_error "Visit: https://cli.github.com/"
@@ -1361,23 +1365,23 @@ main() {
     # Step 5: Add managed identity to the security group for deployment permissions
     add_to_security_group
 
-    # Step 5b: Grant Key Vault data-plane permissions via RBAC (Landing Zone policy compliant)
+    # Step 6: Grant Key Vault data-plane permissions via RBAC (Landing Zone policy compliant)
     assign_key_vault_secrets_officer_role
     
-    # Step 6: Create Terraform state storage if requested
+    # Step 7: Create Terraform state storage if requested
     create_terraform_storage
     assign_storage_roles
     
-    # Step 7: Configure OIDC federated identity credentials for GitHub Actions
+    # Step 8: Configure OIDC federated identity credentials for GitHub Actions
     create_federated_credentials
     
-    # Step 8: Automatically create GitHub environment and secrets if requested
+    # Step 9: Automatically create GitHub environment and secrets if requested
     create_github_secrets
     
-    # Step 9: Verify the complete setup
+    # Step 10: Verify the complete setup
     verify_setup
 
-    # Step 10: Display configuration information (only if not auto-creating secrets)
+    # Step 11: Display configuration information (only if not auto-creating secrets)
     if [[ "$DRY_RUN" == "false" ]]; then
         if [[ "$CREATE_GITHUB_SECRETS" == "false" ]]; then
             display_github_actions_config

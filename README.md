@@ -39,50 +39,129 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 
 ```
 /quickstart-azure-containers
-├── .github/                   # GitHub Actions CI/CD workflows
-│   └── workflows/
-│       ├── pr-open.yml        # PR validation and deployment
-│       ├── pr-close.yml       # PR cleanup
-│       ├── pr-validate.yml    # Code quality checks
-│       └── prune-env.yml      # Environment cleanup
+├── .github/                   # GitHub Actions CI/CD workflows & agents
+│   ├── codeowners             # Code ownership assignments
+│   ├── agents/                # GitHub Copilot custom agents
+│   │   ├── coding.agent.md    # Coding standards and best practices
+│   │   ├── review.agent.md    # Code review guidelines
+│   │   ├── instructions/      # Additional guidance (if applicable)
+│   ├── ISSUE_TEMPLATE/        # GitHub issue templates
+│   ├── graphics/              # Images for workflows/docs
+│   ├── pull_request_template.md # PR template
+│   └── workflows/             # GitHub Actions workflows
+│       ├── .builds.yml        # Container image builds
+│       ├── .deployer.yml      # Infrastructure deployment
+│       ├── .deploy_stack.yml  # Stack deployment automation
+│       ├── .destroy_stack.yml # Stack teardown automation
+│       ├── .stack-prefix.yml  # Stack prefix generation
+│       ├── .tests.yml         # Test suite execution
+│       ├── pr-open.yml        # PR create/update workflow
+│       ├── pr-close.yml       # PR close & cleanup workflow
+│       ├── pr-validate.yml    # Code quality & validation
+│       └── prune-env.yml      # Stale environment cleanup
 ├── infra/                     # Terraform infrastructure code
-│   ├── main.tf                # Root configuration
+│   ├── main.tf                # Root module configuration
 │   ├── providers.tf           # Azure provider configuration
 │   ├── variables.tf           # Global variables
 │   ├── outputs.tf             # Infrastructure outputs
+│   ├── backend.tf             # Remote state configuration (optional)
+│   ├── .tflint.hcl            # Terraform linter config
+│   ├── deploy-terraform.sh    # Deployment helper script
 │   └── modules/               # Reusable infrastructure modules
+│       ├── aci/               # Azure Container Instances (optional)
+│       ├── apim/              # API Management (optional)
 │       ├── backend/           # App Service for NestJS API
-│       ├── frontend/          # App Service for React SPA
-│       ├── postgresql/        # PostgreSQL Flexible Server
-│       ├── flyway/            # Database migration service
+│       ├── container-apps/    # Container Apps
+│       ├── flyway/            # Flyway database migrations
+│       ├── frontend/          # App Service for React SPA (with Caddy proxy)
+│       ├── frontdoor/         # Azure Front Door
+│       ├── monitoring/        # Log Analytics & Application Insights
 │       ├── network/           # VNet, subnets, NSGs
-│       ├── monitoring/        # Log Analytics, App Insights
-│       └── frontdoor/         # Azure Front Door CDN
+│       └── postgresql/        # PostgreSQL Flexible Server
 ├── backend/                   # NestJS TypeScript API
 │   ├── src/                   # API source code
-│   │   ├── users/             # User management module
-│   │   ├── common/            # Shared utilities
-│   │   └── middleware/        # Request/response middleware
-│   ├── prisma/                # Database ORM configuration
-│   │   └── schema.prisma      # Database schema definition
-│   ├── test/                  # E2E API tests
+│   │   ├── main.ts            # Entry point (initializes telemetry before bootstrap)
+│   │   ├── app.module.ts      # Root NestJS module
+│   │   ├── app.controller.ts  # Default app controller
+│   │   ├── app.service.ts     # Default app service
+│   │   ├── health.controller.ts       # Health check endpoint (/api/health)
+│   │   ├── metrics.controller.ts      # Prometheus metrics (/api/metrics)
+│   │   ├── common/            # Shared utilities & logger config
+│   │   ├── middleware/        # Request/response logging middleware
+│   │   ├── users/             # User management module (example)
+│   │   ├── prisma.module.ts   # Prisma ORM module
+│   │   ├── prisma.service.ts  # Prisma service
+│   │   ├── telemetry.ts       # Azure Monitor telemetry setup
+│   │   └── prom.ts            # Prometheus metrics setup
+│   ├── prisma/                # Prisma ORM configuration
+│   │   └── schema.prisma      # Database schema (ORM only; migrations via Flyway)
+│   ├── test/                  # E2E tests
+│   │   └── app.e2e-spec.ts    # E2E test suite
+│   ├── eslint.config.mjs      # ESLint configuration
+│   ├── nest-cli.json          # NestJS CLI configuration
+│   ├── package.json           # Dependencies & scripts
+│   ├── tsconfig.json          # TypeScript configuration
+│   ├── tsconfig.build.json    # Build-specific TypeScript config
+│   ├── vitest.config.mts      # Vitest unit test configuration
 │   └── Dockerfile             # Container build configuration
 ├── frontend/                  # React + Vite SPA
 │   ├── src/                   # Frontend source code
-│   │   ├── components/        # React components
-│   │   ├── routes/            # Application routes
-│   │   ├── services/          # API integration
-│   │   └── interfaces/        # TypeScript interfaces
+│   │   ├── main.tsx           # React entry point
+│   │   ├── index.css          # Global styles
+│   │   ├── components/        # React components (BC Gov Design System)
+│   │   ├── routes/            # File-based routing (TanStack Router)
+│   │   ├── routeTree.gen.ts   # Auto-generated route tree (do not edit)
+│   │   ├── service/           # API integration (Axios client)
+│   │   ├── interfaces/        # TypeScript interfaces
+│   │   ├── scss/              # Sass stylesheets
+│   │   ├── assets/            # Static assets
+│   │   ├── __tests__/         # Component tests
+│   │   ├── test-setup.ts      # Test setup & utilities
+│   │   └── test-utils.tsx     # Test helper components
 │   ├── e2e/                   # Playwright end-to-end tests
-│   ├── public/                # Static assets
+│   │   ├── qsos.spec.ts       # Example E2E tests
+│   │   ├── pages/             # Playwright page objects
+│   │   └── utils/             # Test utilities
+│   ├── public/                # Static assets served as-is
+│   ├── eslint.config.mjs      # ESLint configuration
+│   ├── package.json           # Dependencies & scripts
+│   ├── tsconfig.json          # TypeScript configuration
+│   ├── tsconfig.node.json     # Build tool TypeScript config
+│   ├── vite.config.ts         # Vite configuration (with /api proxy for dev)
+│   ├── vitest.config.ts       # Vitest unit test configuration
+│   ├── playwright.config.ts   # Playwright E2E configuration
+│   ├── Caddyfile              # Caddy reverse proxy config (production)
+│   ├── index.html             # HTML entry point
 │   └── Dockerfile             # Container build configuration
 ├── migrations/                # Flyway database migrations
-│   ├── sql/                   # SQL migration scripts
+│   ├── sql/                   # SQL migration scripts (V*.sql format)
 │   ├── Dockerfile             # Migration runner container
 │   └── entrypoint.sh          # Migration execution script
-├── docker-compose.yml         # Local development stack
-├── initial-azure-setup.sh     # Azure setup automation script
-└── package.json               # Monorepo configuration
+├── .diagrams/                 # Architecture diagrams (if applicable)
+├── docs/                      # Additional documentation (currently empty)
+├── logs/                      # Log output directory
+├── .github/                   # (Covered above)
+├── .vscode/                   # VS Code workspace settings
+├── CODE_OF_CONDUCT.md         # Code of conduct
+├── COMPLIANCE.yaml            # Compliance configuration
+├── CONTRIBUTING.md            # Contribution guidelines
+├── SECURITY.md                # Security guidelines
+├── GHA.md                     # GitHub Actions documentation
+├── docker-compose.yml         # Local development stack (PostgreSQL 17 + services)
+├── initial-azure-setup.sh     # Azure setup automation (OIDC, service principal)
+├── package.json               # Monorepo root (ESLint, Prettier)
+├── package-lock.json          # Dependency lock file
+├── eslint.config.mjs          # Root ESLint configuration
+├── .prettierrc.yml            # Prettier formatting config
+├── .prettierignore            # Prettier ignore patterns
+├── tsconfig.json              # Root TypeScript configuration
+├── renovate.json              # Dependency update automation
+├── test.http                  # REST client test file (VSCode REST Client)
+├── LICENSE                    # Apache 2.0 license
+├── README.md                  # This file
+├── .gitignore                 # Git ignore patterns
+├── .gitattributes             # Git attributes
+└── .git/                      # Git repository (local)
 ```
 
 ## Target Architecture
@@ -507,53 +586,8 @@ The GitHub Actions workflows include:
 
 ### Multi-Environment Setup
 
-The template supports multiple environments with Terragrunt:
+The template supports multiple environments with GitHub Action Environments:
 
-```
-terragrunt/
-├── terragrunt.hcl          # Root configuration
-├── dev/
-│   └── terragrunt.hcl      # Development overrides
-├── test/
-│   └── terragrunt.hcl      # Testing overrides
-├── prod/
-│   └── terragrunt.hcl      # Production overrides
-└── tools/
-    └── terragrunt.hcl      # Tools/utilities environment
-```
-
-#### Environment-Specific Configuration
-
-##### Development (`terragrunt/dev/terragrunt.hcl`)
-```hcl
-include "root" {
-  path = find_in_parent_folders()
-}
-
-inputs = {
-  app_service_sku_name_backend  = "B1"
-  app_service_sku_name_frontend = "B1"
-  postgres_sku_name            = "B_Standard_B1ms"
-  backend_autoscale_enabled    = false
-  enable_cloudbeaver         = true
-}
-```
-
-##### Production (`terragrunt/prod/terragrunt.hcl`)
-```hcl
-include "root" {
-  path = find_in_parent_folders()
-}
-
-inputs = {
-  app_service_sku_name_backend  = "P1V3"
-  app_service_sku_name_frontend = "P1V3"
-  postgres_sku_name            = "GP_Standard_D2s_v3"
-  backend_autoscale_enabled    = true
-  enable_cloudbeaver         = false
-  postgres_ha_enabled         = true
-}
-```
 
 
 ## 🚨 Troubleshooting
