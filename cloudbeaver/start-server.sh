@@ -52,5 +52,5 @@ EOF
 
 echo "CloudBeaver configuration created. Starting server..."
 
-# Start the CloudBeaver server
-exec /opt/cloudbeaver/run-server.sh
+# Start the CloudBeaver server using the official launch script
+exec ./launch-product.sh
