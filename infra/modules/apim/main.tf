@@ -27,16 +27,22 @@ resource "azurerm_api_management" "main" {
   }
 
   # Developer portal configuration
-  sign_in {
-    enabled = var.enable_sign_in
+  dynamic "sign_in" {
+    for_each = local.apim_supports_portal_auth ? [1] : []
+    content {
+      enabled = var.enable_sign_in
+    }
   }
 
-  sign_up {
-    enabled = var.enable_sign_up
-    terms_of_service {
-      consent_required = var.terms_of_service.consent_required
-      enabled          = var.terms_of_service.enabled
-      text             = var.terms_of_service.text
+  dynamic "sign_up" {
+    for_each = local.apim_supports_portal_auth ? [1] : []
+    content {
+      enabled = var.enable_sign_up
+      terms_of_service {
+        consent_required = var.terms_of_service.consent_required
+        enabled          = var.terms_of_service.enabled
+        text             = var.terms_of_service.text
+      }
     }
   }
 
