@@ -65,7 +65,7 @@ variable "enable_app_service_frontend" {
   validation {
     # Valid when at least one ingress option is enabled.
     condition     = var.enable_frontdoor || var.enable_app_service_frontend
-    error_message = "Both Frontdoor and App Service Frontend cannot be disabled."
+    error_message = "At least one of Frontdoor or App Service Frontend must be enabled."
   }
 }
 variable "enable_app_service_backend" {
