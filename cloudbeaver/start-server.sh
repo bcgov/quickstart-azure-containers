@@ -4,10 +4,10 @@ set -e
 echo "Starting CloudBeaver configuration..."
 
 # Create the workspace directory structure
-mkdir -p "${WORKSPACE_PATH}/GlobalConfiguration/.dbeaver"
+mkdir -p "${WORKSPACE_PATH}/workspace/GlobalConfiguration/.dbeaver"
 
 # Create the data sources configuration
-cat > "${WORKSPACE_PATH}/GlobalConfiguration/.dbeaver/data-sources.json" <<EOF
+cat > "${WORKSPACE_PATH}/workspace/GlobalConfiguration/.dbeaver/data-sources.json" <<EOF
 {
   "folders": {},
   "connections": {

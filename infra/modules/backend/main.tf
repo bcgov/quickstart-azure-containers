@@ -260,6 +260,14 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
     AZURE_STORAGE_CONNECTION_STRING       = azurerm_storage_account.cloudbeaver[0].primary_connection_string
     WORKSPACE_PATH                        = "/opt/cloudbeaver/workspace"
   }
+  storage_account {
+    name         = "cloudbeaver-workspace"
+    type         = "AzureFiles"
+    account_name = azurerm_storage_account.cloudbeaver[0].name
+    share_name   = azurerm_storage_share.cloudbeaver_workspace[0].name
+    access_key   = azurerm_storage_account.cloudbeaver[0].primary_access_key
+    mount_path   = "/opt/cloudbeaver/workspace"
+  }
   logs {
     detailed_error_messages = true
     failed_request_tracing  = true
