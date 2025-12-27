@@ -73,7 +73,7 @@ jobs:
 
       - name: Deploy
         shell: bash
-        working-directory: .
+        working-directory: infra
         env:
           CI: true
           ARM_USE_OIDC: true
@@ -106,4 +106,4 @@ jobs:
           TF_VAR_common_tags: >-
             {"environment":"${{ inputs.environment_name }}","stack_prefix":"${{ inputs.stack_prefix }}","app_env":"${{ inputs.app_env }}","repo_name":"${{ github.event.repository.name }}"}
         run: |
-          ./infra/deploy-terraform.sh ${{ inputs.command }} -input=false -var-file=./infra/${{ inputs.environment_name }}.tfvars
+          ./deploy-terraform.sh ${{ inputs.command }} -var-file=${{ inputs.environment_name }}.tfvars
