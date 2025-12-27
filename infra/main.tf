@@ -190,7 +190,7 @@ module "apim" {
   backend_services = {
     "backend-api" = {
       protocol    = "http"
-      url         = var.enable_app_service_backend ? "https://${module.backend[0].backend_url}" : "http://${module.container_apps[0].backend_container_app_url}"
+      url         = var.enable_app_service_backend ? "https://${module.backend[0].backend_url}" : var.enable_container_apps ? "http://${module.container_apps[0].backend_container_app_url}" : ""
       description = "Backend API service"
       title       = "Backend API"
     }
