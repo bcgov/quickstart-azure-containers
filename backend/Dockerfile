@@ -1,6 +1,11 @@
 # Build
 FROM node:24.11.1-slim AS build
 
+# Prisma requires OpenSSL/libssl detection during generate/build.
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends openssl libssl3 ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
+
 # Copy, build static files; see .dockerignore for exclusions
 WORKDIR /app
 COPY . ./
@@ -9,6 +14,11 @@ RUN npm run deploy
 
 # Dependencies
 FROM node:24.11.1-slim AS dependencies
+
+# Prisma (and some native deps) expect OpenSSL/libssl present.
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends openssl libssl3 ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Copy, build static files; see .dockerignore for exclusions
 WORKDIR /app
