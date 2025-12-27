@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+echo "Starting CloudBeaver configuration..."
+
 # Create the workspace directory structure
 mkdir -p "${WORKSPACE_PATH}/GlobalConfiguration/.dbeaver"
 
