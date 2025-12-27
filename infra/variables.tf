@@ -360,7 +360,7 @@ variable "postgres_track_io_timing" {
 variable "postgres_version" {
   description = "Version of PostgreSQL Flexible Server"
   type        = string
-  default     = "16"
+  default     = "18"
 }
 
 variable "postgres_zone" {

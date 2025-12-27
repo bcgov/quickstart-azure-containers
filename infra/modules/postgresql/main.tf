@@ -110,7 +110,7 @@ resource "time_sleep" "wait_for_postgresql" {
 resource "azurerm_postgresql_flexible_server_configuration" "shared_preload_libraries" {
   name      = "shared_preload_libraries"
   server_id = azurerm_postgresql_flexible_server.postgresql.id
-  value     = "pg_stat_statements"
+  value     = "pg_stat_statements,pg_cron"
 
   depends_on = [time_sleep.wait_for_postgresql]
 }
