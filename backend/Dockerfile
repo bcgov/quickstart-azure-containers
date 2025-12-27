@@ -1,6 +1,11 @@
 # Build
 FROM node:24.11.1-slim AS build
 
+# Prisma requires OpenSSL/libssl detection during generate/build.
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends openssl libssl3 ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
+
 # Copy, build static files; see .dockerignore for exclusions
 WORKDIR /app
 COPY . ./
@@ -9,6 +14,11 @@ RUN npm run deploy
 
 # Dependencies
 FROM node:24.11.1-slim AS dependencies
+
+# Prisma (and some native deps) expect OpenSSL/libssl present.
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends openssl libssl3 ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Copy, build static files; see .dockerignore for exclusions
 WORKDIR /app
@@ -28,9 +38,8 @@ COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/prisma ./node_modules/prisma
 COPY --from=build /app/dist ./dist
 
-# Boilerplate, not used in OpenShift/Kubernetes
 EXPOSE 3001
-HEALTHCHECK --start-period=2s --start-interval=5s --interval=30s --timeout=3s CMD curl -f http://localhost:30001/api
+HEALTHCHECK --start-period=2s --start-interval=5s --interval=30s --timeout=3s CMD curl -f http://localhost:3001/api
 
 
-CMD ["--max-old-space-size=50", "/app/dist/main"]
+CMD ["--require", "/app/dist/instrumentation.js", "--max-old-space-size=150", "/app/dist/main"]

@@ -1,14 +1,3 @@
-
-terraform {
-  required_version = ">= 1.12.0"
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "4.53.0"
-    }
-  }
-}
-
 # App Service Plan for frontend application
 resource "azurerm_service_plan" "frontend" {
   name                = "${var.app_name}-frontend-asp"

@@ -9,7 +9,30 @@ const DB_PWD = encodeURIComponent(process.env.POSTGRES_PASSWORD || "default"); /
 const DB_PORT = process.env.POSTGRES_PORT || 5432;
 const DB_NAME = process.env.POSTGRES_DATABASE || "postgres";
 const DB_SCHEMA = process.env.POSTGRES_SCHEMA || "app";
-const dataSourceURL = `postgresql://${DB_USER}:${DB_PWD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=${DB_SCHEMA}&connection_limit=20`;
+
+const isLocalHost = (host: string) =>
+  host === "localhost" ||
+  host === "127.0.0.1" ||
+  host === "::1" ||
+  process.env.NODE_ENV === "local";
+
+// Azure Database for PostgreSQL typically requires TLS. If sslmode isn't specified,
+// Prisma may attempt a non-encrypted connection which Azure rejects.
+//
+// Override behaviour by setting POSTGRES_SSLMODE (e.g. "require", "disable").
+const getSslMode = () => {
+  const configured = (process.env.POSTGRES_SSLMODE || "").trim();
+  if (configured) {
+    return configured;
+  }
+
+  return isLocalHost(DB_HOST) ? "" : "require";
+};
+
+const sslMode = getSslMode();
+const sslModeParam = sslMode ? `&sslmode=${encodeURIComponent(sslMode)}` : "";
+
+const dataSourceURL = `postgresql://${DB_USER}:${DB_PWD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=${DB_SCHEMA}&connection_limit=20${sslModeParam}`;
 @Injectable()
 class PrismaService
   extends PrismaClient<Prisma.PrismaClientOptions, "query">

@@ -53,6 +53,37 @@ variable "enable_cloudbeaver" {
   default     = true
 }
 
+variable "enable_aci" {
+  description = "Whether to enable the ACI toolbox"
+  type        = bool
+  default     = false
+}
+variable "enable_app_service_frontend" {
+  description = "Whether to enable the App Service frontend"
+  type        = bool
+  default     = true
+  validation {
+    # Valid when at least one ingress option is enabled.
+    condition     = var.enable_frontdoor || var.enable_app_service_frontend
+    error_message = "At least one of Frontdoor or App Service Frontend must be enabled."
+  }
+}
+variable "enable_app_service_backend" {
+  description = "Whether to enable the App Service backend"
+  type        = bool
+  default     = true
+  validation {
+    # Valid when at least one backend hosting option is enabled.
+    condition     = var.enable_container_apps || var.enable_app_service_backend
+    error_message = "At least one of App Service Backend or Container Apps must be enabled."
+  }
+}
+variable "enable_database_migrations_aci" {
+  description = "Whether to enable the ACI for database migrations using Flyway"
+  type        = bool
+  default     = true
+}
+
 variable "flyway_image" {
   description = "The image for the Flyway container"
   type        = string
@@ -329,7 +360,7 @@ variable "postgres_track_io_timing" {
 variable "postgres_version" {
   description = "Version of PostgreSQL Flexible Server"
   type        = string
-  default     = "16"
+  default     = "18"
 }
 
 variable "postgres_zone" {

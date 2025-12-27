@@ -1,17 +1,3 @@
-terraform {
-  required_version = ">= 1.12.0"
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "4.53.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "3.7.2"
-    }
-  }
-}
-
 # Backend App Service Plan
 resource "azurerm_service_plan" "backend" {
   name                = "${var.app_name}-backend-asp"
@@ -94,7 +80,6 @@ resource "azurerm_linux_web_app" "backend" {
   app_settings = {
     NODE_ENV                              = var.node_env
     PORT                                  = "80"
-    WEBSITES_PORT                         = "3000"
     DOCKER_ENABLE_CI                      = "true"
     APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
     APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
@@ -252,7 +237,7 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
       docker_registry_url = "https://index.docker.io"
     }
     ftps_state       = "Disabled"
-    app_command_line = "/bin/sh -c 'mkdir -p \"$${WORKSPACE_PATH}/GlobalConfiguration/.dbeaver\" && cat > \"$${WORKSPACE_PATH}/GlobalConfiguration/.dbeaver/data-sources.json\" <<EOF\n{\n  \"folders\": {},\n  \"connections\": {\n    \"postgres-main\": {\n      \"provider\": \"postgresql\",\n      \"driver\": \"postgres-jdbc\",\n      \"name\": \"PostgreSQL - $${POSTGRES_DATABASE}\",\n      \"save-password\": true,\n      \"show-system-objects\": false,\n      \"read-only\": false,\n      \"configuration\": {\n        \"host\": \"$${POSTGRES_HOST}\",\n        \"port\": \"$${POSTGRES_PORT}\",\n        \"database\": \"$${POSTGRES_DATABASE}\",\n        \"url\": \"jdbc:postgresql://$${POSTGRES_HOST}:$${POSTGRES_PORT}/$${POSTGRES_DATABASE}\",\n        \"configurationType\": \"MANUAL\",\n        \"type\": \"dev\",\n        \"provider-properties\": {\n          \"@dbeaver-show-non-default-db@\": \"false\"\n        },\n        \"auth-model\": \"native\"\n      },\n      \"credentials\": {\n        \"userName\": \"$${POSTGRES_USER}\",\n        \"userPassword\": \"$${POSTGRES_PASSWORD}\"\n      }\n    }\n  },\n  \"connection-types\": {\n    \"dev\": {\n      \"name\": \"Development\",\n      \"color\": \"255,255,255\",\n      \"description\": \"Regular development database\",\n      \"auto-commit\": true,\n      \"confirm-execute\": false,\n      \"confirm-data-change\": false,\n      \"auto-close-transactions\": false\n    }\n  }\n}\nEOF\necho \"CloudBeaver configuration created. Starting server...\" && /opt/cloudbeaver/run-server.sh'"
+    app_command_line = "/opt/cloudbeaver/run-server.sh"
   }
   app_settings = {
     WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"

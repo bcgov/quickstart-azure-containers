@@ -1,13 +1,3 @@
-terraform {
-  required_version = ">= 1.12.0"
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "4.53.0"
-    }
-  }
-}
-
 resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
   name                = "${var.app_name}-frontend-frontdoor"
   resource_group_name = var.resource_group_name

@@ -1,7 +1,5 @@
-data "azurerm_virtual_network" "main" {
-  name                = var.vnet_name
-  resource_group_name = var.vnet_resource_group_name
-}
+# Data block moved to `data.tf` to follow module layout standards
+# data "azurerm_virtual_network" "main" moved to data.tf
 
 # NSG for privateendpoints subnet
 resource "azurerm_network_security_group" "privateendpoints" {

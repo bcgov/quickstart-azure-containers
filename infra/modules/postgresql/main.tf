@@ -1,20 +1,3 @@
-terraform {
-  required_version = ">= 1.12.0"
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "4.53.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "3.7.2"
-    }
-    time = {
-      source  = "hashicorp/time"
-      version = "0.13.1"
-    }
-  }
-}
 
 resource "random_password" "postgres_master_password" {
   length  = 16
@@ -127,7 +110,7 @@ resource "time_sleep" "wait_for_postgresql" {
 resource "azurerm_postgresql_flexible_server_configuration" "shared_preload_libraries" {
   name      = "shared_preload_libraries"
   server_id = azurerm_postgresql_flexible_server.postgresql.id
-  value     = "pg_stat_statements"
+  value     = "pg_stat_statements,pg_cron"
 
   depends_on = [time_sleep.wait_for_postgresql]
 }
