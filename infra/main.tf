@@ -94,6 +94,7 @@ module "frontdoor" {
 }
 
 module "frontend" {
+  count  = var.enable_app_service_frontend ? 1 : 0
   source = "./modules/frontend"
 
   app_env                               = var.app_env
@@ -117,6 +118,7 @@ module "frontend" {
 }
 
 module "backend" {
+  count  = var.enable_app_service_backend ? 1 : 0
   source = "./modules/backend"
 
   api_image                               = var.api_image
@@ -133,7 +135,7 @@ module "backend" {
   enable_cloudbeaver                      = var.enable_cloudbeaver
   enable_frontdoor                        = var.enable_frontdoor
   frontend_frontdoor_resource_guid        = var.enable_frontdoor ? module.frontdoor[0].frontdoor_resource_guid : null
-  frontend_possible_outbound_ip_addresses = module.frontend.possible_outbound_ip_addresses
+  frontend_possible_outbound_ip_addresses = var.enable_app_service_frontend ? module.frontend[0].possible_outbound_ip_addresses : ""
   location                                = var.location
   log_analytics_workspace_id              = module.monitoring.log_analytics_workspace_id
   postgres_host                           = module.postgresql.postgres_host
@@ -168,7 +170,7 @@ module "apim" {
   backend_services = {
     "backend-api" = {
       protocol    = "http"
-      url         = "https://${module.backend.backend_url}"
+      url         = var.enable_app_service_backend ? "https://${module.backend[0].backend_url}" : "http://${module.container_apps[0].backend_container_app_url}"
       description = "Backend API service"
       title       = "Backend API"
     }
@@ -196,7 +198,7 @@ module "container_apps" {
   db_master_password                  = module.postgresql.db_master_password
   appinsights_connection_string       = module.monitoring.appinsights_connection_string
   appinsights_instrumentation_key     = module.monitoring.appinsights_instrumentation_key
-  app_service_frontend_url            = module.frontend.frontend_url
+  app_service_frontend_url            = var.enable_app_service_frontend ? module.frontend[0].frontend_url : ""
   container_cpu                       = var.container_apps_cpu
   container_memory                    = var.container_apps_memory
   min_replicas                        = var.container_apps_min_replicas
@@ -211,6 +213,7 @@ module "container_apps" {
 }
 
 module "aci" {
+  count  = var.enable_aci ? 1 : 0
   source = "./modules/aci"
 
   app_name                     = var.app_name

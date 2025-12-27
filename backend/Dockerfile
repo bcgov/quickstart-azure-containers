@@ -28,9 +28,8 @@ COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/prisma ./node_modules/prisma
 COPY --from=build /app/dist ./dist
 
-# Boilerplate, not used in OpenShift/Kubernetes
 EXPOSE 3001
 HEALTHCHECK --start-period=2s --start-interval=5s --interval=30s --timeout=3s CMD curl -f http://localhost:30001/api
 
 
-CMD ["--max-old-space-size=50", "/app/dist/main"]
+CMD ["--max-old-space-size=150", "/app/dist/main"]

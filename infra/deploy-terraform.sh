@@ -367,6 +367,78 @@ tf_plan() {
     log_success "Plan created"
 }
 
+extract_import_target_from_tf_output() {
+    # Extracts a single import target from Terraform output.
+    # Prints: <resource_address>\t<azure_resource_id>
+    # Returns:
+    #   0 if an import target is found
+    #   1 otherwise
+    local tf_output_file="$1"
+
+    awk '
+        {
+            line = $0
+            # Track the most recent "with <address>," context line.
+            # Terraform often prefixes these lines with box-drawing characters.
+            if (match(line, /with [^,]+,/)) {
+                last_with = substr(line, RSTART + 5, RLENGTH - 6)
+            }
+
+            # Detect the common "already exists - needs to be imported" error and extract the ID.
+            if (index(line, "Error: a resource with the ID \"") > 0 && index(line, "\" already exists") > 0) {
+                start = index(line, "Error: a resource with the ID \"") + length("Error: a resource with the ID \"")
+                rest = substr(line, start)
+                end = index(rest, "\" already exists")
+                if (end > 0) {
+                    rid = substr(rest, 1, end - 1)
+                    if (length(last_with) > 0 && length(rid) > 0) {
+                        print last_with "\t" rid
+                        exit 0
+                    }
+                }
+            }
+        }
+        END { exit 1 }
+    ' "$tf_output_file"
+}
+
+tf_import_existing_resource_if_needed() {
+    # If the last Terraform command failed due to an "already exists" error,
+    # automatically import the resource into state.
+    # Returns:
+    #   0 if an import was performed
+    #   1 if no importable error was found
+    #   2 if an importable error was found but import failed
+    local tf_output_file="$1"
+
+    local import_line
+    if ! import_line="$(extract_import_target_from_tf_output "$tf_output_file")"; then
+        return 1
+    fi
+
+    local import_addr
+    local import_id
+    import_addr="${import_line%%$'\t'*}"
+    import_id="${import_line#*$'\t'}"
+
+    if [[ -z "$import_addr" || -z "$import_id" || "$import_addr" == "$import_id" ]]; then
+        return 1
+    fi
+
+    log_warning "Detected existing Azure resource; importing into Terraform state"
+    log_info "Import address: $import_addr"
+    log_info "Import ID: $import_id"
+
+    # Import requires the same variables context as apply/plan.
+    if terraform import "${TFVARS_ARGS[@]}" "$import_addr" "$import_id"; then
+        log_success "Import succeeded: $import_addr"
+        return 0
+    fi
+
+    log_error "Import failed for: $import_addr"
+    return 2
+}
+
 
 tf_apply() {
     log_info "Applying Terraform changes..."
@@ -389,7 +461,40 @@ tf_apply() {
     # Add any additional arguments passed
     apply_args+=("$@")
     
-    terraform apply "${apply_args[@]}"
+    local max_retries=3
+    local attempt=1
+
+    while true; do
+        local tf_output_file
+        tf_output_file="$(mktemp -t terraform-apply.XXXXXX.log)"
+
+        log_info "Running terraform apply (attempt ${attempt}/${max_retries})"
+
+        set +e
+        terraform apply "${apply_args[@]}" 2>&1 | tee "$tf_output_file"
+        local tf_exit=${PIPESTATUS[0]}
+        set -e
+
+        if [[ $tf_exit -eq 0 ]]; then
+            rm -f "$tf_output_file"
+            break
+        fi
+
+        # Try to auto-import existing resources, then retry.
+        if tf_import_existing_resource_if_needed "$tf_output_file"; then
+            rm -f "$tf_output_file"
+            attempt=$((attempt + 1))
+            if [[ $attempt -gt $max_retries ]]; then
+                log_error "Exceeded maximum retries (${max_retries}) for auto-import/retry"
+                exit $tf_exit
+            fi
+            continue
+        fi
+
+        rm -f "$tf_output_file"
+        log_error "Terraform apply failed (non-importable error)."
+        exit $tf_exit
+    done
     
     log_success "Apply complete"
     

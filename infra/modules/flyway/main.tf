@@ -1,17 +1,3 @@
-terraform {
-  required_version = ">= 1.12.0"
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "4.53.0"
-    }
-    null = {
-      source  = "hashicorp/null"
-      version = "3.2.4"
-    }
-  }
-}
-
 resource "azurerm_container_group" "flyway" {
   name                = "${var.app_name}-flyway"
   location            = var.location

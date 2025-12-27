@@ -53,6 +53,32 @@ variable "enable_cloudbeaver" {
   default     = true
 }
 
+variable "enable_aci" {
+  description = "Whether to enable the ACI which is toolbox"
+  type        = bool
+  default     = false
+}
+variable "enable_app_service_frontend" {
+  description = "Whether to enable the App Service frontend"
+  type        = bool
+  default     = true
+  validation {
+    # Valid when at least one ingress option is enabled.
+    condition     = var.enable_frontdoor || var.enable_app_service_frontend
+    error_message = "Both Frontdoor and App Service Frontend cannot be disabled."
+  }
+}
+variable "enable_app_service_backend" {
+  description = "Whether to enable the App Service backend"
+  type        = bool
+  default     = true
+  validation {
+    # Valid when at least one backend hosting option is enabled.
+    condition     = var.enable_container_apps || var.enable_app_service_backend
+    error_message = "Both App Service Backend and Container Apps cannot be disabled."
+  }
+}
+
 variable "flyway_image" {
   description = "The image for the Flyway container"
   type        = string

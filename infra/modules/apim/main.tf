@@ -4,16 +4,6 @@
 # This module creates an Azure API Management instance with v2 configuration
 # following production-ready best practices for security, monitoring, and scaling
 
-terraform {
-  required_version = ">= 1.12.0"
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "4.53.0"
-    }
-  }
-}
-
 # API Management Service
 resource "azurerm_api_management" "main" {
   name                = "${var.app_name}-apim-${var.app_env}"
