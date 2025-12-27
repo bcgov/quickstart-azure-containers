@@ -413,6 +413,7 @@ Optional CloudBeaver container provides web-based database management:
 
 - **Access**: `https://your-app-cloudbeaver.azurewebsites.net`
 - **Features**: Query editor, schema browser, data export/import
+- **Auto-Configuration**: Database connection details are automatically configured from environment variables on startup, eliminating the need for manual connection setup. The connection persists across container restarts.
 
 ## 🔐 Security Features
 
