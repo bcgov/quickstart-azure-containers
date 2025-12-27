@@ -236,8 +236,7 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
       docker_image_name   = var.cloudbeaver_image
       docker_registry_url = var.container_registry_url
     }
-    ftps_state       = "Disabled"
-    app_command_line = "/opt/cloudbeaver/run-server.sh"
+    ftps_state = "Disabled"
   }
   app_settings = {
     WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
