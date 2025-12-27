@@ -190,7 +190,7 @@ module "apim" {
   backend_services = {
     "backend-api" = {
       protocol    = "http"
-      url         = var.enable_app_service_backend ? "https://${module.backend[0].backend_url}" : "http://${module.container_apps[0].backend_container_app_url}"
+      url         = var.enable_app_service_backend ? "https://${module.backend[0].backend_url}" : var.enable_container_apps ? "http://${module.container_apps[0].backend_container_app_url}" : ""
       description = "Backend API service"
       title       = "Backend API"
     }
@@ -218,7 +218,7 @@ module "container_apps" {
   db_master_password                  = module.postgresql.db_master_password
   appinsights_connection_string       = module.monitoring.appinsights_connection_string
   appinsights_instrumentation_key     = module.monitoring.appinsights_instrumentation_key
-  app_service_frontend_url            = var.enable_app_service_frontend ? module.frontend[0].frontend_url : ""
+  app_service_frontend_url            = var.enable_app_service_frontend && length(module.frontend) > 0 ? module.frontend[0].frontend_url : ""
   container_cpu                       = var.container_apps_cpu
   container_memory                    = var.container_apps_memory
   min_replicas                        = var.container_apps_min_replicas

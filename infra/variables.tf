@@ -54,7 +54,7 @@ variable "enable_cloudbeaver" {
 }
 
 variable "enable_aci" {
-  description = "Whether to enable the ACI which is toolbox"
+  description = "Whether to enable the ACI toolbox"
   type        = bool
   default     = false
 }
@@ -65,7 +65,7 @@ variable "enable_app_service_frontend" {
   validation {
     # Valid when at least one ingress option is enabled.
     condition     = var.enable_frontdoor || var.enable_app_service_frontend
-    error_message = "Both Frontdoor and App Service Frontend cannot be disabled."
+    error_message = "At least one of Frontdoor or App Service Frontend must be enabled."
   }
 }
 variable "enable_app_service_backend" {
@@ -75,7 +75,7 @@ variable "enable_app_service_backend" {
   validation {
     # Valid when at least one backend hosting option is enabled.
     condition     = var.enable_container_apps || var.enable_app_service_backend
-    error_message = "Both App Service Backend and Container Apps cannot be disabled."
+    error_message = "At least one of App Service Backend or Container Apps must be enabled."
   }
 }
 variable "enable_database_migrations_aci" {
