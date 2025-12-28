@@ -21,7 +21,7 @@ cat > "${CONFIG_FILE}" <<EOF
   "connections": {
     "postgres-main": {
       "provider": "postgresql",
-      "driver": "postgresql_jdbc",
+      "driver": "postgres-jdbc",
       "name": "PostgreSQL - ${POSTGRES_DATABASE}",
       "save-password": true,
       "show-system-objects": false,
