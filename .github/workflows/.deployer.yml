@@ -66,10 +66,11 @@ jobs:
           API_IMAGE="ghcr.io/${{ github.repository }}/backend:${{ inputs.tag }}"
           FLYWAY_IMAGE="ghcr.io/${{ github.repository }}/migrations:${{ inputs.tag }}"
           FRONTEND_IMAGE="ghcr.io/${{ github.repository }}/frontend:${{ inputs.tag }}"
-
+          CLOUDBEAVER_IMAGE="ghcr.io/${{ github.repository }}/cloudbeaver:${{ inputs.tag }}"
           echo "api-image=$API_IMAGE" >> $GITHUB_OUTPUT
           echo "flyway-image=$FLYWAY_IMAGE" >> $GITHUB_OUTPUT
           echo "frontend-image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
+          echo "cloudbeaver-image=$CLOUDBEAVER_IMAGE" >> $GITHUB_OUTPUT
 
       - name: Deploy
         shell: bash
@@ -89,6 +90,7 @@ jobs:
           TF_VAR_vnet_name: ${{ secrets.VNET_NAME }}
           TF_VAR_flyway_image: ${{ steps.image-tags.outputs.flyway-image }}
           TF_VAR_api_image: ${{ steps.image-tags.outputs.api-image }}
+          TF_VAR_cloudbeaver_image: ${{ steps.image-tags.outputs.cloudbeaver-image }}
           TF_VAR_stack_prefix: ${{ inputs.stack_prefix }}
           TF_VAR_azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
           TF_VAR_repo_name: ${{ github.event.repository.name }}

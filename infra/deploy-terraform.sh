@@ -102,20 +102,30 @@ TFVARS_ARGS=()
 # =============================================================================
 # Logging Functions
 # =============================================================================
+timestamp() {
+    # Prefer millisecond precision when supported (GNU date: %3N).
+    # Fallback to seconds-only on platforms that don't support %N.
+    if date '+%3N' 2>/dev/null | grep -Eq '^[0-9]{3}$'; then
+        date '+%Y-%m-%d %H:%M:%S.%3N'
+    else
+        date '+%Y-%m-%d %H:%M:%S'
+    fi
+}
+
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${BLUE}[$(timestamp)] [INFO]${NC} $1"
 }
 
 log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "${GREEN}[$(timestamp)] [SUCCESS]${NC} $1"
 }
 
 log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${YELLOW}[$(timestamp)] [WARNING]${NC} $1"
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}[$(timestamp)] [ERROR]${NC} $1"
 }
 
 # =============================================================================

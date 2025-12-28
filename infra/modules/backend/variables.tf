@@ -149,3 +149,8 @@ variable "resource_group_name" {
   type        = string
   nullable    = false
 }
+variable "cloudbeaver_image" {
+  description = "Container image for CloudBeaver sidecar"
+  type        = string
+  nullable    = false
+}

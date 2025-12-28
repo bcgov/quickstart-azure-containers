@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       tags:
-        description: 'Tags to apply to the built containers multiline, separated by newlines'
+        description: "Tags to apply to the built containers multiline, separated by newlines"
         required: true
         type: string
 permissions:
@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        # Only building frontend containers to run PR based e2e tests
-        package: [backend, migrations, frontend]
+        # Build containers for backend, migrations, frontend, and cloudbeaver to support PR-based e2e tests
+        package: [backend, migrations, frontend, cloudbeaver]
     timeout-minutes: 10
     steps:
       - uses: bcgov/action-builder-ghcr@v4.2.1
