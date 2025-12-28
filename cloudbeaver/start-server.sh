@@ -29,8 +29,6 @@ cat > "${CONFIG_FILE}" <<EOF
       "configuration": {
         "host": "${POSTGRES_HOST}",
         "port": "${POSTGRES_PORT}",
-        "user": "${POSTGRES_USER}",
-        "password": "${POSTGRES_PASSWORD}",
         "database": "${POSTGRES_DATABASE}",
         "url": "jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}",
         "configurationType": "MANUAL",
