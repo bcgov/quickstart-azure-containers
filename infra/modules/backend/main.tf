@@ -233,11 +233,10 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
     health_check_path                       = "/"
     health_check_eviction_time_in_min       = 10
     application_stack {
-      docker_image_name   = "dbeaver/cloudbeaver:latest"
-      docker_registry_url = "https://index.docker.io"
+      docker_image_name   = var.cloudbeaver_image
+      docker_registry_url = var.container_registry_url
     }
-    ftps_state       = "Disabled"
-    app_command_line = "/opt/cloudbeaver/run-server.sh"
+    ftps_state = "Disabled"
   }
   app_settings = {
     WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
@@ -260,6 +259,14 @@ resource "azurerm_linux_web_app" "psql_sidecar" {
     CB_DEV_MODE                           = "false"
     AZURE_STORAGE_CONNECTION_STRING       = azurerm_storage_account.cloudbeaver[0].primary_connection_string
     WORKSPACE_PATH                        = "/opt/cloudbeaver/workspace"
+  }
+  storage_account {
+    name         = "cloudbeaver-workspace"
+    type         = "AzureFiles"
+    account_name = azurerm_storage_account.cloudbeaver[0].name
+    share_name   = azurerm_storage_share.cloudbeaver_workspace[0].name
+    access_key   = azurerm_storage_account.cloudbeaver[0].primary_access_key
+    mount_path   = "/opt/cloudbeaver/workspace"
   }
   logs {
     detailed_error_messages = true

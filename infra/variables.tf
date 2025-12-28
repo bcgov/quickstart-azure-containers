@@ -459,3 +459,9 @@ variable "apim_enable_application_insights_logger" {
   type        = bool
   default     = true
 }
+
+variable "cloudbeaver_image" {
+  description = "Container image for CloudBeaver sidecar"
+  type        = string
+  nullable    = false
+}
