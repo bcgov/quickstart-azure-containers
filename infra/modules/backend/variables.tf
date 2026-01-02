@@ -127,11 +127,6 @@ variable "postgresql_admin_username" {
   nullable    = false
 }
 
-variable "private_endpoint_subnet_id" {
-  description = "The subnet ID for private endpoints."
-  type        = string
-  nullable    = false
-}
 
 variable "repo_name" {
   description = "The repository name, used for resource naming."
