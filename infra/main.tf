@@ -159,7 +159,6 @@ module "backend" {
   log_analytics_workspace_id              = module.monitoring.log_analytics_workspace_id
   postgres_host                           = module.postgresql.postgres_host
   postgresql_admin_username               = var.postgresql_admin_username
-  private_endpoint_subnet_id              = module.network.private_endpoint_subnet_id
   repo_name                               = var.repo_name
   resource_group_name                     = azurerm_resource_group.main.name
 
