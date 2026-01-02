@@ -21,7 +21,8 @@ if ! command -v "$CHISEL_BIN" >/dev/null 2>&1; then
 fi
 
 if [ -z "$CHISEL_AUTH" ]; then
-  echo "$(ts) - WARN: CHISEL_AUTH is not set; tunnel will be unauthenticated (public)."
+  echo "$(ts) - ERROR: CHISEL_AUTH is not set or empty; refusing to start unauthenticated tunnel."
+  exit 1
 fi
 
 # Serve a minimal health endpoint locally; chisel will reverse-proxy normal HTTP requests to it.
