@@ -465,11 +465,11 @@ variable "enable_azure_db_proxy" {
 variable "app_service_sku_name_azure_db_proxy" {
   description = "The SKU name for the azure db proxy App Service plan."
   type        = string
-  nullable    = false
+  nullable    = true
 }
 
 variable "azure_db_proxy_image" {
   description = "The image for the Azure DB Proxy container"
   type        = string
-  nullable    = false
+  nullable    = true
 }
