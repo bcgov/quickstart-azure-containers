@@ -47,11 +47,6 @@ variable "database_name" {
 }
 
 
-variable "enable_cloudbeaver" {
-  description = "Whether to enable the CloudBeaver database management container"
-  type        = bool
-  default     = true
-}
 
 variable "enable_aci" {
   description = "Whether to enable the ACI toolbox"
@@ -460,8 +455,21 @@ variable "apim_enable_application_insights_logger" {
   default     = true
 }
 
-variable "cloudbeaver_image" {
-  description = "Container image for CloudBeaver sidecar"
+
+variable "enable_azure_db_proxy" {
+  description = "Whether to enable DB Proxy in Azure which allows tunneling to postgres db on Azure from local system."
+  type        = bool
+  default     = false
+}
+
+variable "app_service_sku_name_azure_db_proxy" {
+  description = "The SKU name for the azure db proxy App Service plan."
+  type        = string
+  nullable    = false
+}
+
+variable "azure_db_proxy_image" {
+  description = "The image for the Azure DB Proxy container"
   type        = string
   nullable    = false
 }

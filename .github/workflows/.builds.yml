@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         # Build containers for backend, migrations, frontend, and cloudbeaver to support PR-based e2e tests
-        package: [backend, migrations, frontend, cloudbeaver]
+        package: [backend, migrations, frontend, azure-db-proxy]
     timeout-minutes: 10
     steps:
       - uses: bcgov/action-builder-ghcr@v4.2.1

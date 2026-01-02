@@ -152,7 +152,6 @@ module "backend" {
   common_tags                             = var.common_tags
   database_name                           = var.database_name
   db_master_password                      = module.postgresql.db_master_password
-  enable_cloudbeaver                      = var.enable_cloudbeaver
   enable_frontdoor                        = var.enable_frontdoor
   frontend_frontdoor_resource_guid        = var.enable_frontdoor ? module.frontdoor[0].frontdoor_resource_guid : null
   frontend_possible_outbound_ip_addresses = var.enable_app_service_frontend ? module.frontend[0].possible_outbound_ip_addresses : ""
@@ -163,9 +162,8 @@ module "backend" {
   private_endpoint_subnet_id              = module.network.private_endpoint_subnet_id
   repo_name                               = var.repo_name
   resource_group_name                     = azurerm_resource_group.main.name
-  cloudbeaver_image                       = var.cloudbeaver_image
-  
-  depends_on                              = [module.frontend]
+
+  depends_on = [module.frontend]
 }
 
 # API Management Module (optional)
@@ -247,5 +245,24 @@ module "aci" {
   dns_servers                  = module.network.dns_servers
 
   depends_on = [module.network, module.monitoring, module.postgresql]
+}
 
+module "azure_db_proxy" {
+  source = "./modules/azure-db-proxy"
+  count  = var.enable_azure_db_proxy ? 1 : 0
+
+  app_env                             = var.app_env
+  app_name                            = var.app_name
+  app_service_sku_name_azure_db_proxy = var.app_service_sku_name_azure_db_proxy
+  app_service_subnet_id               = module.network.app_service_subnet_id
+  appinsights_connection_string       = module.monitoring.appinsights_connection_string
+  appinsights_instrumentation_key     = module.monitoring.appinsights_instrumentation_key
+  azure_db_proxy_image                = var.azure_db_proxy_image
+  common_tags                         = var.common_tags
+  location                            = var.location
+  log_analytics_workspace_id          = module.monitoring.log_analytics_workspace_id
+  repo_name                           = var.repo_name
+  resource_group_name                 = azurerm_resource_group.main.name
+
+  depends_on = [module.monitoring, module.network, module.postgresql]
 }

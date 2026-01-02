@@ -78,11 +78,6 @@ variable "db_master_password" {
   nullable    = false
 }
 
-variable "enable_cloudbeaver" {
-  description = "Whether to enable the CloudBeaver PostgreSQL sidecar."
-  type        = bool
-  default     = false
-}
 
 variable "frontend_frontdoor_resource_guid" {
   description = "The resource GUID for the Front Door service associated with the frontend App Service."
@@ -146,11 +141,6 @@ variable "repo_name" {
 
 variable "resource_group_name" {
   description = "The name of the resource group in which to create resources."
-  type        = string
-  nullable    = false
-}
-variable "cloudbeaver_image" {
-  description = "Container image for CloudBeaver sidecar"
   type        = string
   nullable    = false
 }
