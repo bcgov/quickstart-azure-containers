@@ -1,4 +1,4 @@
-FROM jpillora/chisel:latest AS chisel
+FROM jpillora/chisel:1.11 AS chisel
 
 FROM alpine:3.20
 
