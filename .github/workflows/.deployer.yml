@@ -66,12 +66,11 @@ jobs:
           API_IMAGE="ghcr.io/${{ github.repository }}/backend:${{ inputs.tag }}"
           FLYWAY_IMAGE="ghcr.io/${{ github.repository }}/migrations:${{ inputs.tag }}"
           FRONTEND_IMAGE="ghcr.io/${{ github.repository }}/frontend:${{ inputs.tag }}"
-          CLOUDBEAVER_IMAGE="ghcr.io/${{ github.repository }}/cloudbeaver:${{ inputs.tag }}"
+          AZURE_DB_PROXY_IMAGE="ghcr.io/${{ github.repository }}/azure-db-proxy:${{ inputs.tag }}"
           echo "api-image=$API_IMAGE" >> $GITHUB_OUTPUT
           echo "flyway-image=$FLYWAY_IMAGE" >> $GITHUB_OUTPUT
           echo "frontend-image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
-          echo "cloudbeaver-image=$CLOUDBEAVER_IMAGE" >> $GITHUB_OUTPUT
-
+          echo "azure-db-proxy-image=$AZURE_DB_PROXY_IMAGE" >> $GITHUB_OUTPUT
       - name: Deploy
         shell: bash
         working-directory: infra
@@ -90,7 +89,7 @@ jobs:
           TF_VAR_vnet_name: ${{ secrets.VNET_NAME }}
           TF_VAR_flyway_image: ${{ steps.image-tags.outputs.flyway-image }}
           TF_VAR_api_image: ${{ steps.image-tags.outputs.api-image }}
-          TF_VAR_cloudbeaver_image: ${{ steps.image-tags.outputs.cloudbeaver-image }}
+          TF_VAR_azure_db_proxy_image: ${{ steps.image-tags.outputs.azure-db-proxy-image }}
           TF_VAR_stack_prefix: ${{ inputs.stack_prefix }}
           TF_VAR_azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
           TF_VAR_repo_name: ${{ github.event.repository.name }}
@@ -98,7 +97,6 @@ jobs:
           TF_VAR_app_env: ${{ inputs.app_env }}
           TF_VAR_app_name: ${{ inputs.stack_prefix }}-${{ inputs.app_env }}
           TF_VAR_location: ${{ env.AZURE_REGION }}
-          TF_VAR_enable_cloudbeaver: ${{ vars.CLOUDBEAVER_ENABLED || false }}
           TF_VAR_vnet_address_space: ${{ secrets.VNET_ADDRESS_SPACE }}
           TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
           TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
