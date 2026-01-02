@@ -9,6 +9,10 @@ resource "azurerm_service_plan" "azure_db_proxy_asp" {
     ignore_changes = [tags]
   }
 }
+resource "random_password" "proxy_chisel_password" {
+  length  = 32
+  special = false
+}
 
 resource "azurerm_linux_web_app" "azure_db_proxy" {
   name                      = "${var.repo_name}-${var.app_env}-azure-db-proxy"
