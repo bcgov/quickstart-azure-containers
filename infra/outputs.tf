@@ -26,3 +26,13 @@ output "apim_name" {
   description = "The name of the API Management service"
   value       = var.enable_apim ? module.apim[0].apim_name : null
 }
+output "azure_db_proxy_url" {
+  description = "The URL of the Azure DB Proxy App Service"
+  value       = var.enable_azure_db_proxy ? module.azure_db_proxy.azure_db_proxy_url : null
+}
+
+output "proxy_auth" {
+  description = "The authentication string for the Azure DB Proxy"
+  value       = var.enable_azure_db_proxy ? module.azure_db_proxy.proxy_auth : null
+  sensitive   = true
+}
