@@ -49,8 +49,8 @@ resource "azurerm_key_vault_secret" "postgres_admin_password" {
   name         = var.postgres_password_secret_name
   value        = random_password.postgres_admin.result
   key_vault_id = azurerm_key_vault.main.id
-  content_type    = "text/plain"
-  expiration_date = timeadd(timestamp(), format("%dh", var.postgres_password_validity_days * 24))
+  content_type    = "text/plain" # mandatory in policy
+  expiration_date = timeadd(timestamp(), format("%dh", var.postgres_password_validity_days * 24)) # maximum 90 days
 
   tags = var.common_tags
 
