@@ -385,26 +385,53 @@ extract_import_target_from_tf_output() {
     #   1 otherwise
     local tf_output_file="$1"
 
+    # Terraform wraps long error messages across multiple lines with box-drawing
+    # characters (│). We need to:
+    # 1. Strip the box-drawing prefixes
+    # 2. Join continuation lines
+    # 3. Then parse the "already exists" error pattern
     awk '
+        BEGIN {
+            last_with = ""
+            in_error_block = 0
+            error_text = ""
+        }
         {
+            # Strip leading box-drawing characters and whitespace
             line = $0
+            gsub(/^[│├└─ \t]+/, "", line)
+            gsub(/[ \t]+$/, "", line)
+
             # Track the most recent "with <address>," context line.
-            # Terraform often prefixes these lines with box-drawing characters.
             if (match(line, /with [^,]+,/)) {
                 last_with = substr(line, RSTART + 5, RLENGTH - 6)
             }
 
-            # Detect the common "already exists - needs to be imported" error and extract the ID.
-            if (index(line, "Error: a resource with the ID \"") > 0 && index(line, "\" already exists") > 0) {
-                start = index(line, "Error: a resource with the ID \"") + length("Error: a resource with the ID \"")
-                rest = substr(line, start)
-                end = index(rest, "\" already exists")
-                if (end > 0) {
-                    rid = substr(rest, 1, end - 1)
-                    if (length(last_with) > 0 && length(rid) > 0) {
-                        print last_with "\t" rid
-                        exit 0
+            # Detect start of "already exists" error block
+            if (index(line, "Error: a resource with the ID") > 0) {
+                in_error_block = 1
+                error_text = line
+                next
+            }
+
+            # Continue accumulating error block lines until we see "already exists"
+            if (in_error_block) {
+                error_text = error_text " " line
+                
+                # Check if we have the complete error now
+                if (index(error_text, "already exists") > 0) {
+                    in_error_block = 0
+                    
+                    # Extract the resource ID from the accumulated text
+                    # Pattern: Error: a resource with the ID "..." already exists
+                    if (match(error_text, /"[^"]+"/)) {
+                        rid = substr(error_text, RSTART + 1, RLENGTH - 2)
+                        if (length(last_with) > 0 && length(rid) > 0) {
+                            print last_with "\t" rid
+                            exit 0
+                        }
                     }
+                    error_text = ""
                 }
             }
         }
