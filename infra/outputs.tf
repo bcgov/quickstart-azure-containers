@@ -27,12 +27,12 @@ output "apim_name" {
   value       = var.enable_apim ? module.apim[0].apim_name : null
 }
 output "azure_proxy_url" {
-  description = "The URL of the Azure DB Proxy App Service"
+  description = "The URL of the Azure Proxy App Service"
   value       = var.enable_azure_proxy ? "https://${module.azure_proxy[0].azure_proxy_url}" : null
 }
 
 output "proxy_auth" {
-  description = "The authentication string for the Azure DB Proxy"
+  description = "The authentication string for the Azure Proxy"
   value       = var.enable_azure_proxy ? module.azure_proxy[0].proxy_auth : null
   sensitive   = true
 }
