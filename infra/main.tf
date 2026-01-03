@@ -263,5 +263,5 @@ module "azure_db_proxy" {
   repo_name                           = var.repo_name
   resource_group_name                 = azurerm_resource_group.main.name
 
-  depends_on = [module.monitoring, module.network, module.postgresql]
+  depends_on = [module.monitoring, module.network]
 }
