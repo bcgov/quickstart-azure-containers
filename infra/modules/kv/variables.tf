@@ -43,11 +43,11 @@ variable "postgres_password_length" {
 variable "postgres_password_validity_days" {
   description = "Number of days the generated PostgreSQL password secret is valid for (must be <= the landing zone policy maximum)"
   type        = number
-  default     = 183
+  default     = 90
 
   validation {
-    condition     = var.postgres_password_validity_days >= 1
-    error_message = "postgres_password_validity_days must be >= 1."
+    condition     = var.postgres_password_validity_days >= 1 && floor(var.postgres_password_validity_days) == var.postgres_password_validity_days
+    error_message = "postgres_password_validity_days must be an integer >= 1."
   }
 }
 
