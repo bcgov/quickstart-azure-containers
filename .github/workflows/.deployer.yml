@@ -110,9 +110,11 @@ jobs:
         shell: bash
         working-directory: infra
         run: |
-          ./deploy-terraform.sh ${{ inputs.command }} -var-file=${{ inputs.environment_name }}.tfvars -target=module.azure_db_proxy
+          set -euo pipefail
+
+          ./deploy-terraform.sh ${{ inputs.command }} -var-file=${{ inputs.environment_name }}.tfvars -target=module.azure_proxy
           PROXY_AUTH=$(terraform output -raw proxy_auth)
-          PROXY_URL=$(terraform output -raw azure_db_proxy_url)
+          PROXY_URL=$(terraform output -raw azure_proxy_url)
 
           # Prevent secrets from appearing in GitHub Actions logs
           echo "::add-mask::$PROXY_AUTH"
@@ -120,6 +122,26 @@ jobs:
 
           echo "PROXY_AUTH=$PROXY_AUTH" >> "$GITHUB_ENV"
           echo "PROXY_URL=$PROXY_URL" >> "$GITHUB_ENV"
+          # now , wait for proxy to be ready by checking health endpoint and waiting in a loop with exponential backoff for 10 retries
+          echo "Waiting for Azure Proxy to be ready..."
+          RETRIES=10
+          ready=0
+          for i in $(seq 1 $RETRIES); do
+            STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${PROXY_URL%/}/healthz" || true)
+            if [ "$STATUS_CODE" -eq 200 ]; then
+              echo "Azure Proxy is ready!"
+              ready=1
+              break
+            else
+              echo "Attempt $i/$RETRIES: Azure Proxy not ready yet (status code: $STATUS_CODE). Retrying in $((2 ** i)) seconds..."
+              sleep $((2 ** i))
+            fi
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo "ERROR: Azure Proxy did not become ready after $RETRIES attempts."
+            exit 1
+          fi
       - name: Run Chisel Proxy Client In Docker
         if: ${{ inputs.command == 'apply' }}
         shell: bash
