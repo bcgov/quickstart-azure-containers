@@ -40,6 +40,17 @@ variable "postgres_password_length" {
   default     = 32
 }
 
+variable "postgres_password_validity_days" {
+  description = "Number of days the generated PostgreSQL password secret is valid for (must be <= the landing zone policy maximum)"
+  type        = number
+  default     = 3650
+
+  validation {
+    condition     = var.postgres_password_validity_days >= 1
+    error_message = "postgres_password_validity_days must be >= 1."
+  }
+}
+
 variable "key_vault_sku_name" {
   description = "Key Vault SKU name"
   type        = string
