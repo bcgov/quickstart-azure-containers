@@ -28,11 +28,11 @@ output "apim_name" {
 }
 output "azure_db_proxy_url" {
   description = "The URL of the Azure DB Proxy App Service"
-  value       = var.enable_azure_db_proxy ? module.azure_db_proxy.azure_db_proxy_url : null
+  value       = var.enable_azure_db_proxy ? module.azure_db_proxy[0].azure_db_proxy_url : null
 }
 
 output "proxy_auth" {
   description = "The authentication string for the Azure DB Proxy"
-  value       = var.enable_azure_db_proxy ? module.azure_db_proxy.proxy_auth : null
+  value       = var.enable_azure_db_proxy ? module.azure_db_proxy[0].proxy_auth : null
   sensitive   = true
 }
