@@ -106,6 +106,7 @@ jobs:
 
       - name: Deploy Base Infrastructure
         id: deploy-base-infra
+        if: ${{ inputs.command == 'apply' }}
         shell: bash
         working-directory: infra
         run: |
@@ -126,10 +127,17 @@ jobs:
           docker run --rm -d --name privoxy -p 127.0.0.1:8118:8118 -e SOCKS_HOST=host.docker.internal -e SOCKS_PORT=18080 ghcr.io/${{ github.repository }}/http-client/proxy/privoxy:${{ inputs.tag }}
       - name: Deploy Entire Infrastructure
         shell: bash
+        if: ${{ inputs.command == 'apply' }}
         working-directory: infra
         env:
           HTTP_PROXY: "http://127.0.0.1:8118"
           HTTPS_PROXY: "http://127.0.0.1:8118"
         run: |
           curl --proxy http://127.0.0.1:8118 https://ifconfig.me
+          ./deploy-terraform.sh ${{ inputs.command }} -var-file=${{ inputs.environment_name }}.tfvars
+      - name: Terraform Plan or Destroy
+        shell: bash
+        if: ${{ inputs.command != 'apply' }}
+        working-directory: infra
+        run: |
           ./deploy-terraform.sh ${{ inputs.command }} -var-file=${{ inputs.environment_name }}.tfvars
