@@ -28,7 +28,7 @@ output "apim_name" {
 }
 output "azure_db_proxy_url" {
   description = "The URL of the Azure DB Proxy App Service"
-  value       = var.enable_azure_db_proxy ? module.azure_db_proxy[0].azure_db_proxy_url : null
+  value       = var.enable_azure_db_proxy ? "https://${module.azure_db_proxy[0].azure_db_proxy_url}" : null
 }
 
 output "proxy_auth" {

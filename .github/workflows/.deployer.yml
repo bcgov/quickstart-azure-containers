@@ -119,12 +119,12 @@ jobs:
         if: ${{ inputs.command == 'apply' }}
         shell: bash
         run: |
-          docker run -rm -it -p 18080:1080 jpillora/chisel:1.11 client --auth "$PROXY_AUTH" "$PROXY_URL" 0.0.0.0:1080:socks
+          docker run -d --name chisel-client -p 18080:1080 jpillora/chisel:1.11 client --auth "$PROXY_AUTH" "$PROXY_URL" 0.0.0.0:1080:socks
       - name: Run Privoxy In Docker
         if: ${{ inputs.command == 'apply' }}
         shell: bash
         run: |
-          docker run --rm -d --name privoxy -p 127.0.0.1:8118:8118 -e SOCKS_HOST=host.docker.internal -e SOCKS_PORT=18080 ghcr.io/${{ github.repository }}/http-client/proxy/privoxy:${{ inputs.tag }}
+          docker run -d --name privoxy -p 127.0.0.1:8118:8118 -e SOCKS_HOST=host.docker.internal -e SOCKS_PORT=18080 ghcr.io/${{ github.repository }}/http-client/proxy/privoxy:${{ inputs.tag }}
       - name: Deploy Entire Infrastructure
         shell: bash
         if: ${{ inputs.command == 'apply' }}
