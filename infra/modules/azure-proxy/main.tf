@@ -1,9 +1,9 @@
-resource "azurerm_service_plan" "azure_db_proxy_asp" {
-  name                = "${var.app_name}-azure-db-proxy-asp"
+resource "azurerm_service_plan" "azure_proxy_asp" {
+  name                = "${var.app_name}-azure-proxy-asp"
   resource_group_name = var.resource_group_name
   location            = var.location
   os_type             = "Linux"
-  sku_name            = var.app_service_sku_name_azure_db_proxy
+  sku_name            = var.app_service_sku_name_azure_proxy
   tags                = var.common_tags
   lifecycle {
     ignore_changes = [tags]
@@ -14,11 +14,11 @@ resource "random_password" "proxy_chisel_password" {
   special = false
 }
 
-resource "azurerm_linux_web_app" "azure_db_proxy" {
-  name                      = "${var.repo_name}-${var.app_env}-azure-db-proxy"
+resource "azurerm_linux_web_app" "azure_proxy" {
+  name                      = "${var.repo_name}-${var.app_env}-azure-proxy"
   resource_group_name       = var.resource_group_name
   location                  = var.location
-  service_plan_id           = azurerm_service_plan.azure_db_proxy_asp.id
+  service_plan_id           = azurerm_service_plan.azure_proxy_asp.id
   virtual_network_subnet_id = var.app_service_subnet_id
   https_only                = true
   identity {
@@ -31,7 +31,7 @@ resource "azurerm_linux_web_app" "azure_db_proxy" {
     health_check_path                       = "/healthz"
     health_check_eviction_time_in_min       = 2
     application_stack {
-      docker_image_name   = var.azure_db_proxy_image
+      docker_image_name   = var.azure_proxy_image
       docker_registry_url = var.container_registry_url
     }
     ftps_state         = "Disabled"
@@ -67,9 +67,9 @@ resource "azurerm_linux_web_app" "azure_db_proxy" {
   }
 
 }
-resource "azurerm_monitor_diagnostic_setting" "azure_db_proxy_diagnostics" {
-  name                       = "${var.app_name}-azure-db-proxy-diagnostics"
-  target_resource_id         = azurerm_linux_web_app.azure_db_proxy.id
+resource "azurerm_monitor_diagnostic_setting" "azure_proxy_diagnostics" {
+  name                       = "${var.app_name}-azure-proxy-diagnostics"
+  target_resource_id         = azurerm_linux_web_app.azure_proxy.id
   log_analytics_workspace_id = var.log_analytics_workspace_id
   enabled_log {
     category = "AppServiceHTTPLogs"

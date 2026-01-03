@@ -87,6 +87,11 @@ resource "azurerm_private_endpoint" "containerapps" {
 # -----------------------------------------------------------------------------
 # Backend Container App - API Service Only
 # -----------------------------------------------------------------------------
+locals {
+  postgres_password_kv_secret_id = try(trimspace(var.postgres_password_key_vault_secret_id), "")
+  use_kv_postgres_password       = local.postgres_password_kv_secret_id != ""
+}
+
 resource "azurerm_container_app" "backend" {
   name                         = "${var.app_name}-api"
   container_app_environment_id = azurerm_container_app_environment.main.id
@@ -98,9 +103,21 @@ resource "azurerm_container_app" "backend" {
     type = var.enable_system_assigned_identity ? "SystemAssigned" : "None"
   }
 
-  secret {
-    name  = "postgres-password"
-    value = var.db_master_password
+  dynamic "secret" {
+    for_each = local.use_kv_postgres_password ? [1] : []
+    content {
+      name                = "postgres-password"
+      identity            = "System"
+      key_vault_secret_id = local.postgres_password_kv_secret_id
+    }
+  }
+
+  dynamic "secret" {
+    for_each = local.use_kv_postgres_password ? [] : [1]
+    content {
+      name  = "postgres-password"
+      value = var.db_master_password
+    }
   }
 
   secret {
@@ -249,6 +266,14 @@ resource "azurerm_container_app" "backend" {
 
 
   depends_on = [azurerm_container_app_environment.main]
+}
+
+resource "azurerm_role_assignment" "backend_container_app_kv_secrets_user" {
+  for_each = local.use_kv_postgres_password ? { kv = true } : {}
+
+  scope                = var.key_vault_id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_container_app.backend.identity[0].principal_id
 }
 
 resource "azurerm_monitor_diagnostic_setting" "container_app_env_diagnostics" {

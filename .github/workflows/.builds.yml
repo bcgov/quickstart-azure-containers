@@ -19,7 +19,14 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        package: [backend, migrations, frontend, azure-db-proxy, http-client/proxy/privoxy]
+        package:
+          [
+            backend,
+            migrations,
+            frontend,
+            azure-proxy/chisel,
+            azure-proxy/privoxy,
+          ]
     timeout-minutes: 10
     steps:
       - uses: bcgov/action-builder-ghcr@v4.2.1

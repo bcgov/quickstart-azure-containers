@@ -198,6 +198,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Terraform provider schema dump (local troubleshooting artifact)
+infra/.tmp_provider_schema.json
+
 # C extensions
 
 # Distribution / packaging

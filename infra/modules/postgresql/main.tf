@@ -1,8 +1,3 @@
-
-resource "random_password" "postgres_master_password" {
-  length  = 16
-  special = true
-}
 # PostgreSQL Flexible Server
 resource "azurerm_postgresql_flexible_server" "postgresql" {
   name                = "${var.app_name}-postgresql"
@@ -10,7 +5,7 @@ resource "azurerm_postgresql_flexible_server" "postgresql" {
   location            = var.location
 
   administrator_login    = var.postgresql_admin_username
-  administrator_password = random_password.postgres_master_password.result
+  administrator_password = var.postgresql_admin_password
 
   sku_name              = var.postgresql_sku_name
   version               = var.postgres_version

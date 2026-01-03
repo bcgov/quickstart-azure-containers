@@ -150,3 +150,21 @@ variable "log_analytics_workspace_key" {
   sensitive   = true
   nullable    = false
 }
+
+variable "key_vault_id" {
+  description = "Resource ID of the Key Vault used for secret references"
+  type        = string
+  nullable    = false
+}
+
+variable "postgres_password_key_vault_secret_id" {
+  description = "Optional Key Vault secret ID (id or versionless_id) for POSTGRES_PASSWORD. When set, Container Apps will reference Key Vault instead of storing the secret value."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.postgres_password_key_vault_secret_id == null || var.enable_system_assigned_identity
+    error_message = "postgres_password_key_vault_secret_id requires enable_system_assigned_identity = true so the Container App can access Key Vault."
+  }
+}

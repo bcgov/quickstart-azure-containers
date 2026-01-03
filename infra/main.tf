@@ -41,6 +41,19 @@ module "monitoring" {
   depends_on = [azurerm_resource_group.main, module.network]
 }
 
+module "kv" {
+  source = "./modules/kv"
+
+  app_name                   = var.app_name
+  location                   = var.location
+  resource_group_name        = azurerm_resource_group.main.name
+  common_tags                = var.common_tags
+  tenant_id                  = var.tenant_id
+  private_endpoint_subnet_id = module.network.private_endpoint_subnet_id
+
+  depends_on = [azurerm_resource_group.main, module.network]
+}
+
 module "postgresql" {
   source = "./modules/postgresql"
 
@@ -67,6 +80,7 @@ module "postgresql" {
   pg_stat_statements_max        = var.postgres_pg_stat_statements_max
   postgres_version              = var.postgres_version
   postgresql_admin_username     = var.postgresql_admin_username
+  postgresql_admin_password     = module.kv.postgres_admin_password
   postgresql_sku_name           = var.postgres_sku_name
   postgresql_storage_mb         = var.postgres_storage_mb
   postgres_alert_emails         = var.postgres_alert_emails
@@ -78,7 +92,7 @@ module "postgresql" {
   track_io_timing               = var.postgres_track_io_timing
   zone                          = var.postgres_zone
 
-  depends_on = [module.network, module.monitoring]
+  depends_on = [module.network, module.monitoring, module.kv]
 }
 
 
@@ -131,11 +145,11 @@ module "flyway" {
   log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
   postgres_host                = module.postgresql.postgres_host
   postgresql_admin_username    = var.postgresql_admin_username
-  db_master_password           = module.postgresql.db_master_password
+  db_master_password           = module.kv.postgres_admin_password
   resource_group_name          = azurerm_resource_group.main.name
   dns_servers                  = module.network.dns_servers
 
-  depends_on = [module.network, module.postgresql]
+  depends_on = [module.network, module.postgresql, module.kv]
 }
 module "backend" {
   count  = var.enable_app_service_backend ? 1 : 0
@@ -151,7 +165,9 @@ module "backend" {
   backend_subnet_id                       = module.network.app_service_subnet_id
   common_tags                             = var.common_tags
   database_name                           = var.database_name
-  db_master_password                      = module.postgresql.db_master_password
+  db_master_password                      = module.kv.postgres_admin_password
+  key_vault_id                            = module.kv.key_vault_id
+  postgres_password_key_vault_secret_uri  = module.kv.postgres_admin_password_secret_uri
   enable_frontdoor                        = var.enable_frontdoor
   frontend_frontdoor_resource_guid        = var.enable_frontdoor ? module.frontdoor[0].frontdoor_resource_guid : null
   frontend_possible_outbound_ip_addresses = var.enable_app_service_frontend ? module.frontend[0].possible_outbound_ip_addresses : ""
@@ -162,7 +178,7 @@ module "backend" {
   repo_name                               = var.repo_name
   resource_group_name                     = azurerm_resource_group.main.name
 
-  depends_on = [module.frontend]
+  depends_on = [module.frontend, module.kv]
 }
 
 # API Management Module (optional)
@@ -202,32 +218,34 @@ module "container_apps" {
   count  = var.enable_container_apps ? 1 : 0
   source = "./modules/container-apps"
 
-  app_name                            = var.app_name
-  app_env                             = var.app_env
-  location                            = var.location
-  resource_group_name                 = azurerm_resource_group.main.name
-  common_tags                         = var.common_tags
-  container_apps_subnet_id            = module.network.container_apps_subnet_id
-  log_analytics_workspace_id          = module.monitoring.log_analytics_workspace_id
-  backend_image                       = var.api_image
-  database_name                       = var.database_name
-  postgres_host                       = module.postgresql.postgres_host
-  postgresql_admin_username           = var.postgresql_admin_username
-  db_master_password                  = module.postgresql.db_master_password
-  appinsights_connection_string       = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key     = module.monitoring.appinsights_instrumentation_key
-  app_service_frontend_url            = var.enable_app_service_frontend && length(module.frontend) > 0 ? module.frontend[0].frontend_url : ""
-  container_cpu                       = var.container_apps_cpu
-  container_memory                    = var.container_apps_memory
-  min_replicas                        = var.container_apps_min_replicas
-  max_replicas                        = var.container_apps_max_replicas
-  migrations_image                    = var.flyway_image
-  private_endpoint_subnet_id          = module.network.private_endpoint_subnet_id
-  enable_system_assigned_identity     = true
-  log_analytics_workspace_customer_id = module.monitoring.log_analytics_workspace_workspaceId
-  log_analytics_workspace_key         = module.monitoring.log_analytics_workspace_key
+  app_name                              = var.app_name
+  app_env                               = var.app_env
+  location                              = var.location
+  resource_group_name                   = azurerm_resource_group.main.name
+  common_tags                           = var.common_tags
+  container_apps_subnet_id              = module.network.container_apps_subnet_id
+  log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
+  backend_image                         = var.api_image
+  database_name                         = var.database_name
+  postgres_host                         = module.postgresql.postgres_host
+  postgresql_admin_username             = var.postgresql_admin_username
+  db_master_password                    = module.kv.postgres_admin_password
+  key_vault_id                          = module.kv.key_vault_id
+  postgres_password_key_vault_secret_id = module.kv.postgres_admin_password_secret_uri
+  appinsights_connection_string         = module.monitoring.appinsights_connection_string
+  appinsights_instrumentation_key       = module.monitoring.appinsights_instrumentation_key
+  app_service_frontend_url              = var.enable_app_service_frontend && length(module.frontend) > 0 ? module.frontend[0].frontend_url : ""
+  container_cpu                         = var.container_apps_cpu
+  container_memory                      = var.container_apps_memory
+  min_replicas                          = var.container_apps_min_replicas
+  max_replicas                          = var.container_apps_max_replicas
+  migrations_image                      = var.flyway_image
+  private_endpoint_subnet_id            = module.network.private_endpoint_subnet_id
+  enable_system_assigned_identity       = true
+  log_analytics_workspace_customer_id   = module.monitoring.log_analytics_workspace_workspaceId
+  log_analytics_workspace_key           = module.monitoring.log_analytics_workspace_key
 
-  depends_on = [module.network, module.monitoring, module.postgresql, module.frontend]
+  depends_on = [module.network, module.monitoring, module.postgresql, module.frontend, module.kv]
 }
 
 module "aci" {
@@ -246,22 +264,22 @@ module "aci" {
   depends_on = [module.network, module.monitoring, module.postgresql]
 }
 
-module "azure_db_proxy" {
-  source = "./modules/azure-db-proxy"
-  count  = var.enable_azure_db_proxy ? 1 : 0
+module "azure_proxy" {
+  source = "./modules/azure-proxy"
+  count  = var.enable_azure_proxy ? 1 : 0
 
-  app_env                             = var.app_env
-  app_name                            = var.app_name
-  app_service_sku_name_azure_db_proxy = var.app_service_sku_name_azure_db_proxy
-  app_service_subnet_id               = module.network.app_service_subnet_id
-  appinsights_connection_string       = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key     = module.monitoring.appinsights_instrumentation_key
-  azure_db_proxy_image                = var.azure_db_proxy_image
-  common_tags                         = var.common_tags
-  location                            = var.location
-  log_analytics_workspace_id          = module.monitoring.log_analytics_workspace_id
-  repo_name                           = var.repo_name
-  resource_group_name                 = azurerm_resource_group.main.name
+  app_env                          = var.app_env
+  app_name                         = var.app_name
+  app_service_sku_name_azure_proxy = var.app_service_sku_name_azure_proxy
+  app_service_subnet_id            = module.network.app_service_subnet_id
+  appinsights_connection_string    = module.monitoring.appinsights_connection_string
+  appinsights_instrumentation_key  = module.monitoring.appinsights_instrumentation_key
+  azure_proxy_image                = var.azure_proxy_image
+  common_tags                      = var.common_tags
+  location                         = var.location
+  log_analytics_workspace_id       = module.monitoring.log_analytics_workspace_id
+  repo_name                        = var.repo_name
+  resource_group_name              = azurerm_resource_group.main.name
 
   depends_on = [module.monitoring, module.network]
 }

@@ -12,6 +12,12 @@ resource "azurerm_service_plan" "backend" {
 }
 
 # Backend App Service
+locals {
+  postgres_password_kv_secret_uri = try(trimspace(var.postgres_password_key_vault_secret_uri), "")
+  use_kv_postgres_password        = local.postgres_password_kv_secret_uri != ""
+  postgres_password_setting       = local.use_kv_postgres_password ? "@Microsoft.KeyVault(SecretUri=${local.postgres_password_kv_secret_uri})" : var.db_master_password
+}
+
 resource "azurerm_linux_web_app" "backend" {
   name                      = "${var.repo_name}-${var.app_env}-api"
   resource_group_name       = var.resource_group_name
@@ -85,7 +91,7 @@ resource "azurerm_linux_web_app" "backend" {
     APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
     POSTGRES_HOST                         = var.postgres_host
     POSTGRES_USER                         = var.postgresql_admin_username
-    POSTGRES_PASSWORD                     = var.db_master_password
+    POSTGRES_PASSWORD                     = local.postgres_password_setting
     POSTGRES_DATABASE                     = var.database_name
     WEBSITE_SKIP_RUNNING_KUDUAGENT        = "false"
     WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
@@ -105,6 +111,14 @@ resource "azurerm_linux_web_app" "backend" {
   lifecycle {
     ignore_changes = [tags]
   }
+}
+
+resource "azurerm_role_assignment" "backend_webapp_kv_secrets_user" {
+  for_each = local.use_kv_postgres_password ? { kv = true } : {}
+
+  scope                = var.key_vault_id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_linux_web_app.backend.identity[0].principal_id
 }
 
 # Backend Autoscaler
