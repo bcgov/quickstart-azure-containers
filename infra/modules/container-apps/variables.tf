@@ -168,3 +168,15 @@ variable "postgres_password_key_vault_secret_id" {
     error_message = "postgres_password_key_vault_secret_id requires enable_system_assigned_identity = true so the Container App can access Key Vault."
   }
 }
+
+variable "enable_postgres_password_kv_reference" {
+  description = "Enable Key Vault secret reference for postgres-password and grant the Container App managed identity access to Key Vault secrets."
+  type        = bool
+  default     = false
+  nullable    = false
+
+  validation {
+    condition     = !var.enable_postgres_password_kv_reference || var.enable_system_assigned_identity
+    error_message = "enable_postgres_password_kv_reference requires enable_system_assigned_identity = true so the Container App can access Key Vault."
+  }
+}

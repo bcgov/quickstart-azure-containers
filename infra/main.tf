@@ -168,6 +168,7 @@ module "backend" {
   db_master_password                      = module.kv.postgres_admin_password
   key_vault_id                            = module.kv.key_vault_id
   postgres_password_key_vault_secret_uri  = module.kv.postgres_admin_password_secret_uri
+  enable_postgres_password_kv_reference   = true
   enable_frontdoor                        = var.enable_frontdoor
   frontend_frontdoor_resource_guid        = var.enable_frontdoor ? module.frontdoor[0].frontdoor_resource_guid : null
   frontend_possible_outbound_ip_addresses = var.enable_app_service_frontend ? module.frontend[0].possible_outbound_ip_addresses : ""
@@ -232,6 +233,7 @@ module "container_apps" {
   db_master_password                    = module.kv.postgres_admin_password
   key_vault_id                          = module.kv.key_vault_id
   postgres_password_key_vault_secret_id = module.kv.postgres_admin_password_secret_uri
+  enable_postgres_password_kv_reference = true
   appinsights_connection_string         = module.monitoring.appinsights_connection_string
   appinsights_instrumentation_key       = module.monitoring.appinsights_instrumentation_key
   app_service_frontend_url              = var.enable_app_service_frontend && length(module.frontend) > 0 ? module.frontend[0].frontend_url : ""

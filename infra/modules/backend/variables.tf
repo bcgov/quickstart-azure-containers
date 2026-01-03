@@ -91,6 +91,13 @@ variable "postgres_password_key_vault_secret_uri" {
   nullable    = true
 }
 
+variable "enable_postgres_password_kv_reference" {
+  description = "Enable Key Vault reference for POSTGRES_PASSWORD and grant the web app managed identity access to Key Vault secrets."
+  type        = bool
+  default     = false
+  nullable    = false
+}
+
 
 variable "frontend_frontdoor_resource_guid" {
   description = "The resource GUID for the Front Door service associated with the frontend App Service."

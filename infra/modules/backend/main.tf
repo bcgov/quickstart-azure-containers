@@ -14,7 +14,7 @@ resource "azurerm_service_plan" "backend" {
 # Backend App Service
 locals {
   postgres_password_kv_secret_uri = try(trimspace(var.postgres_password_key_vault_secret_uri), "")
-  use_kv_postgres_password        = local.postgres_password_kv_secret_uri != ""
+  use_kv_postgres_password        = var.enable_postgres_password_kv_reference
   postgres_password_setting       = local.use_kv_postgres_password ? "@Microsoft.KeyVault(SecretUri=${local.postgres_password_kv_secret_uri})" : var.db_master_password
 }
 
@@ -114,7 +114,7 @@ resource "azurerm_linux_web_app" "backend" {
 }
 
 resource "azurerm_role_assignment" "backend_webapp_kv_secrets_user" {
-  for_each = local.use_kv_postgres_password ? { kv = true } : {}
+  count = local.use_kv_postgres_password ? 1 : 0
 
   scope                = var.key_vault_id
   role_definition_name = "Key Vault Secrets User"

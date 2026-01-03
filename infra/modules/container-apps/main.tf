@@ -89,7 +89,7 @@ resource "azurerm_private_endpoint" "containerapps" {
 # -----------------------------------------------------------------------------
 locals {
   postgres_password_kv_secret_id = try(trimspace(var.postgres_password_key_vault_secret_id), "")
-  use_kv_postgres_password       = local.postgres_password_kv_secret_id != ""
+  use_kv_postgres_password       = var.enable_postgres_password_kv_reference
 }
 
 resource "azurerm_container_app" "backend" {
@@ -269,7 +269,7 @@ resource "azurerm_container_app" "backend" {
 }
 
 resource "azurerm_role_assignment" "backend_container_app_kv_secrets_user" {
-  for_each = local.use_kv_postgres_password ? { kv = true } : {}
+  count = local.use_kv_postgres_password ? 1 : 0
 
   scope                = var.key_vault_id
   role_definition_name = "Key Vault Secrets User"
