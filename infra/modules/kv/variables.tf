@@ -64,7 +64,7 @@ variable "key_vault_soft_delete_retention_days" {
 }
 
 variable "key_vault_purge_protection_enabled" {
-  description = "Enable purge protection (may be enforced by policy in Landing Zones)"
+  description = "Enable purge protection on Key Vault"
   type        = bool
-  default     = false
+  default     = true
 }
