@@ -59,51 +59,52 @@ jobs:
         shell: bash
         run: chmod +x ./infra/deploy-terraform.sh
 
-      - name: Image Tags
-        id: image-tags
+      - name: Populate Environment Variables
         shell: bash
         run: |
-          API_IMAGE="ghcr.io/${{ github.repository }}/backend:${{ inputs.tag }}"
-          FLYWAY_IMAGE="ghcr.io/${{ github.repository }}/migrations:${{ inputs.tag }}"
-          FRONTEND_IMAGE="ghcr.io/${{ github.repository }}/frontend:${{ inputs.tag }}"
-          AZURE_DB_PROXY_IMAGE="ghcr.io/${{ github.repository }}/azure-db-proxy:${{ inputs.tag }}"
-          echo "api-image=$API_IMAGE" >> $GITHUB_OUTPUT
-          echo "flyway-image=$FLYWAY_IMAGE" >> $GITHUB_OUTPUT
-          echo "frontend-image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
-          echo "azure-db-proxy-image=$AZURE_DB_PROXY_IMAGE" >> $GITHUB_OUTPUT
-      - name: Deploy
+          set -euo pipefail
+
+          echo "CI=true" >> "$GITHUB_ENV"
+          echo "ARM_USE_OIDC=true" >> "$GITHUB_ENV"
+
+          echo "BACKEND_RESOURCE_GROUP=${{ secrets.VNET_RESOURCE_GROUP_NAME }}" >> "$GITHUB_ENV"
+          echo "BACKEND_STORAGE_ACCOUNT=${{ vars.STORAGE_ACCOUNT_NAME }}" >> "$GITHUB_ENV"
+          echo "BACKEND_CONTAINER_NAME=tfstate" >> "$GITHUB_ENV"
+          echo "BACKEND_STATE_KEY=${{ inputs.stack_prefix }}/${{ inputs.app_env }}/terraform.tfstate" >> "$GITHUB_ENV"
+
+          echo "TF_VAR_target_env=${{ inputs.environment_name }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_azure_subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_azure_tenant_id=${{ secrets.AZURE_TENANT_ID }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_azure_client_id=${{ secrets.AZURE_CLIENT_ID }}" >> "$GITHUB_ENV"
+
+          echo "TF_VAR_subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_tenant_id=${{ secrets.AZURE_TENANT_ID }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_client_id=${{ secrets.AZURE_CLIENT_ID }}" >> "$GITHUB_ENV"
+
+          echo "TF_VAR_vnet_resource_group_name=${{ secrets.VNET_RESOURCE_GROUP_NAME }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_vnet_name=${{ secrets.VNET_NAME }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_vnet_address_space=${{ secrets.VNET_ADDRESS_SPACE }}" >> "$GITHUB_ENV"
+
+          echo "TF_VAR_flyway_image=ghcr.io/${{ github.repository }}/migrations:${{ inputs.tag }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_api_image=ghcr.io/${{ github.repository }}/backend:${{ inputs.tag }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_frontend_image=ghcr.io/${{ github.repository }}/frontend:${{ inputs.tag }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_azure_proxy_image=ghcr.io/${{ github.repository }}/azure-proxy/chisel:${{ inputs.tag }}" >> "$GITHUB_ENV"
+
+          echo "TF_VAR_stack_prefix=${{ inputs.stack_prefix }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_app_env=${{ inputs.app_env }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_app_name=${{ inputs.stack_prefix }}-${{ inputs.app_env }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_location=${{ env.AZURE_REGION }}" >> "$GITHUB_ENV"
+
+          echo "TF_VAR_use_oidc=true" >> "$GITHUB_ENV"
+          echo "TF_VAR_repo_name=${{ github.event.repository.name }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_resource_group_name=${{ github.event.repository.name }}-${{ inputs.app_env }}" >> "$GITHUB_ENV"
+
+          echo "TF_VAR_common_tags<<EOF" >> "$GITHUB_ENV"
+          echo '{"environment":"${{ inputs.environment_name }}","stack_prefix":"${{ inputs.stack_prefix }}","app_env":"${{ inputs.app_env }}","repo_name":"${{ github.event.repository.name }}"}' >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+
+      - name: Terraform ${{ inputs.command }}
         shell: bash
         working-directory: infra
-        env:
-          CI: true
-          ARM_USE_OIDC: true
-          BACKEND_RESOURCE_GROUP: ${{ secrets.VNET_RESOURCE_GROUP_NAME }}
-          BACKEND_STORAGE_ACCOUNT: ${{ vars.STORAGE_ACCOUNT_NAME }}
-          BACKEND_CONTAINER_NAME: tfstate
-          BACKEND_STATE_KEY: ${{ inputs.stack_prefix }}/${{ inputs.app_env }}/terraform.tfstate
-
-          TF_VAR_target_env: ${{ inputs.environment_name }}
-          TF_VAR_azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          TF_VAR_azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-          TF_VAR_vnet_resource_group_name: ${{ secrets.VNET_RESOURCE_GROUP_NAME }}
-          TF_VAR_vnet_name: ${{ secrets.VNET_NAME }}
-          TF_VAR_flyway_image: ${{ steps.image-tags.outputs.flyway-image }}
-          TF_VAR_api_image: ${{ steps.image-tags.outputs.api-image }}
-          TF_VAR_azure_db_proxy_image: ${{ steps.image-tags.outputs.azure-db-proxy-image }}
-          TF_VAR_stack_prefix: ${{ inputs.stack_prefix }}
-          TF_VAR_azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-          TF_VAR_repo_name: ${{ github.event.repository.name }}
-          TF_VAR_frontend_image: ${{ steps.image-tags.outputs.frontend-image }}
-          TF_VAR_app_env: ${{ inputs.app_env }}
-          TF_VAR_app_name: ${{ inputs.stack_prefix }}-${{ inputs.app_env }}
-          TF_VAR_location: ${{ env.AZURE_REGION }}
-          TF_VAR_vnet_address_space: ${{ secrets.VNET_ADDRESS_SPACE }}
-          TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-          TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-          TF_VAR_use_oidc: true
-          TF_VAR_resource_group_name: ${{ github.event.repository.name }}-${{ inputs.app_env }}
-          TF_VAR_common_tags: >-
-            {"environment":"${{ inputs.environment_name }}","stack_prefix":"${{ inputs.stack_prefix }}","app_env":"${{ inputs.app_env }}","repo_name":"${{ github.event.repository.name }}"}
         run: |
           ./deploy-terraform.sh ${{ inputs.command }} -var-file=${{ inputs.environment_name }}.tfvars
