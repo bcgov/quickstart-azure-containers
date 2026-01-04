@@ -378,34 +378,20 @@ tf_plan() {
 }
 
 extract_import_target_from_tf_output() {
-    # Extracts a single import target from Terraform output.
-    # Prints: <resource_address>\t<azure_resource_id>
-    # Returns:
-    #   0 if an import target is found
-    #   1 otherwise
+    # Wrapper around the external script for extracting import targets.
+    # See scripts/extract-import-target.sh for implementation and
+    # scripts/extract-import-target.test.sh for test cases.
     local tf_output_file="$1"
+    local script_path="${INFRA_DIR}/scripts/extract-import-target.sh"
 
-    # Check if this is an "already exists" error
-    if ! grep -q "already exists" "$tf_output_file"; then
-        return 1
+    if [[ -x "$script_path" ]]; then
+        "$script_path" "$tf_output_file"
+    else
+        # Fallback: source the script and call the function directly
+        # shellcheck source=scripts/extract-import-target.sh
+        source "$script_path"
+        extract_import_target "$tf_output_file"
     fi
-
-    # Extract the Terraform resource address from "with <address>," line
-    # Example: │   with module.frontend[0].azurerm_linux_web_app.frontend,
-    local resource_addr
-    resource_addr=$(grep -oE 'with [^,]+,' "$tf_output_file" | head -1 | sed 's/^with //; s/,$//')
-
-    # Extract the Azure resource ID - look for quoted strings starting with /subscriptions/
-    # Example: "/subscriptions/.../providers/Microsoft.Web/sites/..."
-    local resource_id
-    resource_id=$(grep -oE '"/subscriptions/[^"]+"|^/subscriptions/[^"[:space:]]+' "$tf_output_file" | head -1 | tr -d '"')
-
-    if [[ -n "$resource_addr" && -n "$resource_id" ]]; then
-        echo "${resource_addr}	${resource_id}"
-        return 0
-    fi
-
-    return 1
 }
 
 tf_import_existing_resource_if_needed() {
