@@ -385,58 +385,27 @@ extract_import_target_from_tf_output() {
     #   1 otherwise
     local tf_output_file="$1"
 
-    # Terraform wraps long error messages across multiple lines with box-drawing
-    # characters (│). We need to:
-    # 1. Strip the box-drawing prefixes
-    # 2. Join continuation lines
-    # 3. Then parse the "already exists" error pattern
-    awk '
-        BEGIN {
-            last_with = ""
-            in_error_block = 0
-            error_text = ""
-        }
-        {
-            # Strip leading box-drawing characters and whitespace
-            line = $0
-            gsub(/^[│├└─ \t]+/, "", line)
-            gsub(/[ \t]+$/, "", line)
+    # Check if this is an "already exists" error
+    if ! grep -q "already exists" "$tf_output_file"; then
+        return 1
+    fi
 
-            # Track the most recent "with <address>," context line.
-            if (match(line, /with [^,]+,/)) {
-                last_with = substr(line, RSTART + 5, RLENGTH - 6)
-            }
+    # Extract the Terraform resource address from "with <address>," line
+    # Example: │   with module.frontend[0].azurerm_linux_web_app.frontend,
+    local resource_addr
+    resource_addr=$(grep -oE 'with [^,]+,' "$tf_output_file" | head -1 | sed 's/^with //; s/,$//')
 
-            # Detect start of "already exists" error block
-            if (index(line, "Error: a resource with the ID") > 0) {
-                in_error_block = 1
-                error_text = line
-                next
-            }
+    # Extract the Azure resource ID - look for quoted strings starting with /subscriptions/
+    # Example: "/subscriptions/.../providers/Microsoft.Web/sites/..."
+    local resource_id
+    resource_id=$(grep -oE '"/subscriptions/[^"]+"|^/subscriptions/[^"[:space:]]+' "$tf_output_file" | head -1 | tr -d '"')
 
-            # Continue accumulating error block lines until we see "already exists"
-            if (in_error_block) {
-                error_text = error_text " " line
-                
-                # Check if we have the complete error now
-                if (index(error_text, "already exists") > 0) {
-                    in_error_block = 0
-                    
-                    # Extract the resource ID from the accumulated text
-                    # Pattern: Error: a resource with the ID "..." already exists
-                    if (match(error_text, /"[^"]+"/)) {
-                        rid = substr(error_text, RSTART + 1, RLENGTH - 2)
-                        if (length(last_with) > 0 && length(rid) > 0) {
-                            print last_with "\t" rid
-                            exit 0
-                        }
-                    }
-                    error_text = ""
-                }
-            }
-        }
-        END { exit 1 }
-    ' "$tf_output_file"
+    if [[ -n "$resource_addr" && -n "$resource_id" ]]; then
+        echo "${resource_addr}	${resource_id}"
+        return 0
+    fi
+
+    return 1
 }
 
 tf_import_existing_resource_if_needed() {
