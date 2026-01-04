@@ -10,6 +10,6 @@ output "postgres_host" {
 
 output "db_master_password" {
   description = "The password for the PostgreSQL admin user."
-  value       = random_password.postgres_master_password.result
+  value       = var.postgresql_admin_password
   sensitive   = true
 }

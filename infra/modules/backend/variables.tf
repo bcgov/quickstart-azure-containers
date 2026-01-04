@@ -78,6 +78,26 @@ variable "db_master_password" {
   nullable    = false
 }
 
+variable "key_vault_id" {
+  description = "Resource ID of the Key Vault used for Key Vault references"
+  type        = string
+  nullable    = false
+}
+
+variable "postgres_password_key_vault_secret_uri" {
+  description = "Optional Key Vault secret URI (versioned or versionless) for POSTGRES_PASSWORD. When set, App Service will use a Key Vault reference instead of storing the secret value."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "enable_postgres_password_kv_reference" {
+  description = "Enable Key Vault reference for POSTGRES_PASSWORD and grant the web app managed identity access to Key Vault secrets."
+  type        = bool
+  default     = false
+  nullable    = false
+}
+
 
 variable "frontend_frontdoor_resource_guid" {
   description = "The resource GUID for the Front Door service associated with the frontend App Service."

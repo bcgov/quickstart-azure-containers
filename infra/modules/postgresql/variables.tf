@@ -158,6 +158,13 @@ variable "postgresql_admin_username" {
   default     = "pgadmin"
 }
 
+variable "postgresql_admin_password" {
+  description = "Administrator password for PostgreSQL server"
+  type        = string
+  sensitive   = true
+  nullable    = false
+}
+
 variable "postgresql_sku_name" {
   description = "SKU name for PostgreSQL Flexible Server"
   type        = string

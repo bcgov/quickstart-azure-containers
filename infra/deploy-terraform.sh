@@ -378,38 +378,20 @@ tf_plan() {
 }
 
 extract_import_target_from_tf_output() {
-    # Extracts a single import target from Terraform output.
-    # Prints: <resource_address>\t<azure_resource_id>
-    # Returns:
-    #   0 if an import target is found
-    #   1 otherwise
+    # Wrapper around the external script for extracting import targets.
+    # See scripts/extract-import-target.sh for implementation and
+    # scripts/extract-import-target.test.sh for test cases.
     local tf_output_file="$1"
+    local script_path="${INFRA_DIR}/scripts/extract-import-target.sh"
 
-    awk '
-        {
-            line = $0
-            # Track the most recent "with <address>," context line.
-            # Terraform often prefixes these lines with box-drawing characters.
-            if (match(line, /with [^,]+,/)) {
-                last_with = substr(line, RSTART + 5, RLENGTH - 6)
-            }
-
-            # Detect the common "already exists - needs to be imported" error and extract the ID.
-            if (index(line, "Error: a resource with the ID \"") > 0 && index(line, "\" already exists") > 0) {
-                start = index(line, "Error: a resource with the ID \"") + length("Error: a resource with the ID \"")
-                rest = substr(line, start)
-                end = index(rest, "\" already exists")
-                if (end > 0) {
-                    rid = substr(rest, 1, end - 1)
-                    if (length(last_with) > 0 && length(rid) > 0) {
-                        print last_with "\t" rid
-                        exit 0
-                    }
-                }
-            }
-        }
-        END { exit 1 }
-    ' "$tf_output_file"
+    if [[ -x "$script_path" ]]; then
+        "$script_path" "$tf_output_file"
+    else
+        # Fallback: source the script and call the function directly
+        # shellcheck source=scripts/extract-import-target.sh
+        source "$script_path"
+        extract_import_target "$tf_output_file"
+    fi
 }
 
 tf_import_existing_resource_if_needed() {
