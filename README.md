@@ -67,9 +67,13 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 │   ├── backend.tf             # Remote state configuration (optional)
 │   ├── .tflint.hcl            # Terraform linter config
 │   ├── deploy-terraform.sh    # Deployment helper script
+│   ├── scripts/               # Utility scripts for Terraform operations
+│   │   ├── extract-import-target.sh      # Extract Terraform import targets
+│   │   └── extract-import-target.test.sh # Test suite for import extraction
 │   └── modules/               # Reusable infrastructure modules
 │       ├── aci/               # Azure Container Instances (optional)
 │       ├── apim/              # API Management (optional)
+│       ├── azure-proxy/       # Secure tunnel proxy (Chisel + Privoxy)
 │       ├── backend/           # App Service for NestJS API
 │       ├── container-apps/    # Container Apps
 │       ├── flyway/            # Flyway database migrations
@@ -147,7 +151,16 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 ├── CONTRIBUTING.md            # Contribution guidelines
 ├── SECURITY.md                # Security guidelines
 ├── GHA.md                     # GitHub Actions documentation
-├── docker-compose.yml         # Local development stack (PostgreSQL 17 + services)
+├── azure-proxy/               # Secure tunnel proxy for local development
+│   ├── chisel/                # Chisel tunnel server for secure remote connections
+│   │   ├── Dockerfile         # Multi-stage Docker build for Chisel
+│   │   ├── start-chisel.sh    # Startup script with health checks and retry logic
+│   │   ├── healthz.json       # Health check endpoint response
+│   │   └── README.md          # Chisel proxy documentation
+│   └── privoxy/               # HTTP-to-SOCKS proxy bridge for private endpoints
+│       ├── Dockerfile         # Minimal Alpine-based Privoxy image
+│       ├── docker-entrypoint.sh # Dynamic Privoxy config generation
+│       └── README.md          # Privoxy bridge documentation
 ├── initial-azure-setup.sh     # Azure setup automation (OIDC, service principal)
 ├── package.json               # Monorepo root (ESLint, Prettier)
 ├── package-lock.json          # Dependency lock file
@@ -339,26 +352,16 @@ Access your local application:
 
 The repository includes comprehensive CI/CD workflows:
 
-#### Pull Request Workflow (`pr-open.yml`)
-```yaml
-# Triggered on: Pull Request creation
-# Actions:
-# 1. Build and test frontend/backend containers
-# 2. Run security scans and linting
-# 3. Plan Terraform infrastructure changes
-# 4. Ability to manually deploy for testing to tools
-# 5. Run end-to-end tests
-```
+#### Build Containers
 
-#### Merge to Main Workflow
-```yaml
-# Triggered on: Merge to main branch
-# Actions:
-# 1. Build and push production containers
-# 2. Deploy to staging environment
-# 3. Run full test suite
-# 4. Deploy to production (with approval)
-```
+The CI/CD pipeline builds the following container images:
+- **backend**: NestJS API server
+- **migrations**: Flyway database migration runner
+- **frontend**: React SPA with Caddy reverse proxy
+- **azure-proxy/chisel**: Secure tunnel server for private endpoint access
+- **azure-proxy/privoxy**: HTTP-to-SOCKS proxy bridge for local development tools
+
+These are built on every commit and tagged for deployment to your chosen environment.
 
 ### Manual Deployment
 
@@ -376,6 +379,54 @@ terragrunt apply
 ```
 
 ## 🗄️ Database Management
+
+### Azure Proxy for Secure Local Development
+
+The template now includes a **secure tunnel proxy** (`azure-proxy` module) that enables local development access to Azure private resources without exposing them to the public internet. It uses **Chisel** for HTTPS-based tunneling and **Privoxy** to bridge HTTP proxies to SOCKS connections.
+
+#### What It Provides
+
+- **Chisel Server** (`azure-proxy/chisel/`): Runs in Azure App Service as a reverse TCP/UDP tunnel over HTTPS
+- **Privoxy Bridge** (`azure-proxy/privoxy/`): Converts HTTP proxy requests to SOCKS5 for tools like VS Code REST Client and Postman
+- **Health Checks**: Built-in `/healthz` endpoint for monitoring
+- **Automatic Authentication**: Generates random Chisel auth tokens via Terraform
+
+#### Enabling the Proxy
+
+Set in your `terraform.tfvars`:
+
+```hcl
+enable_azure_proxy = true
+app_service_sku_name_azure_proxy = "B1"  # or higher
+```
+
+#### Local Development Workflow
+
+1. **Start Chisel SOCKS tunnel** to the Azure proxy server:
+   ```bash
+   docker run --rm -it -p 18080:1080 jpillora/chisel:latest client \
+     --auth "tunnel:<PASSWORD>" \
+     https://<your-chisel-server-url> \
+     0.0.0.0:1080:socks
+   ```
+
+2. **Run Privoxy bridge** to expose HTTP proxy:
+   ```bash
+   docker run --rm -d --name privoxy \
+     -p 127.0.0.1:8118:8118 \
+     -e SOCKS_HOST=host.docker.internal \
+     -e SOCKS_PORT=18080 \
+     local/privoxy-socks-bridge:latest
+   ```
+
+3. **Configure clients** (VS Code, Postman) to use `http://127.0.0.1:8118` as HTTP proxy
+
+4. **Access private resources** securely:
+   - Key Vault over private endpoints
+   - PostgreSQL database from local machine
+   - Other Azure PaaS services with private links
+
+For detailed setup instructions, see [azure-proxy/chisel/README.md](azure-proxy/chisel/README.md) and [azure-proxy/privoxy/README.md](azure-proxy/privoxy/README.md).
 
 ### Schema Migrations with Flyway
 
@@ -589,6 +640,37 @@ The GitHub Actions workflows include:
 ### Multi-Environment Setup
 
 The template supports multiple environments with GitHub Action Environments:
+
+#### Feature Flag Variables
+
+Key infrastructure feature toggles controlled in `terraform.tfvars` and environment-specific `.tfvars` files:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `enable_container_apps` | Deploy Container Apps alongside App Service | `false` |
+| `enable_frontdoor` | Deploy Azure Front Door for global distribution | `false` |
+| `enable_azure_proxy` | Deploy secure tunnel proxy for local dev access | `false` |
+| `enable_apim` | Deploy API Management for API gateway capabilities | `false` |
+| `enable_aci` | Deploy Azure Container Instances for background jobs | `false` |
+
+#### Environment-Specific Configuration
+
+Each environment (`dev.tfvars`, `test.tfvars`, `tools.tfvars`, `prod.tfvars`) can override defaults:
+
+```hcl
+# tools.tfvars - Development environment with all optional services
+app_service_sku_name_backend = "B1"
+enable_azure_proxy           = true
+```
+
+#### Terraform Module Variables
+
+Common variables passed to modules from the root:
+
+- `azure_proxy_image`: Container image for Chisel tunnel server
+- `app_service_sku_name_azure_proxy`: App Service plan tier for the proxy (B1, B2, B3, S1, etc.)
+- `use_oidc`: Enable OIDC authentication for service principals
+- All standard Azure variables (subscription_id, tenant_id, location, etc.)
 
 
 
