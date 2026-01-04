@@ -78,7 +78,7 @@ module "postgresql" {
   track_io_timing               = var.postgres_track_io_timing
   zone                          = var.postgres_zone
 
-  depends_on = [module.network, module.monitoring, module.kv]
+  depends_on = [module.network, module.monitoring]
 }
 
 
