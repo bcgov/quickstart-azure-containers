@@ -1,10 +1,10 @@
-# Azure Database Proxy
+# Azure Proxy
 
 A secure tunnel proxy for local development access to Azure PostgreSQL databases using [Chisel](https://github.com/jpillora/chisel). This service creates a reverse proxy that allows developers to securely connect to Azure-hosted PostgreSQL databases from their local machines without exposing the database to public internet access.
 
 ## Overview
 
-The Azure Database Proxy is built on Chisel, a fast TCP/UDP tunnel over HTTP. It provides:
+The Azure Proxy is built on Chisel, a fast TCP/UDP tunnel over HTTP. It provides:
 
 - **Secure tunneling**: HTTPS-based communication with mandatory authentication
 - **Local port forwarding**: Maps a local port to the remote Azure PostgreSQL database
@@ -23,7 +23,7 @@ HTTPS Connection
         ↓
 Azure Web App (Chisel Server)
         ↓
-Azure PostgreSQL Database
+Azure PostgreSQL
 ```
 
 ## Local Development Setup
@@ -76,7 +76,7 @@ Database: ${postgres_db}
 
 ### Infrastructure as Code (Terraform)
 
-The Azure Database Proxy is deployed as an Azure App Service using Terraform. Key resources:
+The Azure Proxy is deployed as an Azure App Service using Terraform. Key resources:
 
 - **App Service Plan**: Linux-based hosting for the proxy container
 - **Web App**: Runs the Chisel server container
