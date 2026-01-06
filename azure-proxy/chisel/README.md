@@ -55,7 +55,7 @@ docker run --rm -it -p 5462:5432 jpillora/chisel:latest client \
 - `https://${azure-db-proxy-app-service-url}`: The public URL of the Chisel server running in Azure, replace with actual URL
 - `0.0.0.0:5432:${postgres_hostname}:5432`: Forward all interfaces on port 5432 to the remote PostgreSQL database on port 5432, replace actual host
 
-#### Connecting to the Proxied DB
+#### Connecting to the Proxied Database
 
 Once the Chisel tunnel is running, connect to PostgreSQL using after replacing with actual values:
 
