@@ -1,10 +1,10 @@
-# Azure Database Proxy
+# Azure Proxy
 
 A secure tunnel proxy for local development access to Azure PostgreSQL databases using [Chisel](https://github.com/jpillora/chisel). This service creates a reverse proxy that allows developers to securely connect to Azure-hosted PostgreSQL databases from their local machines without exposing the database to public internet access.
 
 ## Overview
 
-The Azure Database Proxy is built on Chisel, a fast TCP/UDP tunnel over HTTP. It provides:
+The Azure Proxy is built on Chisel, a fast TCP/UDP tunnel over HTTP. It provides:
 
 - **Secure tunneling**: HTTPS-based communication with mandatory authentication
 - **Local port forwarding**: Maps a local port to the remote Azure PostgreSQL database
@@ -23,7 +23,7 @@ HTTPS Connection
         ↓
 Azure Web App (Chisel Server)
         ↓
-Azure PostgreSQL Database
+Azure PostgreSQL
 ```
 
 ## Local Development Setup
@@ -55,7 +55,7 @@ docker run --rm -it -p 5462:5432 jpillora/chisel:latest client \
 - `https://${azure-db-proxy-app-service-url}`: The public URL of the Chisel server running in Azure, replace with actual URL
 - `0.0.0.0:5432:${postgres_hostname}:5432`: Forward all interfaces on port 5432 to the remote PostgreSQL database on port 5432, replace actual host
 
-#### Connecting to the Proxied Database
+#### Connecting to the Proxied DB
 
 Once the Chisel tunnel is running, connect to PostgreSQL using after replacing with actual values:
 
@@ -76,7 +76,7 @@ Database: ${postgres_db}
 
 ### Infrastructure as Code (Terraform)
 
-The Azure Database Proxy is deployed as an Azure App Service using Terraform. Key resources:
+The Azure Proxy is deployed as an Azure App Service using Terraform. Key resources:
 
 - **App Service Plan**: Linux-based hosting for the proxy container
 - **Web App**: Runs the Chisel server container
@@ -203,7 +203,7 @@ The `start-chisel.sh` script orchestrates the startup:
 - Restrict inbound access using ip restriction on app service
 - Use HTTPS for all client connections to the proxy
 
-### Database Access
+### Access
 
 - The proxy does not store or log database credentials
 - PostgreSQL credentials are handled separately on the client side
