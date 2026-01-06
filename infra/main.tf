@@ -260,7 +260,6 @@ module "azure_proxy" {
   common_tags                      = var.common_tags
   location                         = var.location
   log_analytics_workspace_id       = module.monitoring.log_analytics_workspace_id
-  repo_name                        = var.repo_name
   resource_group_name              = azurerm_resource_group.main.name
 
   depends_on = [module.monitoring, module.network]

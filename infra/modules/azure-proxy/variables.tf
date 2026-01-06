@@ -53,11 +53,6 @@ variable "log_analytics_workspace_id" {
   nullable    = false
 }
 
-variable "repo_name" {
-  description = "The repository name, used for resource naming."
-  type        = string
-  nullable    = false
-}
 
 variable "resource_group_name" {
   description = "The name of the resource group in which to create resources."
