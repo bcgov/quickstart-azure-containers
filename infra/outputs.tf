@@ -27,7 +27,7 @@ output "apim_name" {
   value       = var.enable_apim ? module.apim[0].apim_name : null
 }
 # -------------
-# Azure proxy Outputs
+# Azure Proxy Outputs
 # -------------
 output "azure_proxy_url" {
   description = "The URL of the Azure Proxy App Service"
