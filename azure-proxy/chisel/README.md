@@ -203,7 +203,7 @@ The `start-chisel.sh` script orchestrates the startup:
 - Restrict inbound access using ip restriction on app service
 - Use HTTPS for all client connections to the proxy
 
-### Access
+### Database Access
 
 - The proxy does not store or log database credentials
 - PostgreSQL credentials are handled separately on the client side
