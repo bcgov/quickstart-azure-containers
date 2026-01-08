@@ -105,6 +105,42 @@ resource "time_sleep" "wait_for_postgresql" {
   create_duration = "60s"
 }
 
+# Wait for DNS Zone to be fully propagated (private zone)
+
+resource "null_resource" "wait_for_private_dns_zone" {
+  triggers = {
+    resource_group_name   = var.resource_group_name
+    private_endpoint_id   = azurerm_private_endpoint.postgresql.id
+    private_endpoint_name = azurerm_private_endpoint.postgresql.name
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["bash", "-lc"]
+    command     = <<-EOT
+      set -euo pipefail
+
+      # Terraform may be run from repo root OR from infra/. Support both.
+      if [[ -f "./scripts/wait-for-dns-zone.sh" ]]; then
+        SCRIPT_PATH="./scripts/wait-for-dns-zone.sh"
+      elif [[ -f "./infra/scripts/wait-for-dns-zone.sh" ]]; then
+        SCRIPT_PATH="./infra/scripts/wait-for-dns-zone.sh"
+      else
+        echo "wait-for-dns-zone.sh not found. Expected ./scripts/wait-for-dns-zone.sh (from infra/) or ./infra/scripts/wait-for-dns-zone.sh (from repo root)." >&2
+        exit 2
+      fi
+
+      bash "$SCRIPT_PATH" \
+        --resource-group "${var.resource_group_name}" \
+        --private-endpoint-name "${azurerm_private_endpoint.postgresql.name}" \
+        --timeout "10m" \
+        --interval "10s"
+    EOT
+  }
+
+  depends_on = [azurerm_private_endpoint.postgresql]
+}
+
+
 # PostgreSQL Configuration for performance
 # These configurations require the server to be fully operational
 resource "azurerm_postgresql_flexible_server_configuration" "shared_preload_libraries" {
@@ -112,7 +148,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "shared_preload_libr
   server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = "pg_stat_statements,pg_cron"
 
-  depends_on = [time_sleep.wait_for_postgresql]
+  depends_on = [time_sleep.wait_for_postgresql, null_resource.wait_for_private_dns_zone]
 }
 
 resource "azurerm_postgresql_flexible_server_configuration" "log_statement" {
@@ -122,6 +158,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "log_statement" {
 
   depends_on = [
     time_sleep.wait_for_postgresql,
+    null_resource.wait_for_private_dns_zone,
     azurerm_postgresql_flexible_server_configuration.shared_preload_libraries
   ]
 }
@@ -133,7 +170,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "log_connections" {
   server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = "ON"
 
-  depends_on = [time_sleep.wait_for_postgresql]
+  depends_on = [time_sleep.wait_for_postgresql, null_resource.wait_for_private_dns_zone]
 }
 
 resource "azurerm_postgresql_flexible_server_configuration" "log_disconnections" {
@@ -142,7 +179,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "log_disconnections"
   server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = "ON"
 
-  depends_on = [time_sleep.wait_for_postgresql]
+  depends_on = [time_sleep.wait_for_postgresql, null_resource.wait_for_private_dns_zone]
 }
 
 resource "azurerm_postgresql_flexible_server_configuration" "log_duration" {
@@ -151,7 +188,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "log_duration" {
   server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = "ON"
 
-  depends_on = [time_sleep.wait_for_postgresql]
+  depends_on = [time_sleep.wait_for_postgresql, null_resource.wait_for_private_dns_zone]
 }
 
 # Slow query logging threshold
@@ -160,7 +197,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "log_min_duration_st
   server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = tostring(var.log_min_duration_statement_ms)
 
-  depends_on = [time_sleep.wait_for_postgresql]
+  depends_on = [time_sleep.wait_for_postgresql, null_resource.wait_for_private_dns_zone]
 }
 
 # IO timing tracking
@@ -169,7 +206,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "track_io_timing" {
   server_id = azurerm_postgresql_flexible_server.postgresql.id
   value     = var.track_io_timing ? "ON" : "OFF"
 
-  depends_on = [time_sleep.wait_for_postgresql]
+  depends_on = [time_sleep.wait_for_postgresql, null_resource.wait_for_private_dns_zone]
 }
 
 # pg_stat_statements.max
@@ -180,6 +217,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "pg_stat_statements_
 
   depends_on = [
     time_sleep.wait_for_postgresql,
+    null_resource.wait_for_private_dns_zone,
     azurerm_postgresql_flexible_server_configuration.shared_preload_libraries
   ]
 }
@@ -211,7 +249,7 @@ resource "azurerm_monitor_diagnostic_setting" "postgres_diagnostics" {
     }
   }
 
-  depends_on = [time_sleep.wait_for_postgresql]
+  depends_on = [time_sleep.wait_for_postgresql, null_resource.wait_for_private_dns_zone]
 }
 
 # PostgreSQL Alerts & Action Group (conditional)
@@ -271,6 +309,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "azure_extensions" {
 
   depends_on = [
     time_sleep.wait_for_postgresql,
+    null_resource.wait_for_private_dns_zone,
     azurerm_postgresql_flexible_server_configuration.shared_preload_libraries
   ]
 }

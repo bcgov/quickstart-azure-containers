@@ -83,6 +83,40 @@ resource "azurerm_private_endpoint" "containerapps" {
     ]
   }
 }
+# Wait for Private Endpoint DNS zone association to complete
+
+resource "null_resource" "wait_for_containerapps_private_dns_zone" {
+  triggers = {
+    resource_group_name   = var.resource_group_name
+    private_endpoint_id   = azurerm_private_endpoint.containerapps.id
+    private_endpoint_name = azurerm_private_endpoint.containerapps.name
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["bash", "-lc"]
+    command     = <<-EOT
+      set -euo pipefail
+
+      # Terraform may be run from repo root OR from infra/. Support both.
+      if [[ -f "./scripts/wait-for-dns-zone.sh" ]]; then
+        SCRIPT_PATH="./scripts/wait-for-dns-zone.sh"
+      elif [[ -f "./infra/scripts/wait-for-dns-zone.sh" ]]; then
+        SCRIPT_PATH="./infra/scripts/wait-for-dns-zone.sh"
+      else
+        echo "wait-for-dns-zone.sh not found. Expected ./scripts/wait-for-dns-zone.sh (from infra/) or ./infra/scripts/wait-for-dns-zone.sh (from repo root)." >&2
+        exit 2
+      fi
+
+      bash "$SCRIPT_PATH" \
+        --resource-group "${var.resource_group_name}" \
+        --private-endpoint-name "${azurerm_private_endpoint.containerapps.name}" \
+        --timeout "10m" \
+        --interval "10s"
+    EOT
+  }
+
+  depends_on = [azurerm_private_endpoint.containerapps]
+}
 
 # -----------------------------------------------------------------------------
 # Backend Container App - API Service Only
@@ -248,7 +282,7 @@ resource "azurerm_container_app" "backend" {
   }
 
 
-  depends_on = [azurerm_container_app_environment.main]
+  depends_on = [azurerm_container_app_environment.main, null_resource.wait_for_containerapps_private_dns_zone]
 }
 
 resource "azurerm_monitor_diagnostic_setting" "container_app_env_diagnostics" {
