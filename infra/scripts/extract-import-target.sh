@@ -37,19 +37,98 @@ extract_import_target() {
         return 1
     fi
 
-    # Extract the Terraform resource address from "with <address>," line
-    # Example: │   with module.frontend[0].azurerm_linux_web_app.frontend,
-    local resource_addr
-    resource_addr=$(echo "$content" | grep -oE 'with [^,]+,' | head -1 | sed 's/^with //; s/,$//')
+    # Terraform output can contain multiple "already exists" errors; we want the LAST one,
+    # and we must pair the correct resource address from the following "with <addr>," line.
+    # Also handle escaped quotes (\") and IDs that include a pipe (Diagnostic Settings import IDs).
+    local result
+    local awk_script
+    awk_script="$(mktemp 2>/dev/null || echo "")"
+    if [[ -z "$awk_script" ]]; then
+        return 1
+    fi
 
-    # Extract the Azure resource ID from lines containing BOTH the ID and "already exists"
-    # The format is: Error: a resource with the ID "/subscriptions/..." already exists
-    # We need the ID from THAT specific line, not just any /subscriptions/ ID in the file
-    local resource_id
-    resource_id=$(echo "$content" | grep "already exists" | grep -oE '"/subscriptions/[^"]+"|^/subscriptions/[^"[:space:]]+' | head -1 | tr -d '"')
+    cat >"$awk_script" <<'AWK'
+function trim(s) {
+    sub(/^[[:space:]]+/, "", s)
+    sub(/[[:space:]]+$/, "", s)
+    return s
+}
 
-    if [[ -n "$resource_addr" && -n "$resource_id" ]]; then
-        printf '%s\t%s\n' "$resource_addr" "$resource_id"
+function extract_addr(line, s) {
+    if (match(line, /with[[:space:]]+[^,]+,/)) {
+        s = substr(line, RSTART, RLENGTH)
+        sub(/^with[[:space:]]+/, "", s)
+        sub(/,$/, "", s)
+        return s
+    }
+    return ""
+}
+
+function extract_id(line, s) {
+    # Prefer a quoted (or escaped-quoted) /subscriptions/... pattern
+    if (match(line, /\\?\"\/subscriptions\/[^\\\"]+\\?\"/)) {
+        s = substr(line, RSTART, RLENGTH)
+        sub(/^\\?\"/, "", s)
+        sub(/\\?\"$/, "", s)
+        sub(/\\$/, "", s)
+        return s
+    }
+
+    if (match(line, /\/subscriptions\//)) {
+        s = substr(line, RSTART)
+        sub(/[\"[:space:]].*$/, "", s)
+        sub(/\\$/, "", s)
+        return s
+    }
+
+    return ""
+}
+
+BEGIN {
+    pending_id = ""
+    last_addr = ""
+    last_id = ""
+    in_error = 0
+}
+
+{
+    gsub(/\r/, "", $0)
+    line = $0
+
+    if (line ~ /already exists/) {
+        in_error = 1
+    }
+
+    if (in_error) {
+        id = extract_id(line)
+        if (id != "") {
+            pending_id = id
+        }
+    }
+
+    addr = extract_addr(line)
+    if (addr != "" && pending_id != "") {
+        last_addr = trim(addr)
+        last_id = trim(pending_id)
+        pending_id = ""
+        in_error = 0
+    }
+}
+
+END {
+    if (last_addr != "" && last_id != "") {
+        printf "%s\t%s\n", last_addr, last_id
+        exit 0
+    }
+    exit 1
+}
+AWK
+
+    result="$(printf '%s\n' "$content" | awk -f "$awk_script" 2>/dev/null)" || true
+    rm -f "$awk_script" >/dev/null 2>&1 || true
+
+    if [[ -n "$result" ]]; then
+        printf '%s\n' "$result"
         return 0
     fi
 

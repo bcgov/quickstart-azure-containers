@@ -198,6 +198,17 @@ run_test "Long resource ID path" \
     "module.frontend[0].azurerm_linux_web_app.frontend" \
     "/subscriptions/12345678-1234-5678-9abc-def012345678/resourceGroups/quickstart-azure-containers-tools/providers/Microsoft.Web/sites/quickstart-azure-containers-tools-frontend"
 
+# Test 10b: Diagnostic Setting ID contains a pipe and may be escaped in logs
+run_test "Diagnostic setting ID with pipe" \
+'│ Error: a resource with the ID \"/subscriptions/sub123/resourceGroups/quickstart-azure-containers-tools/providers/Microsoft.App/managedEnvironments/env123|diag-setting-name\" already exists - to be managed via Terraform
+│
+│   with module.container_apps[0].azurerm_monitor_diagnostic_setting.container_app_env_diagnostics,
+│   on modules/container-apps/main.tf line 288, in resource "azurerm_monitor_diagnostic_setting" "container_app_env_diagnostics":
+│  288: resource "azurerm_monitor_diagnostic_setting" "container_app_env_diagnostics" {' \
+    0 \
+    "module.container_apps[0].azurerm_monitor_diagnostic_setting.container_app_env_diagnostics" \
+    "/subscriptions/sub123/resourceGroups/quickstart-azure-containers-tools/providers/Microsoft.App/managedEnvironments/env123|diag-setting-name"
+
 # =============================================================================
 # NEGATIVE TEST CASES
 # =============================================================================
@@ -319,8 +330,8 @@ echo "=========================================="
 echo "EDGE CASES"
 echo "=========================================="
 
-# Test 23: Multiple "already exists" errors (should return first one)
-run_test "Multiple already exists errors - returns first" \
+# Test 23: Multiple "already exists" errors (return the last one, typically the final failure)
+run_test "Multiple already exists errors - returns last" \
 '│ Error: a resource with the ID "/subscriptions/aaa/resourceGroups/rg/providers/Microsoft.Web/sites/app1" already exists
 │ 
 │   with module.frontend[0].azurerm_linux_web_app.app1,
@@ -332,8 +343,8 @@ run_test "Multiple already exists errors - returns first" \
 │   with module.frontend[1].azurerm_linux_web_app.app2,
 │   on modules/frontend/main.tf line 30' \
     0 \
-    "module.frontend[0].azurerm_linux_web_app.app1" \
-    "/subscriptions/aaa/resourceGroups/rg/providers/Microsoft.Web/sites/app1"
+    "module.frontend[1].azurerm_linux_web_app.app2" \
+    "/subscriptions/bbb/resourceGroups/rg/providers/Microsoft.Web/sites/app2"
 
 # Test 24: Mixed line endings
 run_test "CRLF line endings" \
