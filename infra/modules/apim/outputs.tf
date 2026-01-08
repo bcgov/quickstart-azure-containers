@@ -55,10 +55,10 @@ output "apim_private_ip_addresses" {
 output "apim_tenant_access" {
   description = "The tenant access information of the API Management service."
   value = {
-    enabled       = azurerm_api_management.main.tenant_access[0].enabled
-    primary_key   = azurerm_api_management.main.tenant_access[0].primary_key
-    secondary_key = azurerm_api_management.main.tenant_access[0].secondary_key
-    tenant_id     = azurerm_api_management.main.tenant_access[0].tenant_id
+    enabled       = try(azurerm_api_management.main.tenant_access[0].enabled, null)
+    primary_key   = try(azurerm_api_management.main.tenant_access[0].primary_key, null)
+    secondary_key = try(azurerm_api_management.main.tenant_access[0].secondary_key, null)
+    tenant_id     = try(azurerm_api_management.main.tenant_access[0].tenant_id, null)
   }
   sensitive = true
 }
@@ -66,10 +66,10 @@ output "apim_tenant_access" {
 output "apim_identity" {
   description = "The managed identity information of the API Management service."
   value = {
-    type         = azurerm_api_management.main.identity[0].type
-    identity_ids = azurerm_api_management.main.identity[0].identity_ids
-    principal_id = azurerm_api_management.main.identity[0].principal_id
-    tenant_id    = azurerm_api_management.main.identity[0].tenant_id
+    type         = try(azurerm_api_management.main.identity[0].type, null)
+    identity_ids = try(azurerm_api_management.main.identity[0].identity_ids, null)
+    principal_id = try(azurerm_api_management.main.identity[0].principal_id, null)
+    tenant_id    = try(azurerm_api_management.main.identity[0].tenant_id, null)
   }
 }
 
