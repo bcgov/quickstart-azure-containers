@@ -10,4 +10,5 @@ app_service_sku_name_backend = "B1" # Basic tier for development (B1, B2, B3, S1
 enable_azure_proxy           = true
 enable_apim                  = false
 enable_frontdoor             = false
-enable_container_apps        = false
+enable_container_apps        = true
+enable_app_service_backend   = false # Disable App Service for backend in favor of Container Apps

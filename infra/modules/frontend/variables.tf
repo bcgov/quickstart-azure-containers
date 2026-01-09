@@ -83,6 +83,13 @@ variable "repo_name" {
   nullable    = false
 }
 
+variable "backend_url" {
+  description = "Backend base URL for the frontend (e.g., https://<backend-host>). Used to set VITE_BACKEND_URL in the App Service container."
+  type        = string
+  nullable    = true
+  default     = null
+}
+
 variable "resource_group_name" {
   description = "The name of the resource group in which to create resources."
   type        = string
