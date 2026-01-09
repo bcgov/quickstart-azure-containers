@@ -2,12 +2,13 @@ module "azure_proxy_plan" {
   source  = "Azure/avm-res-web-serverfarm/azurerm"
   version = "1.0.0"
 
-  name                = "${var.app_name}-azure-proxy-asp"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  os_type             = "Linux"
-  sku_name            = var.app_service_sku_name_azure_proxy
-  tags                = var.common_tags
+  name                   = "${var.app_name}-azure-proxy-asp"
+  resource_group_name    = var.resource_group_name
+  location               = var.location
+  os_type                = "Linux"
+  sku_name               = var.app_service_sku_name_azure_proxy
+  zone_balancing_enabled = false
+  tags                   = var.common_tags
 
   enable_telemetry = var.enable_telemetry
 }
