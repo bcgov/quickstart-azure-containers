@@ -96,8 +96,38 @@ variable "app_service_sku_name_frontend" {
   nullable    = false
 }
 
+variable "app_service_plan_worker_count" {
+  description = <<-EOT
+  App Service Plan worker count (instance count).
+
+  Why this exists:
+  - The AVM App Service Plan (serverfarm) module can default to multiple workers.
+  - For Basic tiers (e.g., B1), requesting multiple workers can trigger Azure capacity/conflict errors (e.g., 409) depending on region/quota/availability.
+
+  Recommended default:
+  - Keep this at 1 for Basic SKUs unless you explicitly need more instances.
+
+  References:
+  - AVM serverfarm module: https://registry.terraform.io/modules/Azure/avm-res-web-serverfarm/azurerm/1.0.0
+  - AzureRM Service Plan worker_count: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/service_plan#worker_count
+  EOT
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.app_service_plan_worker_count >= 1
+    error_message = "app_service_plan_worker_count must be >= 1."
+  }
+}
+
 variable "enable_frontdoor" {
   description = "Whether Front Door is enabled. When false, frontend is exposed directly via its default hostname."
   type        = bool
   nullable    = false
+}
+
+variable "enable_telemetry" {
+  description = "Whether AVM modules should send telemetry."
+  type        = bool
+  default     = true
 }
