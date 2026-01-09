@@ -7,6 +7,7 @@ module "frontend_plan" {
   location               = var.location
   os_type                = "Linux"
   sku_name               = var.app_service_sku_name_frontend
+  worker_count           = var.app_service_plan_worker_count
   zone_balancing_enabled = false
   tags                   = var.common_tags
 

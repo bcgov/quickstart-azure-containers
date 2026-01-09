@@ -22,10 +22,15 @@ module "aci_tooling" {
 
   containers = {
     "aci-tooling" = {
-      image                        = "nicolaka/netshoot:latest"
-      cpu                          = 0.02
-      memory                       = 0.1
-      ports                        = []
+      image  = "nicolaka/netshoot:latest"
+      cpu    = 0.02
+      memory = 0.1
+      ports = [
+        {
+          port     = 80
+          protocol = "TCP"
+        }
+      ]
       volumes                      = {}
       environment_variables        = {}
       secure_environment_variables = {}

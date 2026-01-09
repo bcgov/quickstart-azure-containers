@@ -27,10 +27,15 @@ module "flyway_container_group" {
 
   containers = {
     flyway = {
-      image   = var.flyway_image
-      cpu     = 0.1
-      memory  = 0.3
-      ports   = []
+      image  = var.flyway_image
+      cpu    = 0.1
+      memory = 0.3
+      ports = [
+        {
+          port     = 80
+          protocol = "TCP"
+        }
+      ]
       volumes = {}
 
       environment_variables = {

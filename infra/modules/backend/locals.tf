@@ -1,6 +1,6 @@
 locals {
   frontend_possible_outbound_ips = [
-    for ip in split(",", var.frontend_possible_outbound_ip_addresses) : trim(ip)
+    for ip in split(",", var.frontend_possible_outbound_ip_addresses) : trimspace(ip)
   ]
 
   allow_frontend_outbound_ips = {
