@@ -1,6 +1,6 @@
 output "azure_proxy_url" {
   description = "The URL of the Azure Proxy App Service"
-  value       = "https://${azurerm_linux_web_app.azure_proxy.default_hostname}"
+  value       = "https://${module.azure_proxy_site.resource_uri}"
   sensitive   = true
 }
 

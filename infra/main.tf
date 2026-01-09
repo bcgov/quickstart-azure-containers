@@ -41,6 +41,24 @@ module "monitoring" {
   depends_on = [azurerm_resource_group.main, module.network]
 }
 
+module "acr" {
+  count  = var.enable_acr ? 1 : 0
+  source = "./modules/acr"
+
+  acr_name                      = var.acr_name
+  location                      = var.location
+  resource_group_name           = azurerm_resource_group.main.name
+  common_tags                   = var.common_tags
+  sku                           = var.acr_sku
+  public_network_access_enabled = var.acr_public_network_access_enabled
+  enable_private_endpoint       = var.acr_enable_private_endpoint
+  private_endpoint_subnet_id    = module.network.private_endpoint_subnet_id
+  log_analytics_workspace_id    = module.monitoring.log_analytics_workspace_id
+  enable_telemetry              = var.acr_enable_telemetry
+  admin_enabled                 = var.acr_admin_enabled
+  depends_on                    = [azurerm_resource_group.main, module.network, module.monitoring]
+}
+
 module "postgresql" {
   source = "./modules/postgresql"
 

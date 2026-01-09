@@ -72,3 +72,9 @@ variable "app_service_sku_name_azure_proxy" {
   nullable    = false
 }
 
+variable "enable_telemetry" {
+  description = "Controls whether AVM telemetry is enabled."
+  type        = bool
+  default     = true
+}
+

@@ -9,6 +9,10 @@ terraform {
       source  = "Azure/azapi"
       version = ">= 2.7.0, < 3.0.0"
     }
+    modtm = {
+      source  = "azure/modtm"
+      version = "~> 0.3"
+    }
     null = {
       source  = "hashicorp/null"
       version = ">= 3.2.4, < 4.0.0"

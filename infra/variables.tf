@@ -53,6 +53,66 @@ variable "enable_aci" {
   type        = bool
   default     = false
 }
+
+variable "enable_acr" {
+  description = "Whether to create an Azure Container Registry (ACR) using the AVM module."
+  type        = bool
+  default     = false
+}
+
+variable "acr_name" {
+  description = "ACR name (5-50 lowercase alphanumeric). Required when enable_acr=true."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = !var.enable_acr || can(regex("^[a-z0-9]{5,50}$", var.acr_name))
+    error_message = "When enable_acr=true, acr_name must be 5-50 characters, lowercase alphanumeric only (a-z, 0-9)."
+  }
+}
+
+variable "acr_sku" {
+  description = <<-EOT
+  ACR SKU (Basic, Standard, Premium).
+
+  Pricing/feature guidance:
+  - Basic: lowest cost, best for dev/test and light usage.
+  - Standard: higher throughput/limits than Basic for many production workloads.
+  - Premium: required for Private Link/private endpoints.
+
+  Official pricing: https://azure.microsoft.com/en-us/pricing/details/container-registry/#pricing
+  EOT
+  type        = string
+  default     = "Basic"
+}
+
+variable "acr_public_network_access_enabled" {
+  description = <<-EOT
+  Whether public access is permitted for the ACR.
+
+  Note (BC Gov Azure Landing Zone): public ACR and Basic SKU are allowed.
+  If you need private connectivity (Private Link/private endpoints), keep public access disabled and use Premium.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "acr_enable_private_endpoint" {
+  description = "Whether to create a private endpoint (Private Link) for the ACR. Premium is required when enabled."
+  type        = bool
+  default     = false
+}
+variable "acr_admin_enabled" {
+  description = "Whether the admin user is enabled for the ACR."
+  type        = bool
+  default     = false
+}
+
+variable "acr_enable_telemetry" {
+  description = "Controls whether AVM telemetry is enabled for the ACR module."
+  type        = bool
+  default     = false
+}
 variable "enable_app_service_frontend" {
   description = "Whether to enable the App Service frontend"
   type        = bool
