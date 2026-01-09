@@ -21,7 +21,7 @@ locals {
     allow_all = {
       action                    = "Allow"
       name                      = "AllowAll"
-      priority                  = 100
+      priority                  = 200
       ip_address                = "0.0.0.0/0"
       service_tag               = null
       virtual_network_subnet_id = null
