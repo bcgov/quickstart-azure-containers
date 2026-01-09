@@ -126,6 +126,17 @@ variable "log_analytics_workspace_id" {
   description = "Log Analytics Workspace ID to send diagnostics to (required if enable_diagnostic_insights=true)"
   type        = string
   default     = ""
+
+  validation {
+    condition     = !var.enable_diagnostic_insights || var.log_analytics_workspace_id != ""
+    error_message = "Diagnostics enabled but log_analytics_workspace_id is empty. Provide a workspace id."
+  }
+}
+
+variable "enable_telemetry" {
+  description = "Enable telemetry collection for Azure Verified Modules (AVM). Set to false to opt out."
+  type        = bool
+  default     = false
 }
 
 variable "diagnostic_log_categories" {

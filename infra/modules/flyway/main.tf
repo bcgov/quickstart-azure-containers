@@ -1,8 +1,3 @@
-moved {
-  from = azurerm_container_group.flyway
-  to   = module.flyway_container_group.azurerm_container_group.this
-}
-
 module "flyway_container_group" {
   source  = "Azure/avm-res-containerinstance-containergroup/azurerm"
   version = "0.2.0"
