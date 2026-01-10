@@ -102,7 +102,7 @@ module "frontend_site" {
   # The value is normalized to lowercase to match what Azure commonly returns.
   tags = merge(
     var.common_tags,
-    var.appinsights_resource_id == null ? {} : { "hidden-link: /app-insights-resource-id" = lower(var.appinsights_resource_id) }
+    var.appinsights_resource_id == null ? {} : { "hidden-link:/app-insights-resource-id" = lower(var.appinsights_resource_id) }
   )
   enable_telemetry = var.enable_telemetry
 }
