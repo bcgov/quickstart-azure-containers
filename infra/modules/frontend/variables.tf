@@ -22,6 +22,13 @@ variable "appinsights_instrumentation_key" {
   nullable    = false
 }
 
+variable "appinsights_resource_id" {
+  description = "Resource ID of the Application Insights component used by this app. Used to include Azure's hidden-link tag on the App Service to prevent tag drift."
+  type        = string
+  nullable    = true
+  default     = null
+}
+
 variable "common_tags" {
   description = "A map of tags to apply to resources."
   type        = map(string)
@@ -81,6 +88,13 @@ variable "repo_name" {
   description = "The repository name, used for resource naming."
   type        = string
   nullable    = false
+}
+
+variable "backend_url" {
+  description = "Backend base URL for the frontend (e.g., https://<backend-host>). Used to set VITE_BACKEND_URL in the App Service container."
+  type        = string
+  nullable    = true
+  default     = null
 }
 
 variable "resource_group_name" {

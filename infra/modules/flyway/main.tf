@@ -15,6 +15,10 @@ module "flyway_container_group" {
   restart_policy = "OnFailure"
   priority       = "Regular"
 
+  # Azure can surface `zones = []` on read even when no zones are selected.
+  # Setting it explicitly avoids a persistent state drift note between older/newer provider versions.
+  zones = []
+
   subnet_ids       = [var.container_instance_subnet_id]
   dns_name_servers = var.dns_servers
 
@@ -43,12 +47,14 @@ module "flyway_container_group" {
         FLYWAY_CONNECT_RETRIES = "10"
         FLYWAY_GROUP           = "true"
         FLYWAY_USER            = var.postgresql_admin_username
-        FLYWAY_PASSWORD        = var.db_master_password
         FLYWAY_URL             = "jdbc:postgresql://${var.postgres_host}:5432/${var.database_name}"
         FORCE_REDEPLOY         = null_resource.trigger_flyway.id
       }
-      secure_environment_variables = {}
-      commands                     = null
+      # Keep secrets in secure env vars so they don't appear in plain-text container config.
+      secure_environment_variables = {
+        FLYWAY_PASSWORD = var.db_master_password
+      }
+      commands = null
     }
   }
 }

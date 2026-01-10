@@ -65,7 +65,7 @@ module "frontend_site" {
     DOCKER_ENABLE_CI                      = "true"
     APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
     APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
-    VITE_BACKEND_URL                      = "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net"
+    VITE_BACKEND_URL                      = coalesce(var.backend_url, "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net")
     LOG_LEVEL                             = "info"
   }
 
@@ -89,7 +89,21 @@ module "frontend_site" {
     }
   }
 
-  tags             = var.common_tags
+  # The AVM web-site module can optionally create an Application Insights resource.
+  # When `tags` is left unset (null), some provider/API combinations can surface a
+  # drift where Azure reports an empty tag map `{}`. Setting it explicitly keeps
+  # plans stable and prevents Terraform from trying to "undo" the empty-map state.
+  application_insights = {
+    tags = {}
+  }
+
+  # Azure may automatically add a hidden-link tag to connect the Web App to Application Insights.
+  # If we don't model it, Terraform will see it as out-of-band drift and may try to remove it.
+  # The value is normalized to lowercase to match what Azure commonly returns.
+  tags = merge(
+    var.common_tags,
+    var.appinsights_resource_id == null ? {} : { "hidden-link:/app-insights-resource-id" = lower(var.appinsights_resource_id) }
+  )
   enable_telemetry = var.enable_telemetry
 }
 

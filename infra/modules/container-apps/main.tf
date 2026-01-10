@@ -259,6 +259,9 @@ resource "azurerm_container_app" "backend" {
   }
 
   ingress {
+    ### external_enabled, does not mean public access. It means ingress is enabled outside of container apps environment.
+    ### this only enables other services within the vnet to access the container app.
+    ### if this gives error, raise a ticket with platform team , they will enable it.
     external_enabled = true
     target_port      = 3000
     transport        = "http"

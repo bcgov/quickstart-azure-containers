@@ -8,6 +8,11 @@ output "appinsights_instrumentation_key" {
   value       = azurerm_application_insights.main.instrumentation_key
 }
 
+output "appinsights_resource_id" {
+  description = "The resource ID of the Application Insights component."
+  value       = azurerm_application_insights.main.id
+}
+
 output "log_analytics_workspace_id" {
   description = "The resource ID of the Log Analytics workspace."
   value       = azurerm_log_analytics_workspace.main.id
