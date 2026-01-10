@@ -27,13 +27,14 @@ provider "azurerm" {
     # - Purge protection prevents purging until retention elapses.
     # Microsoft Learn: https://learn.microsoft.com/en-us/azure/key-vault/general/key-vault-recovery
     key_vault {
-      # When Terraform destroys a Key Vault, attempt to purge it (permanently delete) as part of
-      # cleanup. This is useful for dev/test environments where you want to quickly reuse globally
-      # unique Key Vault names.
+      # In general, Terraform can be configured to purge (permanently delete) a Key Vault when it
+      # is destroyed. That behavior is often useful in dev/test environments where you want to
+      # quickly reuse globally unique Key Vault names.
       #
-      # Important: If purge protection is enabled, Azure will block purges until the retention
-      # period elapses, so destroy may still fail or require waiting.
-      purge_soft_delete_on_destroy = false # policy driven, cannot be forced off
+      # In this deployment, however, purge behavior is governed by organizational / platform policy,
+      # so we do NOT request purging on destroy here. Soft-deleted vaults and name reuse will be
+      # subject to those external policies and retention settings.
+      purge_soft_delete_on_destroy = false # policy-driven: purging on destroy is disabled here
 
       # If a vault name already exists in a soft-deleted state (common when names are globally
       # unique and a prior deployment deleted it), attempt to recover it automatically.
