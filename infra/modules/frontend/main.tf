@@ -89,6 +89,14 @@ module "frontend_site" {
     }
   }
 
+  # The AVM web-site module can optionally create an Application Insights resource.
+  # When `tags` is left unset (null), some provider/API combinations can surface a
+  # drift where Azure reports an empty tag map `{}`. Setting it explicitly keeps
+  # plans stable and prevents Terraform from trying to "undo" the empty-map state.
+  application_insights = {
+    tags = {}
+  }
+
   tags             = var.common_tags
   enable_telemetry = var.enable_telemetry
 }

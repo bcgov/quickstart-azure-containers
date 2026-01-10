@@ -95,6 +95,13 @@ module "backend_site" {
     }
   }
 
+  # Keep plans stable: explicitly set Application Insights tags to an empty map.
+  # Without this, some provider/API combinations report an out-of-band change
+  # where tags appear as `{}` (empty) even though the configuration was `null`.
+  application_insights = {
+    tags = {}
+  }
+
   tags             = var.common_tags
   enable_telemetry = var.enable_telemetry
 }
