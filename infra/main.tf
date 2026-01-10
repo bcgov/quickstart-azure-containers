@@ -120,6 +120,7 @@ module "frontend" {
   app_service_sku_name_frontend         = var.app_service_sku_name_frontend
   appinsights_connection_string         = module.monitoring.appinsights_connection_string
   appinsights_instrumentation_key       = module.monitoring.appinsights_instrumentation_key
+  appinsights_resource_id               = module.monitoring.appinsights_resource_id
   common_tags                           = var.common_tags
   enable_frontdoor                      = var.enable_frontdoor
   frontend_frontdoor_id                 = var.enable_frontdoor ? module.frontdoor[0].frontdoor_id : null

@@ -97,7 +97,13 @@ module "frontend_site" {
     tags = {}
   }
 
-  tags             = var.common_tags
+  # Azure may automatically add a hidden-link tag to connect the Web App to Application Insights.
+  # If we don't model it, Terraform will see it as out-of-band drift and may try to remove it.
+  # The value is normalized to lowercase to match what Azure commonly returns.
+  tags = merge(
+    var.common_tags,
+    var.appinsights_resource_id == null ? {} : { "hidden-link: /app-insights-resource-id" = lower(var.appinsights_resource_id) }
+  )
   enable_telemetry = var.enable_telemetry
 }
 

@@ -15,6 +15,10 @@ module "flyway_container_group" {
   restart_policy = "OnFailure"
   priority       = "Regular"
 
+  # Azure can surface `zones = []` on read even when no zones are selected.
+  # Setting it explicitly avoids a persistent state drift note between older/newer provider versions.
+  zones = []
+
   subnet_ids       = [var.container_instance_subnet_id]
   dns_name_servers = var.dns_servers
 

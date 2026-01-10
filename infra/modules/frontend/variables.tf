@@ -22,6 +22,13 @@ variable "appinsights_instrumentation_key" {
   nullable    = false
 }
 
+variable "appinsights_resource_id" {
+  description = "Resource ID of the Application Insights component used by this app. Used to include Azure's hidden-link tag on the App Service to prevent tag drift."
+  type        = string
+  nullable    = true
+  default     = null
+}
+
 variable "common_tags" {
   description = "A map of tags to apply to resources."
   type        = map(string)
