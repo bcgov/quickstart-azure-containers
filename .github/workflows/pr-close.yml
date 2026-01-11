@@ -59,6 +59,8 @@ jobs:
               --resource-group "$BACKEND_RESOURCE_GROUP" \
               --account-name "$BACKEND_STORAGE_ACCOUNT" \
               --query "[0].value" -o tsv)
+            # mask account key in logs
+            echo "::add-mask::$ACCOUNT_KEY"
 
             if [[ -z "$ACCOUNT_KEY" ]]; then
               echo "Could not retrieve storage account key for $BACKEND_STORAGE_ACCOUNT in $BACKEND_RESOURCE_GROUP." >&2
