@@ -34,24 +34,23 @@ jobs:
       - name: Delete the terraform state files for the PR
         shell: bash
         run: |
-          echo "BACKEND_RESOURCE_GROUP=${{ secrets.VNET_RESOURCE_GROUP_NAME }}" >> "$GITHUB_ENV"
-          echo "BACKEND_STORAGE_ACCOUNT=${{ vars.STORAGE_ACCOUNT_NAME }}" >> "$GITHUB_ENV"
-          echo "BACKEND_CONTAINER_NAME=tfstate" >> "$GITHUB_ENV"
-          echo "BACKEND_STATE_KEY=${{ needs.stack-prefix.outputs.stack_prefix }}/${{ github.event.number }}/terraform.tfstate" >> "$GITHUB_ENV"
+          set -euo pipefail
+
+          BACKEND_RESOURCE_GROUP="${{ secrets.VNET_RESOURCE_GROUP_NAME }}"
+          BACKEND_STORAGE_ACCOUNT="${{ vars.STORAGE_ACCOUNT_NAME }}"
+          BACKEND_CONTAINER_NAME="tfstate"
+          BACKEND_STATE_KEY="${{ needs.stack-prefix.outputs.stack_prefix }}/${{ github.event.number }}/terraform.tfstate"
+          BACKEND_PREFIX="${{ needs.stack-prefix.outputs.stack_prefix }}/${{ github.event.number }}/"
 
           echo "checking state file: $BACKEND_STATE_KEY"
-          FILE_EXISTS=$(az storage blob exists --container-name ${BACKEND_CONTAINER_NAME} --name "$BACKEND_STATE_KEY" --account-name ${BACKEND_STORAGE_ACCOUNT} --query exists --output tsv)
+          FILE_EXISTS=$(az storage blob exists --auth-mode login --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" --query exists --output tsv)
           echo "File exists: $FILE_EXISTS"
           if [ "$FILE_EXISTS" != "true" ]; then
             echo "State file does not exist, skipping deletion."
           fi
           echo "Deleting state file: $BACKEND_STATE_KEY"
-          az storage blob delete --container-name ${BACKEND_CONTAINER_NAME} --name "$BACKEND_STATE_KEY" --account-name ${BACKEND_STORAGE_ACCOUNT} || echo "State file not found, skipping."
-          echo "Deleting the folder in the container if empty: ${{ needs.stack-prefix.outputs.stack_prefix }}/${{ github.event.number }}/"
-          FOLDER_EXISTS=$(az storage directory exists --name "${{ needs.stack-prefix.outputs.stack_prefix }}/${{ github.event.number }}" --account-name ${BACKEND_STORAGE_ACCOUNT})
-          echo "Folder exists: $FOLDER_EXISTS"
-          if [ "$FOLDER_EXISTS" = "true" ]; then
-            az storage directory delete --name "${{ needs.stack-prefix.outputs.stack_prefix }}/${{ github.event.number }}" --account-name ${BACKEND_STORAGE_ACCOUNT} || echo "Directory not found or not empty, skipping."
-          else
-            echo "Directory does not exist, skipping."
-          fi
+          az storage blob delete --auth-mode login --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" || echo "State file not found, skipping."
+
+          # Blob containers don't have real directories; remove any remaining blobs under the PR prefix (e.g., lock files).
+          echo "Deleting any remaining blobs under prefix: $BACKEND_PREFIX"
+          az storage blob delete-batch --auth-mode login --account-name "$BACKEND_STORAGE_ACCOUNT" --source "$BACKEND_CONTAINER_NAME" --pattern "${BACKEND_PREFIX}*" || echo "No blobs found under prefix, skipping."
