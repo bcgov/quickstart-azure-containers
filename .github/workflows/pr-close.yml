@@ -78,12 +78,13 @@ jobs:
           echo "File exists: $FILE_EXISTS"
           if [ "$FILE_EXISTS" != "true" ]; then
             echo "State file does not exist, skipping deletion."
-          fi
-          echo "Deleting state file: $BACKEND_STATE_KEY"
-          if [[ "$AUTH_MODE" == "login" ]]; then
-            az storage blob delete --auth-mode login --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" || echo "State file not found, skipping."
           else
-            az storage blob delete --auth-mode key --account-key "$ACCOUNT_KEY" --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" || echo "State file not found, skipping."
+            echo "Deleting state file: $BACKEND_STATE_KEY"
+            if [[ "$AUTH_MODE" == "login" ]]; then
+              az storage blob delete --auth-mode login --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" || echo "State file not found, skipping."
+            else
+              az storage blob delete --auth-mode key --account-key "$ACCOUNT_KEY" --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" || echo "State file not found, skipping."
+            fi
           fi
 
           # Blob containers don't have real directories; remove any remaining blobs under the PR prefix (e.g., lock files).
