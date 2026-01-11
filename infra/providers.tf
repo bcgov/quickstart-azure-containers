@@ -50,7 +50,7 @@ provider "azurerm" {
     resource_group {
       # Guardrail: refuse to delete a resource group if it still contains resources.
       # This prevents accidental blast-radius deletions if a config mistake targets the wrong RG.
-      prevent_deletion_if_contains_resources = true
+      prevent_deletion_if_contains_resources = var.prevent_rg_deletion_if_contains_resources
     }
 
     #########################################

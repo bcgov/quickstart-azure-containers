@@ -533,3 +533,8 @@ variable "azure_proxy_image" {
   type        = string
   nullable    = true
 }
+variable "prevent_rg_deletion_if_contains_resources" {
+  description = "AzureRM provider feature flag: refuse to delete a resource group if Azure reports it still contains resources. Set false to allow RG deletion even when Azure-managed/auto-created resources remain (e.g., App Insights Smart Detector rules)."
+  type        = bool
+  default     = true
+}
