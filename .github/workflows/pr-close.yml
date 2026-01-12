@@ -84,3 +84,4 @@ jobs:
             --account-name "$BACKEND_STORAGE_ACCOUNT" \
             --source "$BACKEND_CONTAINER_NAME" \
             --pattern "${BACKEND_PREFIX}*" || echo "No blobs found under prefix, skipping."
+          echo "Cleanup complete."
