@@ -13,11 +13,96 @@ permissions:
   packages: write
   pull-requests: write
 jobs:
+  stack-prefix:
+    name: Stack Prefix
+    uses: ./.github/workflows/.stack-prefix.yml
   cleanup:
     name: Cleanup
+    needs: stack-prefix
+    environment: tools # if PR plan is used in different environments, cleanup should be done in that environment where the state is stored
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: TODO GHA for PR CLeanup on PR close
-        run: echo "TODO GHA for PR CLeanup on PR close"
+
+      - name: Azure CLI Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Delete the terraform state files for the PR
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BACKEND_RESOURCE_GROUP="${{ secrets.VNET_RESOURCE_GROUP_NAME }}"
+          BACKEND_STORAGE_ACCOUNT="${{ vars.STORAGE_ACCOUNT_NAME }}"
+          BACKEND_CONTAINER_NAME="tfstate"
+          BACKEND_STATE_KEY="${{ needs.stack-prefix.outputs.stack_prefix }}/${{ github.event.number }}/terraform.tfstate"
+          BACKEND_PREFIX="${{ needs.stack-prefix.outputs.stack_prefix }}/${{ github.event.number }}/"
+
+          # Prefer AAD auth (OIDC) for data-plane operations.
+          # If the identity lacks "Storage Blob Data *" roles, fall back to key-based auth.
+          AUTH_MODE="login"
+          ACCOUNT_KEY=""
+
+          # Detect whether AAD auth can access the storage *data plane*.
+          # We check the container, not the blob, so "blob doesn't exist" doesn't affect detection.
+          set +e
+          LOGIN_ERR=$(az storage container exists \
+            --auth-mode login \
+            --account-name "$BACKEND_STORAGE_ACCOUNT" \
+            --name "$BACKEND_CONTAINER_NAME" \
+            --query exists --output tsv 2>&1 >/dev/null)
+          LOGIN_RC=$?
+          set -e
+
+          if [[ $LOGIN_RC -ne 0 ]]; then
+            if echo "$LOGIN_ERR" | grep -qiE "required permissions|AuthorizationPermissionMismatch|AuthorizationFailed|not authorized"; then
+              echo "AAD data-plane access missing; falling back to account key auth."
+              AUTH_MODE="key"
+              ACCOUNT_KEY=$(az storage account keys list \
+                --resource-group "$BACKEND_RESOURCE_GROUP" \
+                --account-name "$BACKEND_STORAGE_ACCOUNT" \
+                --query "[0].value" -o tsv)
+              # mask account key in logs
+              echo "::add-mask::$ACCOUNT_KEY"
+
+              if [[ -z "$ACCOUNT_KEY" ]]; then
+                echo "Could not retrieve storage account key for $BACKEND_STORAGE_ACCOUNT in $BACKEND_RESOURCE_GROUP." >&2
+                echo "Grant the identity 'Storage Blob Data Contributor' (or Owner) on the storage account, or allow listing keys." >&2
+                exit 2
+              fi
+            else
+              echo "Unexpected error when checking storage container access via AAD:" >&2
+              echo "$LOGIN_ERR" >&2
+              exit $LOGIN_RC
+            fi
+          fi
+
+          echo "checking state file: $BACKEND_STATE_KEY"
+          if [[ "$AUTH_MODE" == "login" ]]; then
+            FILE_EXISTS=$(az storage blob exists --auth-mode login --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" --query exists --output tsv)
+          else
+            FILE_EXISTS=$(az storage blob exists --auth-mode key --account-key "$ACCOUNT_KEY" --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" --query exists --output tsv)
+          fi
+          echo "File exists: $FILE_EXISTS"
+          if [ "$FILE_EXISTS" != "true" ]; then
+            echo "State file does not exist, skipping deletion."
+          else
+            echo "Deleting state file: $BACKEND_STATE_KEY"
+            if [[ "$AUTH_MODE" == "login" ]]; then
+              az storage blob delete --auth-mode login --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" || echo "State file not found, skipping."
+            else
+              az storage blob delete --auth-mode key --account-key "$ACCOUNT_KEY" --container-name "$BACKEND_CONTAINER_NAME" --name "$BACKEND_STATE_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" || echo "State file not found, skipping."
+            fi
+          fi
+
+          # Blob containers don't have real directories; remove any remaining blobs under the PR prefix (e.g., lock files).
+          echo "Deleting any remaining blobs under prefix: $BACKEND_PREFIX"
+          if [[ "$AUTH_MODE" == "login" ]]; then
+            az storage blob delete-batch --auth-mode login --account-name "$BACKEND_STORAGE_ACCOUNT" --source "$BACKEND_CONTAINER_NAME" --pattern "${BACKEND_PREFIX}*" || echo "No blobs found under prefix, skipping."
+          else
+            az storage blob delete-batch --auth-mode key --account-key "$ACCOUNT_KEY" --account-name "$BACKEND_STORAGE_ACCOUNT" --source "$BACKEND_CONTAINER_NAME" --pattern "${BACKEND_PREFIX}*" || echo "No blobs found under prefix, skipping."
+          fi
