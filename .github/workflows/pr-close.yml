@@ -47,25 +47,37 @@ jobs:
           AUTH_MODE="login"
           ACCOUNT_KEY=""
 
-          if ! az storage blob exists \
-            --auth-mode "$AUTH_MODE" \
-            --container-name "$BACKEND_CONTAINER_NAME" \
-            --name "$BACKEND_STATE_KEY" \
+          # Detect whether AAD auth can access the storage *data plane*.
+          # We check the container, not the blob, so "blob doesn't exist" doesn't affect detection.
+          set +e
+          LOGIN_ERR=$(az storage container exists \
+            --auth-mode login \
             --account-name "$BACKEND_STORAGE_ACCOUNT" \
-            --query exists --output tsv >/dev/null 2>&1; then
-            echo "AAD data-plane access missing; falling back to account key auth."
-            AUTH_MODE="key"
-            ACCOUNT_KEY=$(az storage account keys list \
-              --resource-group "$BACKEND_RESOURCE_GROUP" \
-              --account-name "$BACKEND_STORAGE_ACCOUNT" \
-              --query "[0].value" -o tsv)
-            # mask account key in logs
-            echo "::add-mask::$ACCOUNT_KEY"
+            --name "$BACKEND_CONTAINER_NAME" \
+            --query exists --output tsv 2>&1 >/dev/null)
+          LOGIN_RC=$?
+          set -e
 
-            if [[ -z "$ACCOUNT_KEY" ]]; then
-              echo "Could not retrieve storage account key for $BACKEND_STORAGE_ACCOUNT in $BACKEND_RESOURCE_GROUP." >&2
-              echo "Grant the identity 'Storage Blob Data Contributor' (or Owner) on the storage account, or allow listing keys." >&2
-              exit 2
+          if [[ $LOGIN_RC -ne 0 ]]; then
+            if echo "$LOGIN_ERR" | grep -qiE "required permissions|AuthorizationPermissionMismatch|AuthorizationFailed|not authorized"; then
+              echo "AAD data-plane access missing; falling back to account key auth."
+              AUTH_MODE="key"
+              ACCOUNT_KEY=$(az storage account keys list \
+                --resource-group "$BACKEND_RESOURCE_GROUP" \
+                --account-name "$BACKEND_STORAGE_ACCOUNT" \
+                --query "[0].value" -o tsv)
+              # mask account key in logs
+              echo "::add-mask::$ACCOUNT_KEY"
+
+              if [[ -z "$ACCOUNT_KEY" ]]; then
+                echo "Could not retrieve storage account key for $BACKEND_STORAGE_ACCOUNT in $BACKEND_RESOURCE_GROUP." >&2
+                echo "Grant the identity 'Storage Blob Data Contributor' (or Owner) on the storage account, or allow listing keys." >&2
+                exit 2
+              fi
+            else
+              echo "Unexpected error when checking storage container access via AAD:" >&2
+              echo "$LOGIN_ERR" >&2
+              exit $LOGIN_RC
             fi
           fi
 
