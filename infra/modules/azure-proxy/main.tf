@@ -25,7 +25,7 @@ resource "random_string" "proxy_dns_suffix" {
 }
 module "azure_proxy_site" {
   source  = "Azure/avm-res-web-site/azurerm"
-  version = "0.19.1"
+  version = "0.20.0"
 
   kind                     = "webapp"
   name                     = "${var.app_name}-${var.app_env}-azure-proxy"
