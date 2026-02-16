@@ -10,6 +10,11 @@ variable "api_image" {
 variable "app_env" {
   description = "Application environment (dev, test, prod)"
   type        = string
+
+  validation {
+    condition     = contains(["dev", "test", "prod", "tools"], var.app_env)
+    error_message = "app_env must be one of: dev, test, prod, tools."
+  }
 }
 
 variable "app_name" {
@@ -33,6 +38,11 @@ variable "client_id" {
   description = "Azure client ID for the service principal"
   type        = string
   sensitive   = true
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F-]{36}$", var.client_id))
+    error_message = "client_id must be a valid GUID string."
+  }
 }
 
 variable "common_tags" {
@@ -160,12 +170,22 @@ variable "container_apps_cpu" {
   description = "CPU allocation for Container Apps (in cores)"
   type        = number
   default     = 0.25
+
+  validation {
+    condition     = var.container_apps_cpu > 0
+    error_message = "container_apps_cpu must be greater than 0."
+  }
 }
 
 variable "container_apps_memory" {
   description = "Memory allocation for Container Apps"
   type        = string
   default     = ".5Gi"
+
+  validation {
+    condition     = can(regex("^[0-9]+(\\.[0-9]+)?(Gi|Mi)$", var.container_apps_memory))
+    error_message = "container_apps_memory must use Mi or Gi units, e.g. 512Mi or 0.5Gi."
+  }
 }
 
 variable "container_apps_min_replicas" {
@@ -178,6 +198,11 @@ variable "container_apps_max_replicas" {
   description = "Maximum number of replicas for Container Apps"
   type        = number
   default     = 3
+
+  validation {
+    condition     = var.container_apps_max_replicas >= var.container_apps_min_replicas
+    error_message = "container_apps_max_replicas must be greater than or equal to container_apps_min_replicas."
+  }
 }
 
 variable "enable_frontdoor" {
@@ -190,6 +215,11 @@ variable "frontdoor_sku_name" {
   description = "SKU name for the Front Door"
   type        = string
   default     = "Standard_AzureFrontDoor"
+
+  validation {
+    condition     = contains(["Standard_AzureFrontDoor", "Premium_AzureFrontDoor"], var.frontdoor_sku_name)
+    error_message = "frontdoor_sku_name must be Standard_AzureFrontDoor or Premium_AzureFrontDoor."
+  }
 }
 
 variable "location" {
@@ -202,6 +232,11 @@ variable "log_analytics_retention_days" {
   description = "Number of days to retain data in Log Analytics Workspace"
   type        = number
   default     = 30
+
+  validation {
+    condition     = var.log_analytics_retention_days >= 30 && var.log_analytics_retention_days <= 730
+    error_message = "log_analytics_retention_days must be between 30 and 730."
+  }
 }
 
 variable "log_analytics_sku" {
@@ -445,12 +480,22 @@ variable "subscription_id" {
   description = "Azure subscription ID"
   type        = string
   sensitive   = true
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F-]{36}$", var.subscription_id))
+    error_message = "subscription_id must be a valid GUID string."
+  }
 }
 
 variable "tenant_id" {
   description = "Azure tenant ID"
   type        = string
   sensitive   = true
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F-]{36}$", var.tenant_id))
+    error_message = "tenant_id must be a valid GUID string."
+  }
 }
 
 variable "use_oidc" {

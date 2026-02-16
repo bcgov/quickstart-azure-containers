@@ -373,10 +373,12 @@ pyrightconfig.json
 # terraform plan output
 **/terraform.plan
 # terraform cache
-*.terraform
+**/.terraform/
 *.terraform.lock.hcl
 **/.terragrunt-cache
 *.http
 terraform.tfvars
 *.tfstate*
+*.tfvars.local
+*.auto.tfvars.local
 **/*instructions.md
