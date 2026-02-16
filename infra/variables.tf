@@ -10,11 +10,6 @@ variable "api_image" {
 variable "app_env" {
   description = "Application environment (dev, test, prod)"
   type        = string
-
-  validation {
-    condition     = contains(["dev", "test", "prod", "tools"], var.app_env)
-    error_message = "app_env must be one of: dev, test, prod, tools."
-  }
 }
 
 variable "app_name" {
