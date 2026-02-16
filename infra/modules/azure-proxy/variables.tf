@@ -19,12 +19,14 @@ variable "app_service_subnet_id" {
 variable "appinsights_connection_string" {
   description = "The Application Insights connection string for monitoring."
   type        = string
+  sensitive   = true
   nullable    = false
 }
 
 variable "appinsights_instrumentation_key" {
   description = "The Application Insights instrumentation key."
   type        = string
+  sensitive   = true
   nullable    = false
 }
 

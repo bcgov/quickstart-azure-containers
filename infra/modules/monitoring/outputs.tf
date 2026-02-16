@@ -1,11 +1,13 @@
 output "appinsights_connection_string" {
   description = "The Application Insights connection string."
   value       = azurerm_application_insights.main.connection_string
+  sensitive   = true
 }
 
 output "appinsights_instrumentation_key" {
   description = "The Application Insights instrumentation key."
   value       = azurerm_application_insights.main.instrumentation_key
+  sensitive   = true
 }
 
 output "appinsights_resource_id" {
@@ -21,6 +23,7 @@ output "log_analytics_workspace_id" {
 output "log_analytics_workspace_key" {
   description = "The primary shared key for the Log Analytics workspace."
   value       = azurerm_log_analytics_workspace.main.primary_shared_key
+  sensitive   = true
 }
 
 output "log_analytics_workspace_workspaceId" {
