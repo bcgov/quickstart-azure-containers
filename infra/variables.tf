@@ -217,6 +217,18 @@ variable "frontdoor_sku_name" {
   }
 }
 
+variable "rate_limit_duration_in_minutes" {
+  description = "Duration in minutes for Front Door rate limiting"
+  type        = number
+  default     = 1
+}
+
+variable "rate_limit_threshold" {
+  description = "Request threshold for Front Door rate limiting (requests per duration)"
+  type        = number
+  default     = 60
+}
+
 variable "location" {
   description = "Azure region for resources"
   type        = string

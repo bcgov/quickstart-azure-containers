@@ -1,7 +1,7 @@
 resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
   name                = "${var.app_name}-frontend-frontdoor"
   resource_group_name = var.resource_group_name
-  sku_name            = "Standard_AzureFrontDoor"
+  sku_name            = var.frontdoor_sku_name
 
   tags = var.common_tags
   lifecycle {
@@ -26,6 +26,12 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_firewall_policy" {
       match_variable = "RequestHeaderNames"
       operator       = "Equals"
       selector       = "Authorization"
+    }
+    scrubbing_rule {
+      enabled        = true
+      match_variable = "RequestHeaderNames"
+      operator       = "Equals"
+      selector       = "api-key"
     }
   }
   # the 'managed_rule' code block is only supported with the "Premium_AzureFrontDoor" sku
@@ -53,19 +59,34 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "frontend_firewall_policy" {
       action  = managed_rule.value.action
     }
   }
+# Simple baseline rate limiter
   custom_rule {
-    name                           = "RateLimitByIP"
-    enabled                        = true
-    priority                       = 1
-    type                           = "RateLimitRule"
-    rate_limit_duration_in_minutes = 1
-    rate_limit_threshold           = 10
     action                         = "Block"
+    enabled                        = true
+    name                           = "RateLimitByIP"
+    priority                       = 100
+    rate_limit_duration_in_minutes = var.rate_limit_duration_in_minutes
+    rate_limit_threshold           = var.rate_limit_threshold
+    type                           = "RateLimitRule"
     match_condition {
+      match_values       = ["0.0.0.0/0"]
       match_variable     = "RemoteAddr"
-      operator           = "IPMatch"
       negation_condition = false
-      match_values       = ["0.0.0.0/0"] # Apply to all IPs
+      operator           = "IPMatch"
+    }
+  }
+  # Block Non-Canadian requests
+  custom_rule {
+    action   = "Block"
+    enabled  = true
+    name     = "BlockByNonCAGeoMatch"
+    priority = 110
+    type     = "MatchRule"
+    match_condition {
+      match_values       = ["CA"]
+      match_variable     = "SocketAddr"
+      negation_condition = true
+      operator           = "GeoMatch"
     }
   }
   tags = var.common_tags

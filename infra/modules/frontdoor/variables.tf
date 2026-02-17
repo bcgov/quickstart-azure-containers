@@ -16,6 +16,18 @@ variable "frontdoor_sku_name" {
   nullable    = false
 }
 
+variable "rate_limit_duration_in_minutes" {
+  description = "Duration in minutes for rate limiting."
+  type        = number
+  nullable    = false
+}
+
+variable "rate_limit_threshold" {
+  description = "Request threshold for rate limiting."
+  type        = number
+  nullable    = false
+}
+
 variable "resource_group_name" {
   description = "The name of the resource group to create."
   type        = string
