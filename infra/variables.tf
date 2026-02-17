@@ -217,6 +217,28 @@ variable "frontdoor_sku_name" {
   }
 }
 
+variable "rate_limit_duration_in_minutes" {
+  description = "Duration in minutes for Front Door rate limiting"
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.rate_limit_duration_in_minutes >= 1 && var.rate_limit_duration_in_minutes <= 60
+    error_message = "rate_limit_duration_in_minutes must be between 1 and 60."
+  }
+}
+
+variable "rate_limit_threshold" {
+  description = "Request threshold for Front Door rate limiting (requests per duration)"
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.rate_limit_threshold >= 1 && var.rate_limit_threshold <= 2147483647
+    error_message = "rate_limit_threshold must be between 1 and 2147483647."
+  }
+}
+
 variable "location" {
   description = "Azure region for resources"
   type        = string

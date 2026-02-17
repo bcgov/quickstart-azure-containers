@@ -101,12 +101,14 @@ module "postgresql" {
 
 
 module "frontdoor" {
-  source              = "./modules/frontdoor"
-  count               = var.enable_frontdoor ? 1 : 0
-  app_name            = var.app_name
-  common_tags         = var.common_tags
-  frontdoor_sku_name  = var.frontdoor_sku_name
-  resource_group_name = azurerm_resource_group.main.name
+  source                         = "./modules/frontdoor"
+  count                          = var.enable_frontdoor ? 1 : 0
+  app_name                       = var.app_name
+  common_tags                    = var.common_tags
+  frontdoor_sku_name             = var.frontdoor_sku_name
+  rate_limit_duration_in_minutes = var.rate_limit_duration_in_minutes
+  rate_limit_threshold           = var.rate_limit_threshold
+  resource_group_name            = azurerm_resource_group.main.name
 
   depends_on = [azurerm_resource_group.main, module.network]
 }

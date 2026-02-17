@@ -89,13 +89,10 @@ module "frontend_site" {
     }
   }
 
-  # The AVM web-site module can optionally create an Application Insights resource.
-  # When `tags` is left unset (null), some provider/API combinations can surface a
-  # drift where Azure reports an empty tag map `{}`. Setting it explicitly keeps
-  # plans stable and prevents Terraform from trying to "undo" the empty-map state.
-  application_insights = {
-    tags = {}
-  }
+  # Disable AVM-internal Application Insights creation — the monitoring module
+  # already provisions App Insights and its LAW.  Connection string & key are
+  # passed via app_settings above, so no duplicate resource is needed.
+  enable_application_insights = false
 
   # Azure may automatically add a hidden-link tag to connect the Web App to Application Insights.
   # If we don't model it, Terraform will see it as out-of-band drift and may try to remove it.

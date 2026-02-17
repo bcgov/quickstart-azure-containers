@@ -95,12 +95,10 @@ module "backend_site" {
     }
   }
 
-  # Keep plans stable: explicitly set Application Insights tags to an empty map.
-  # Without this, some provider/API combinations report an out-of-band change
-  # where tags appear as `{}` (empty) even though the configuration was `null`.
-  application_insights = {
-    tags = {}
-  }
+  # Disable AVM-internal Application Insights creation — the monitoring module
+  # already provisions App Insights and its LAW.  Connection string & key are
+  # passed via app_settings above, so no duplicate resource is needed.
+  enable_application_insights = false
 
   tags             = var.common_tags
   enable_telemetry = var.enable_telemetry

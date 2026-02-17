@@ -401,7 +401,21 @@ tf_import_existing_resource_if_needed() {
     #   0 if an import was performed
     #   1 if no importable error was found
     #   2 if an importable error was found but import failed
+    #
+    # Usage: tf_import_existing_resource_if_needed <output_file> [extra_args...]
+    #   extra_args are forwarded to `terraform import` so that additional
+    #   -var-file / -var flags (e.g. from the CLI invocation) are honoured.
     local tf_output_file="$1"
+    shift
+
+    # Collect only -var / -var-file flags from the extra args so we don't
+    # accidentally forward -target, -auto-approve, etc. to `terraform import`.
+    local extra_var_args=()
+    for arg in "$@"; do
+        case "$arg" in
+            -var=*|-var-file=*) extra_var_args+=("$arg") ;;
+        esac
+    done
 
     local import_line
     if ! import_line="$(extract_import_target_from_tf_output "$tf_output_file")"; then
@@ -422,7 +436,7 @@ tf_import_existing_resource_if_needed() {
     log_info "Import ID: $import_id"
 
     # Import requires the same variables context as apply/plan.
-    if terraform import "${TFVARS_ARGS[@]}" "$import_addr" "$import_id"; then
+    if terraform import "${TFVARS_ARGS[@]}" "${extra_var_args[@]}" "$import_addr" "$import_id"; then
         log_success "Import succeeded: $import_addr"
         return 0
     fi
@@ -473,7 +487,8 @@ tf_apply() {
         fi
 
         # Try to auto-import existing resources, then retry.
-        if tf_import_existing_resource_if_needed "$tf_output_file"; then
+        # Forward the caller's extra args so -var-file overrides are applied.
+        if tf_import_existing_resource_if_needed "$tf_output_file" "$@"; then
             rm -f "$tf_output_file"
             attempt=$((attempt + 1))
             if [[ $attempt -gt $max_retries ]]; then
