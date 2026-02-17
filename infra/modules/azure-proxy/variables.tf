@@ -101,6 +101,6 @@ variable "app_service_plan_worker_count" {
 variable "enable_telemetry" {
   description = "Controls whether AVM telemetry is enabled."
   type        = bool
-  default     = true
+  default     = false
 }
 

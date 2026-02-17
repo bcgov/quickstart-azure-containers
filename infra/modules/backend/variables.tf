@@ -169,5 +169,5 @@ variable "resource_group_name" {
 variable "enable_telemetry" {
   description = "Whether AVM modules should send telemetry."
   type        = bool
-  default     = true
+  default     = false
 }

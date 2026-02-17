@@ -145,5 +145,5 @@ variable "enable_frontdoor" {
 variable "enable_telemetry" {
   description = "Whether AVM modules should send telemetry."
   type        = bool
-  default     = true
+  default     = false
 }
