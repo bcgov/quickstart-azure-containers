@@ -58,30 +58,93 @@ resource "azurerm_api_management" "main" {
 # ---------------------------------------------------------------------------
 # Conditional (controlled by var.enable_diagnostic_settings).  Log and metric
 # categories are variable-driven so callers can tune without editing this
-# module.  Defaults:
+# module.  NOTE: APIM is not deployed by default (enable_apim = false); these
+# settings activate automatically when it is provisioned.
 #
-#  GatewayLogs              — one entry per API call processed by the APIM
-#                             gateway: operation, backend URL, HTTP status,
-#                             latency (total / backend), client IP, and
-#                             subscription key (masked).  Primary source for
-#                             API traffic analysis, SLA reporting, and
-#                             per-consumer usage auditing.
+# ── How to view logs in the Azure Portal ─────────────────────────────────────
+# 1. Open the Log Analytics workspace in the Portal.
+# 2. Click "Logs" in the left nav (under General).
+# 3. Dismiss the query picker and paste any KQL below into the editor.
+# 4. Adjust the time range picker (top-right) — ingestion lag is ~2-5 min.
+# ---------------------------------------------------------------------------
 #
-#  WebSocketConnectionLogs  — lifecycle events for WebSocket connections
-#                             proxied through APIM (connect, disconnect,
-#                             message counts).  Required if any API uses the
-#                             WebSocket passthrough policy.
+# Defaults:
+#
+#  GatewayLogs — one entry per API call processed by the APIM gateway:
+#                operation, backend URL, HTTP status, latency (total /
+#                backend), client IP, and subscription key (masked).
+#                Primary source for API traffic analysis, SLA reporting,
+#                and per-consumer usage auditing.
+#                LAW table: ApiManagementGatewayLogs
+#
+#    KQL — recent gateway requests:
+#      ApiManagementGatewayLogs
+#      | project TimeGenerated, OperationId, Method, Url, ResponseCode,
+#                BackendResponseCode, TotalTime, BackendTime, CallerIpAddress
+#      | order by TimeGenerated desc
+#
+#    KQL — error rate by operation:
+#      ApiManagementGatewayLogs
+#      | where ResponseCode >= 400
+#      | summarize count() by ResponseCode, OperationId
+#      | order by count_ desc
+#
+#  WebSocketConnectionLogs — lifecycle events for WebSocket connections
+#                            proxied through APIM (connect, disconnect,
+#                            message counts).  Required if any API uses the
+#                            WebSocket passthrough policy.
+#                            LAW table: ApiManagementGatewayLogs (same table,
+#                            filtered by OperationType == "WebSocket")
+#
+#    KQL — WebSocket connection events:
+#      ApiManagementGatewayLogs
+#      | where OperationType == "WebSocket"
+#      | project TimeGenerated, OperationId, CallerIpAddress, ResponseCode,
+#                TotalTime
+#      | order by TimeGenerated desc
+#
+#    KQL — active WebSocket connections over time:
+#      ApiManagementGatewayLogs
+#      | where OperationType == "WebSocket"
+#      | summarize count() by bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
 #
 #  DeveloperPortalAuditLogs — sign-in, sign-up, product subscription, and
 #                             API key operations performed in the Developer
 #                             Portal.  Use for access control auditing and
 #                             compliance evidence under the portal auth rules
 #                             configured by var.enable_sign_in / sign_up.
+#                             LAW table: ApiManagementGatewayLogs
 #
-#  AllMetrics               — gateway request volume, capacity units,
-#                             duration percentiles, and failed request counts
-#                             as pre-aggregated time-series; required for
-#                             metric alert rules and Monitor dashboards.
+#    KQL — portal authentication events:
+#      ApiManagementGatewayLogs
+#      | where Category == "DeveloperPortalAuditLogs"
+#      | project TimeGenerated, OperationId, CallerIpAddress, ResponseCode
+#      | order by TimeGenerated desc
+#
+#    KQL — portal activity by client IP:
+#      ApiManagementGatewayLogs
+#      | where Category == "DeveloperPortalAuditLogs"
+#      | summarize count() by CallerIpAddress
+#      | order by count_ desc
+#
+#  AllMetrics — gateway request volume, capacity units, duration percentiles,
+#               and failed request counts as pre-aggregated time-series;
+#               required for metric alert rules and Monitor dashboards.
+#
+#    KQL — request volume and latency over time:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.APIMANAGEMENT"
+#      | where MetricName in ("TotalRequests", "Duration", "FailedRequests")
+#      | summarize avg(Average) by MetricName, bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
+#
+#    KQL — gateway capacity utilisation:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.APIMANAGEMENT"
+#      | where MetricName == "Capacity"
+#      | summarize avg(Average) by bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
 resource "azurerm_monitor_diagnostic_setting" "apim" {
   count                      = var.enable_diagnostic_settings ? 1 : 0
   name                       = "${azurerm_api_management.main.name}-diagnostics"

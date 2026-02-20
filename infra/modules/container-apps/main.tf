@@ -294,33 +294,107 @@ resource "azurerm_container_app" "backend" {
 # Environment-level sink that aggregates telemetry for ALL container apps
 # running inside this managed environment.
 #
-#  ContainerAppConsoleLogs  — stdout/stderr from every container in the
-#                             environment.  Primary source for runtime errors,
-#                             stack traces, and application debug output.
+# ── How to view logs in the Azure Portal ─────────────────────────────────────
+# 1. Open the Log Analytics workspace in the Portal.
+# 2. Click "Logs" in the left nav (under General).
+# 3. Dismiss the query picker and paste any KQL below into the editor.
+# 4. Adjust the time range picker (top-right) — ingestion lag is ~2-5 min.
+# ---------------------------------------------------------------------------
 #
-#  ContainerAppSystemLogs   — platform events scoped to the environment:
-#                             scaling decisions, replica start/stop, revision
-#                             activation, and health-check outcomes.
+# IMPORTANT: Azure appends the "_CL" custom-log suffix when it writes these
+# categories to Log Analytics.  The Terraform category values below are the
+# Azure resource-provider identifiers (without "_CL"); the LAW table names
+# you must use in KQL queries carry the "_CL" suffix.
 #
-#  AllMetrics               — environment-level metrics: active replica count,
-#                             CPU/memory utilisation per environment, and
-#                             request concurrency (used by KEDA http-scaling).
+# Log categories:
+#
+#  ContainerAppConsoleLogs — stdout/stderr from every container in the
+#                            environment.  Primary source for runtime errors,
+#                            stack traces, and application debug output.
+#                            LAW table: ContainerAppConsoleLogs_CL
+#                            Key fields: ContainerAppName_s, ContainerName_s,
+#                            Log_s, Stream_s (stdout|stderr), RevisionName_s.
+#
+#    KQL — recent log lines from all apps:
+#      ContainerAppConsoleLogs_CL
+#      | project TimeGenerated, ContainerAppName_s, ContainerName_s,
+#                Log_s, Stream_s, RevisionName_s
+#      | order by TimeGenerated desc
+#
+#    KQL — stderr errors across all revisions:
+#      ContainerAppConsoleLogs_CL
+#      | where Stream_s == "stderr"
+#      | project TimeGenerated, ContainerAppName_s, Log_s,
+#                RevisionName_s, ContainerImage_s
+#      | order by TimeGenerated desc
+#
+#  ContainerAppSystemLogs — platform events scoped to the environment:
+#                           scaling decisions (KEDA), replica start/stop,
+#                           revision activation, and health-check outcomes.
+#                           LAW table: ContainerAppSystemLogs_CL
+#                           Key fields: ContainerAppName_s, EventSource_s
+#                           (KEDA|ContainerAppController), Type_s
+#                           (Normal|Warning), Reason_s, Log_s.
+#
+#    KQL — all system events ordered by time:
+#      ContainerAppSystemLogs_CL
+#      | project TimeGenerated, ContainerAppName_s, EventSource_s,
+#                Type_s, Reason_s, Log_s, Level, RevisionName_s
+#      | order by TimeGenerated desc
+#
+#    KQL — KEDA scaling events:
+#      ContainerAppSystemLogs_CL
+#      | where EventSource_s == "KEDA"
+#      | project TimeGenerated, ContainerAppName_s, Reason_s, Log_s,
+#                RevisionName_s, ReplicaName_s
+#      | order by TimeGenerated desc
+#
+#  AllMetrics — environment-level metrics: active replica count,
+#               CPU/memory utilisation per environment, and request
+#               concurrency (used by KEDA http-scaling).
+#
+#    KQL — replica count and CPU over time:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.APP"
+#      | where MetricName in ("Replicas", "CpuPercentage", "MemoryPercentage")
+#      | summarize avg(Average) by MetricName, bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
+#
+#    KQL — request concurrency for KEDA scaling visibility:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.APP"
+#      | where MetricName == "Requests"
+#      | summarize sum(Total) by bin(TimeGenerated, 1m)
+#      | order by TimeGenerated desc
 resource "azurerm_monitor_diagnostic_setting" "container_app_env_diagnostics" {
   name                       = "${var.app_name}-ca-env-diagnostics"
   target_resource_id         = azurerm_container_app_environment.main.id
   log_analytics_workspace_id = var.log_analytics_workspace_id
 
   # stdout/stderr from all containers in the environment — main debug log source.
+  # LAW table: ContainerAppConsoleLogs_CL (note the _CL suffix in KQL queries)
+  # KQL: ContainerAppConsoleLogs_CL
+  #      | project TimeGenerated, ContainerAppName_s, ContainerName_s,
+  #                Log_s, Stream_s, RevisionName_s
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "ContainerAppConsoleLogs"
   }
 
   # Platform events: scaling, restarts, revision activations, health probes.
+  # LAW table: ContainerAppSystemLogs_CL (note the _CL suffix in KQL queries)
+  # KQL: ContainerAppSystemLogs_CL
+  #      | project TimeGenerated, ContainerAppName_s, EventSource_s,
+  #                Type_s, Reason_s, Log_s, Level, RevisionName_s
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "ContainerAppSystemLogs"
   }
 
   # Replica count, CPU/memory, and concurrency metrics for the environment.
+  # KQL: AzureMetrics | where ResourceProvider == "MICROSOFT.APP"
+  #      | where MetricName in ("Replicas","CpuPercentage","MemoryPercentage")
+  #      | summarize avg(Average) by MetricName, bin(TimeGenerated, 5m)
   enabled_metric {
     category = "AllMetrics"
   }

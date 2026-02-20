@@ -42,7 +42,7 @@ resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
 #    Portal KQL — recent requests with key fields:
 #      AzureDiagnostics
 #      | where ResourceProvider == "MICROSOFT.CDN"
-#      | where Category == "FrontdoorAccessLog"
+#      | where Category == "FrontDoorAccessLog"
 #      | project TimeGenerated, clientIp_s, requestUri_s, httpStatusCode_s,
 #                timeTaken_s, cacheStatus_s, pop_s, userAgent_s
 #      | order by TimeGenerated desc
@@ -50,7 +50,7 @@ resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
 #    Portal KQL — 4xx/5xx error breakdown:
 #      AzureDiagnostics
 #      | where ResourceProvider == "MICROSOFT.CDN"
-#      | where Category == "FrontdoorAccessLog"
+#      | where Category == "FrontDoorAccessLog"
 #      | where toint(httpStatusCode_s) >= 400
 #      | summarize count() by httpStatusCode_s, requestUri_s
 #      | order by count_ desc
@@ -65,7 +65,7 @@ resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
 #    Portal KQL — all WAF actions with rule name and client IP:
 #      AzureDiagnostics
 #      | where ResourceProvider == "MICROSOFT.CDN"
-#      | where Category == "FrontdoorWebApplicationFirewallLog"
+#      | where Category == "FrontDoorWebApplicationFirewallLog"
 #      | project TimeGenerated, action_s, ruleName_s, clientIp_s,
 #                requestUri_s, policyMode_s, details_msg_s
 #      | order by TimeGenerated desc
@@ -73,7 +73,7 @@ resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
 #    Portal KQL — blocked request count by rule (last 24 h):
 #      AzureDiagnostics
 #      | where ResourceProvider == "MICROSOFT.CDN"
-#      | where Category == "FrontdoorWebApplicationFirewallLog"
+#      | where Category == "FrontDoorWebApplicationFirewallLog"
 #      | where action_s == "Block"
 #      | summarize count() by ruleName_s, bin(TimeGenerated, 1h)
 #      | order by TimeGenerated desc
@@ -88,7 +88,7 @@ resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
 #    Portal KQL — probe failures grouped by origin:
 #      AzureDiagnostics
 #      | where ResourceProvider == "MICROSOFT.CDN"
-#      | where Category == "FrontdoorHealthProbeLog"
+#      | where Category == "FrontDoorHealthProbeLog"
 #      | where httpStatusCode_s != "200"
 #      | summarize failures=count() by originName_s, httpStatusCode_s,
 #                  bin(TimeGenerated, 5m)
@@ -120,7 +120,7 @@ resource "azurerm_monitor_diagnostic_setting" "frontdoor_diagnostics" {
   # Per-request HTTP/S access log: client IP, URL, method, HTTP status, latency,
   # cache status (HIT/MISS/CONFIG_NOCACHE), PoP location, TLS version, WAF policy.
   # KQL: AzureDiagnostics | where ResourceProvider == "MICROSOFT.CDN"
-  #      | where Category == "FrontdoorAccessLog"
+  #      | where Category == "FrontDoorAccessLog"
   #      | project TimeGenerated, clientIp_s, requestUri_s, httpStatusCode_s,
   #                timeTaken_s, cacheStatus_s, pop_s | order by TimeGenerated desc
   enabled_log {
@@ -130,7 +130,7 @@ resource "azurerm_monitor_diagnostic_setting" "frontdoor_diagnostics" {
   # WAF rule evaluations: action_s = "Block" (Prevention) or "Log" (Detection).
   # Covers custom rules (RateLimitByIP, BlockByNonCAGeoMatch) and managed rule sets.
   # KQL: AzureDiagnostics | where ResourceProvider == "MICROSOFT.CDN"
-  #      | where Category == "FrontdoorWebApplicationFirewallLog"
+  #      | where Category == "FrontDoorWebApplicationFirewallLog"
   #      | project TimeGenerated, action_s, ruleName_s, clientIp_s,
   #                requestUri_s, policyMode_s | order by TimeGenerated desc
   enabled_log {
@@ -140,7 +140,7 @@ resource "azurerm_monitor_diagnostic_setting" "frontdoor_diagnostics" {
   # Synthetic probe results per origin (~every 30 s). httpStatusCode_s == "0"
   # means TCP failure (origin unreachable); non-2xx means app-level error.
   # KQL: AzureDiagnostics | where ResourceProvider == "MICROSOFT.CDN"
-  #      | where Category == "FrontdoorHealthProbeLog"
+  #      | where Category == "FrontDoorHealthProbeLog"
   #      | where httpStatusCode_s != "200"
   #      | summarize failures=count() by originName_s, httpStatusCode_s, bin(TimeGenerated, 5m)
   enabled_log {

@@ -109,59 +109,166 @@ module "frontend_site" {
 # ---------------------------------------------------------------------------
 # Routes all App Service log categories and platform metrics to Log Analytics.
 #
-#  AppServiceHTTPLogs      — IIS/HTTP access logs: every inbound request with
-#                            HTTP status, latency, bytes transferred.  Use for
-#                            traffic pattern analysis, CDN cache-miss debugging,
-#                            and SLA reporting.
+# ── How to view logs in the Azure Portal ─────────────────────────────────────
+# 1. Open the Log Analytics workspace in the Portal.
+# 2. Click "Logs" in the left nav (under General).
+# 3. Dismiss the query picker and paste any KQL below into the editor.
+# 4. Adjust the time range picker (top-right) — ingestion lag is ~2-5 min.
+# ---------------------------------------------------------------------------
 #
-#  AppServiceConsoleLogs   — stdout/stderr from the Caddy/frontend container.
-#                            Captures reverse-proxy errors, TLS handshake issues,
-#                            and Vite/Node startup failures.
+# Log categories:
 #
-#  AppServiceAppLogs       — structured application logs written through App
-#                            Service log sink (severity-filtered).
+#  AppServiceHTTPLogs — IIS/HTTP access log: one row per inbound request with
+#                       HTTP method, URI, status code, latency (ms), bytes
+#                       transferred, client IP, and User-Agent.  Use for
+#                       traffic pattern analysis, CDN cache-miss debugging,
+#                       and SLA reporting.
 #
-#  AppServiceAuditLogs     — authentication / Easy Auth sign-in and sign-out
-#                            events.  Required for security compliance evidence.
+#    KQL — recent requests:
+#      AppServiceHTTPLogs
+#      | project TimeGenerated, CsHost, CsMethod, CsUriStem, ScStatus,
+#                TimeTaken, CIp
+#      | order by TimeGenerated desc
 #
-#  AppServicePlatformLogs  — platform lifecycle events: container start/stop,
-#                            health-check evictions, deployment slot swaps, and
-#                            scaling operations.
+#    KQL — 4xx/5xx error breakdown by path:
+#      AppServiceHTTPLogs
+#      | where ScStatus >= 400
+#      | summarize count() by ScStatus, CsUriStem
+#      | order by count_ desc
 #
-#  AllMetrics              — CPU %, memory %, HTTP queue length, response time,
-#                            and request counts sent to Azure Monitor for
-#                            alerting and autoscale observability.
+#  AppServiceConsoleLogs — stdout/stderr from the Caddy/frontend container.
+#                          Captures reverse-proxy errors, TLS handshake issues,
+#                          and startup failures.  Level is either
+#                          "Informational" or "Error".
+#
+#    KQL — recent error output:
+#      AppServiceConsoleLogs
+#      | where Level == "Error"
+#      | project TimeGenerated, Level, Host, ResultDescription, ContainerId
+#      | order by TimeGenerated desc
+#
+#    KQL — log volume by level (5-minute buckets):
+#      AppServiceConsoleLogs
+#      | summarize count() by Level, bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
+#
+#  AppServiceAppLogs — structured application logs written through the App
+#                      Service logging SDK (severity-filtered).  Requires SDK
+#                      integration in the app; empty if the app writes only to
+#                      stdout.  Fields: Level, Message, ExceptionClass, Method,
+#                      Stacktrace, Host, ContainerId.
+#
+#    KQL — application errors and warnings:
+#      AppServiceAppLogs
+#      | where Level in ("Error", "Warning", "Critical")
+#      | project TimeGenerated, Level, Message, ExceptionClass,
+#                Method, Stacktrace, Host
+#      | order by TimeGenerated desc
+#
+#    KQL — log count by severity:
+#      AppServiceAppLogs
+#      | summarize count() by Level
+#      | order by count_ desc
+#
+#  AppServiceAuditLogs — records each SCM/FTP publishing authentication event.
+#                        Fields: User, UserAddress, Protocol
+#                        (FTP/FTPS/WebDeploy), OperationName.  Required for
+#                        deployment access auditing.
+#
+#    KQL — recent publishing events:
+#      AppServiceAuditLogs
+#      | project TimeGenerated, OperationName, User, UserAddress, Protocol
+#      | order by TimeGenerated desc
+#
+#    KQL — publishing activity by user:
+#      AppServiceAuditLogs
+#      | summarize count() by User, Protocol
+#      | order by count_ desc
+#
+#  AppServicePlatformLogs — platform lifecycle events: container start/stop,
+#                           health-check evictions, deployment slot swaps, and
+#                           scaling operations.  OperationName is always
+#                           "ContainerLogs"; Level: Informational/Error/Warning.
+#
+#    KQL — platform errors and warnings:
+#      AppServicePlatformLogs
+#      | where Level in ("Error", "Warning")
+#      | project TimeGenerated, Level, OperationName, Message,
+#                ContainerId, Host
+#      | order by TimeGenerated desc
+#
+#    KQL — container restart timeline:
+#      AppServicePlatformLogs
+#      | where Message contains "starting" or Message contains "stopped"
+#      | project TimeGenerated, Level, Message, Host
+#      | order by TimeGenerated desc
+#
+#  AllMetrics — CPU %, memory %, HTTP queue length, response time, and
+#               request counts as pre-aggregated time-series.  Used for
+#               metric alert rules and autoscale observability.
+#
+#    KQL — average response time per 5-minute window:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.WEB"
+#      | where MetricName == "AverageResponseTime"
+#      | summarize avg(Average) by bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
+#
+#    KQL — CPU and memory utilisation:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.WEB"
+#      | where MetricName in ("CpuTime", "MemoryWorkingSet")
+#      | summarize avg(Average) by MetricName, bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
 resource "azurerm_monitor_diagnostic_setting" "frontend_diagnostics" {
   name                       = "${var.app_name}-frontend-diagnostics"
   target_resource_id         = module.frontend_site.resource_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
 
-  # Per-request HTTP access log (latency, status code, bytes).
+  # Per-request HTTP access log (method, URI, status, latency, client IP).
+  # KQL: AppServiceHTTPLogs
+  #      | project TimeGenerated, CsHost, CsMethod, CsUriStem, ScStatus, TimeTaken, CIp
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "AppServiceHTTPLogs"
   }
 
   # Container stdout/stderr — Caddy reverse-proxy and startup error logs.
+  # KQL: AppServiceConsoleLogs | where Level == "Error"
+  #      | project TimeGenerated, Level, Host, ResultDescription, ContainerId
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "AppServiceConsoleLogs"
   }
 
-  # SDK-level application log entries (structured, severity-filtered).
+  # SDK-level structured application logs (Level, Message, ExceptionClass, Stacktrace).
+  # KQL: AppServiceAppLogs | where Level in ("Error","Warning","Critical")
+  #      | project TimeGenerated, Level, Message, ExceptionClass, Method, Stacktrace, Host
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "AppServiceAppLogs"
   }
 
-  # Easy Auth / authentication audit trail — sign-in/sign-out events.
+  # SCM/FTP publishing authentication events (User, UserAddress, Protocol).
+  # KQL: AppServiceAuditLogs
+  #      | project TimeGenerated, OperationName, User, UserAddress, Protocol
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "AppServiceAuditLogs"
   }
 
-  # Platform events: restarts, health-check evictions, scaling, deployments.
+  # Platform events: container restarts, health-check evictions, scaling.
+  # KQL: AppServicePlatformLogs | where Level in ("Error","Warning")
+  #      | project TimeGenerated, Level, OperationName, Message, ContainerId, Host
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "AppServicePlatformLogs"
   }
 
-  # CPU, memory, HTTP queue, response time, and request-count metrics.
+  # CPU, memory, HTTP queue, and response time metrics.
+  # KQL: AzureMetrics | where ResourceProvider == "MICROSOFT.WEB"
+  #      | where MetricName in ("CpuTime","MemoryWorkingSet","AverageResponseTime")
+  #      | summarize avg(Average) by MetricName, bin(TimeGenerated, 5m)
   enabled_metric {
     category = "AllMetrics"
   }
