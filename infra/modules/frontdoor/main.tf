@@ -34,10 +34,10 @@ resource "azurerm_cdn_frontdoor_profile" "frontend_frontdoor" {
 #  AllMetrics                — origin latency, request count, byte counters, and
 #                              4xx/5xx error rates surfaced in Azure Monitor.
 resource "azurerm_monitor_diagnostic_setting" "frontdoor_diagnostics" {
-  name                       = "${var.app_name}-frontdoor-diagnostics"
-  target_resource_id         = azurerm_cdn_frontdoor_profile.frontend_frontdoor.id
-  log_analytics_workspace_id = var.log_analytics_workspace_id
-
+  name                           = "${var.app_name}-frontdoor-diagnostics"
+  target_resource_id             = azurerm_cdn_frontdoor_profile.frontend_frontdoor.id
+  log_analytics_workspace_id     = var.log_analytics_workspace_id
+  log_analytics_destination_type = "Dedicated"
   # HTTP access log – one entry per request routed through the Front Door edge.
   # Contains client IP, URL, HTTP status, latency, cache status, and matched rule.
   enabled_log {
@@ -60,6 +60,18 @@ resource "azurerm_monitor_diagnostic_setting" "frontdoor_diagnostics" {
   # sent to Log Analytics for dashboarding and alert rules.
   enabled_metric {
     category = "AllMetrics"
+  }
+  lifecycle {
+    replace_triggered_by = [null_resource.diag_destination_type_trigger]
+  }
+}
+# Trigger recreation of diagnostic setting when destination type changes.
+# This works around an Azure API bug where in-place updates to
+# log_analytics_destination_type silently fail after a few days.
+resource "null_resource" "diag_destination_type_trigger" {
+
+  triggers = {
+    destination_type = "Dedicated"
   }
 }
 
