@@ -33,3 +33,9 @@ variable "resource_group_name" {
   type        = string
   nullable    = false
 }
+
+variable "log_analytics_workspace_id" {
+  description = "Resource ID of the Log Analytics workspace to send Front Door diagnostic logs to."
+  type        = string
+  nullable    = false
+}

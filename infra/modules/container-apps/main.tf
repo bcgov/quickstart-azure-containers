@@ -288,19 +288,79 @@ resource "azurerm_container_app" "backend" {
   depends_on = [azurerm_container_app_environment.main, null_resource.wait_for_containerapps_private_dns_zone]
 }
 
+# ---------------------------------------------------------------------------
+# Container Apps Environment Diagnostic Settings
+# ---------------------------------------------------------------------------
+# Environment-level sink that aggregates telemetry for ALL container apps
+# running inside this managed environment.
+#
+#  ContainerAppConsoleLogs  — stdout/stderr from every container in the
+#                             environment.  Primary source for runtime errors,
+#                             stack traces, and application debug output.
+#
+#  ContainerAppSystemLogs   — platform events scoped to the environment:
+#                             scaling decisions, replica start/stop, revision
+#                             activation, and health-check outcomes.
+#
+#  AllMetrics               — environment-level metrics: active replica count,
+#                             CPU/memory utilisation per environment, and
+#                             request concurrency (used by KEDA http-scaling).
 resource "azurerm_monitor_diagnostic_setting" "container_app_env_diagnostics" {
   name                       = "${var.app_name}-ca-env-diagnostics"
   target_resource_id         = azurerm_container_app_environment.main.id
   log_analytics_workspace_id = var.log_analytics_workspace_id
-  # Container console logs (stdout/stderr from your application)
+
+  # stdout/stderr from all containers in the environment — main debug log source.
   enabled_log {
     category = "ContainerAppConsoleLogs"
   }
 
-  # System logs (scaling events, container restarts, platform events)
+  # Platform events: scaling, restarts, revision activations, health probes.
   enabled_log {
     category = "ContainerAppSystemLogs"
   }
+
+  # Replica count, CPU/memory, and concurrency metrics for the environment.
+  enabled_metric {
+    category = "AllMetrics"
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Backend Container App Diagnostic Settings
+# ---------------------------------------------------------------------------
+# App-scoped diagnostic setting that mirrors the environment-level one but
+# targets only the backend Container App resource.  This allows:
+#   - Per-app KQL queries and dashboard tiles without filtering by app name.
+#   - Independent log retention or export routing (e.g. different storage
+#     account) from other apps that may share the same environment.
+#   - Alerting rules scoped to this app's resource ID rather than the env.
+#
+#  ContainerAppConsoleLogs  — stdout/stderr from the backend (NestJS) container
+#                             and the migrations init-container.  Use for
+#                             application error investigation and audit.
+#
+#  ContainerAppSystemLogs   — revision lifecycle events (activation, deactivation,
+#                             scale-in/out) specific to this Container App.
+#
+#  AllMetrics               — per-app replica counts, CPU/memory, and HTTP
+#                             request metrics for alerting and autoscale tuning.
+resource "azurerm_monitor_diagnostic_setting" "backend_container_app_diagnostics" {
+  name                       = "${var.app_name}-backend-ca-diagnostics"
+  target_resource_id         = azurerm_container_app.backend.id
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+
+  # Application stdout/stderr — NestJS logs, unhandled exceptions, and ORM queries.
+  enabled_log {
+    category = "ContainerAppConsoleLogs"
+  }
+
+  # Revision lifecycle: activation, deactivation, scale events for this app only.
+  enabled_log {
+    category = "ContainerAppSystemLogs"
+  }
+
+  # Per-app replica count, CPU/memory utilisation, and HTTP request metrics.
   enabled_metric {
     category = "AllMetrics"
   }
