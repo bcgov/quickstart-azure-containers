@@ -110,51 +110,143 @@ module "azure_proxy_site" {
 # Routes all App Service log categories and platform metrics to Log Analytics
 # for the chisel/privoxy reverse-proxy tier.
 #
-#  AppServiceHTTPLogs      — IIS/HTTP access logs: every inbound request with
-#                            HTTP status, latency, and bytes transferred.  Use
-#                            for auditing which clients are tunnelling through
-#                            the proxy and to detect unexpected traffic volumes.
+# ── How to view logs in the Azure Portal ─────────────────────────────────────
+# 1. Open the Log Analytics workspace in the Portal.
+# 2. Click "Logs" in the left nav (under General).
+# 3. Dismiss the query picker and paste any KQL below into the editor.
+# 4. Adjust the time range picker (top-right) — ingestion lag is ~2-5 min.
+# ---------------------------------------------------------------------------
 #
-#  AppServiceConsoleLogs   — stdout/stderr from the container process (chisel or
-#                            privoxy).  Primary source for connection errors,
-#                            authentication failures, and startup diagnostics.
+# Log categories:
 #
-#  AppServiceAppLogs       — structured application log entries written through
-#                            the App Service logging SDK (severity-filtered).
+#  AppServiceHTTPLogs — IIS/HTTP access log: one row per inbound request with
+#                       HTTP method, URI, status code, latency (ms), bytes
+#                       transferred, and client IP.  Use for auditing which
+#                       clients are tunnelling through the proxy and to detect
+#                       unexpected traffic volumes.
 #
-#  AppServicePlatformLogs  — platform lifecycle events: container start/stop,
-#                            health-check evictions, deployment slot swaps, and
-#                            scaling operations.
+#    KQL — recent requests:
+#      AppServiceHTTPLogs
+#      | project TimeGenerated, CsHost, CsMethod, CsUriStem, ScStatus,
+#                TimeTaken, CIp
+#      | order by TimeGenerated desc
 #
-#  AllMetrics              — CPU %, memory %, HTTP queue length, and response
-#                            time sent to Azure Monitor for alerting and
-#                            capacity planning of the proxy tier.
+#    KQL — 4xx/5xx error breakdown by path:
+#      AppServiceHTTPLogs
+#      | where ScStatus >= 400
+#      | summarize count() by ScStatus, CsUriStem
+#      | order by count_ desc
+#
+#  AppServiceConsoleLogs — stdout/stderr from the container process (chisel or
+#                          privoxy).  Primary source for connection errors,
+#                          authentication failures, and startup diagnostics.
+#                          Level is either "Informational" or "Error".
+#
+#    KQL — recent error output:
+#      AppServiceConsoleLogs
+#      | where Level == "Error"
+#      | project TimeGenerated, Level, Host, ResultDescription, ContainerId
+#      | order by TimeGenerated desc
+#
+#    KQL — log volume by level (5-minute buckets):
+#      AppServiceConsoleLogs
+#      | summarize count() by Level, bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
+#
+#  AppServiceAppLogs — structured application logs written through the App
+#                      Service logging SDK (severity-filtered).  Requires SDK
+#                      integration in the app; empty if the app writes only to
+#                      stdout.  Fields: Level, Message, ExceptionClass, Method,
+#                      Stacktrace, Host, ContainerId.
+#
+#    KQL — application errors and warnings:
+#      AppServiceAppLogs
+#      | where Level in ("Error", "Warning", "Critical")
+#      | project TimeGenerated, Level, Message, ExceptionClass,
+#                Method, Stacktrace, Host
+#      | order by TimeGenerated desc
+#
+#    KQL — log count by severity:
+#      AppServiceAppLogs
+#      | summarize count() by Level
+#      | order by count_ desc
+#
+#  AppServicePlatformLogs — platform lifecycle events: container start/stop,
+#                           health-check evictions, deployment slot swaps, and
+#                           scaling operations.  OperationName is always
+#                           "ContainerLogs"; Level: Informational/Error/Warning.
+#
+#    KQL — platform errors and warnings:
+#      AppServicePlatformLogs
+#      | where Level in ("Error", "Warning")
+#      | project TimeGenerated, Level, OperationName, Message,
+#                ContainerId, Host
+#      | order by TimeGenerated desc
+#
+#    KQL — container restart timeline:
+#      AppServicePlatformLogs
+#      | where Message contains "starting" or Message contains "stopped"
+#      | project TimeGenerated, Level, Message, Host
+#      | order by TimeGenerated desc
+#
+#  AllMetrics — CPU %, memory %, HTTP queue length, and response time sent
+#               to Azure Monitor for alerting and capacity planning of the
+#               proxy tier.
+#
+#    KQL — average response time per 5-minute window:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.WEB"
+#      | where MetricName == "AverageResponseTime"
+#      | summarize avg(Average) by bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
+#
+#    KQL — CPU and memory utilisation:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.WEB"
+#      | where MetricName in ("CpuTime", "MemoryWorkingSet")
+#      | summarize avg(Average) by MetricName, bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
 resource "azurerm_monitor_diagnostic_setting" "azure_proxy_diagnostics" {
   name                       = "${var.app_name}-azure-proxy-diagnostics"
   target_resource_id         = module.azure_proxy_site.resource_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
 
-  # Per-request HTTP access log (latency, status code, bytes).
+  # Per-request HTTP access log (method, URI, status, latency, client IP).
+  # KQL: AppServiceHTTPLogs
+  #      | project TimeGenerated, CsHost, CsMethod, CsUriStem, ScStatus, TimeTaken, CIp
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "AppServiceHTTPLogs"
   }
 
   # Container stdout/stderr — chisel/privoxy runtime errors and connection logs.
+  # KQL: AppServiceConsoleLogs | where Level == "Error"
+  #      | project TimeGenerated, Level, Host, ResultDescription, ContainerId
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "AppServiceConsoleLogs"
   }
 
-  # SDK-level application log entries (structured, severity-filtered).
+  # SDK-level structured application logs (Level, Message, ExceptionClass, Stacktrace).
+  # KQL: AppServiceAppLogs | where Level in ("Error","Warning","Critical")
+  #      | project TimeGenerated, Level, Message, ExceptionClass, Method, Stacktrace, Host
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "AppServiceAppLogs"
   }
 
-  # Platform events: restarts, health-check evictions, scaling, deployments.
+  # Platform events: container restarts, health-check evictions, scaling.
+  # KQL: AppServicePlatformLogs | where Level in ("Error","Warning")
+  #      | project TimeGenerated, Level, OperationName, Message, ContainerId, Host
+  #      | order by TimeGenerated desc
   enabled_log {
     category = "AppServicePlatformLogs"
   }
 
-  # CPU, memory, HTTP queue, response time, and request-count metrics.
+  # CPU, memory, HTTP queue, and response time metrics.
+  # KQL: AzureMetrics | where ResourceProvider == "MICROSOFT.WEB"
+  #      | where MetricName in ("CpuTime","MemoryWorkingSet","AverageResponseTime")
+  #      | summarize avg(Average) by MetricName, bin(TimeGenerated, 5m)
   enabled_metric {
     category = "AllMetrics"
   }
