@@ -109,8 +109,9 @@ module "frontdoor" {
   rate_limit_duration_in_minutes = var.rate_limit_duration_in_minutes
   rate_limit_threshold           = var.rate_limit_threshold
   resource_group_name            = azurerm_resource_group.main.name
+  log_analytics_workspace_id     = module.monitoring.log_analytics_workspace_id
 
-  depends_on = [azurerm_resource_group.main, module.network]
+  depends_on = [azurerm_resource_group.main, module.network, module.monitoring]
 }
 
 module "frontend" {

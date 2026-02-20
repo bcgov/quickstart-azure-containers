@@ -104,20 +104,58 @@ module "azure_proxy_site" {
   tags             = var.common_tags
   enable_telemetry = var.enable_telemetry
 }
+# ---------------------------------------------------------------------------
+# Azure Proxy App Service Diagnostic Settings
+# ---------------------------------------------------------------------------
+# Routes all App Service log categories and platform metrics to Log Analytics
+# for the chisel/privoxy reverse-proxy tier.
+#
+#  AppServiceHTTPLogs      — IIS/HTTP access logs: every inbound request with
+#                            HTTP status, latency, and bytes transferred.  Use
+#                            for auditing which clients are tunnelling through
+#                            the proxy and to detect unexpected traffic volumes.
+#
+#  AppServiceConsoleLogs   — stdout/stderr from the container process (chisel or
+#                            privoxy).  Primary source for connection errors,
+#                            authentication failures, and startup diagnostics.
+#
+#  AppServiceAppLogs       — structured application log entries written through
+#                            the App Service logging SDK (severity-filtered).
+#
+#  AppServicePlatformLogs  — platform lifecycle events: container start/stop,
+#                            health-check evictions, deployment slot swaps, and
+#                            scaling operations.
+#
+#  AllMetrics              — CPU %, memory %, HTTP queue length, and response
+#                            time sent to Azure Monitor for alerting and
+#                            capacity planning of the proxy tier.
 resource "azurerm_monitor_diagnostic_setting" "azure_proxy_diagnostics" {
   name                       = "${var.app_name}-azure-proxy-diagnostics"
   target_resource_id         = module.azure_proxy_site.resource_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
+
+  # Per-request HTTP access log (latency, status code, bytes).
   enabled_log {
     category = "AppServiceHTTPLogs"
   }
+
+  # Container stdout/stderr — chisel/privoxy runtime errors and connection logs.
   enabled_log {
     category = "AppServiceConsoleLogs"
   }
+
+  # SDK-level application log entries (structured, severity-filtered).
   enabled_log {
     category = "AppServiceAppLogs"
   }
+
+  # Platform events: restarts, health-check evictions, scaling, deployments.
   enabled_log {
     category = "AppServicePlatformLogs"
+  }
+
+  # CPU, memory, HTTP queue, response time, and request-count metrics.
+  enabled_metric {
+    category = "AllMetrics"
   }
 }

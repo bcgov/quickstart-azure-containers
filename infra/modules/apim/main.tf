@@ -53,14 +53,44 @@ resource "azurerm_api_management" "main" {
   }
 }
 
-# Diagnostic Settings for monitoring and compliance
+# ---------------------------------------------------------------------------
+# API Management Diagnostic Settings
+# ---------------------------------------------------------------------------
+# Conditional (controlled by var.enable_diagnostic_settings).  Log and metric
+# categories are variable-driven so callers can tune without editing this
+# module.  Defaults:
+#
+#  GatewayLogs              — one entry per API call processed by the APIM
+#                             gateway: operation, backend URL, HTTP status,
+#                             latency (total / backend), client IP, and
+#                             subscription key (masked).  Primary source for
+#                             API traffic analysis, SLA reporting, and
+#                             per-consumer usage auditing.
+#
+#  WebSocketConnectionLogs  — lifecycle events for WebSocket connections
+#                             proxied through APIM (connect, disconnect,
+#                             message counts).  Required if any API uses the
+#                             WebSocket passthrough policy.
+#
+#  DeveloperPortalAuditLogs — sign-in, sign-up, product subscription, and
+#                             API key operations performed in the Developer
+#                             Portal.  Use for access control auditing and
+#                             compliance evidence under the portal auth rules
+#                             configured by var.enable_sign_in / sign_up.
+#
+#  AllMetrics               — gateway request volume, capacity units,
+#                             duration percentiles, and failed request counts
+#                             as pre-aggregated time-series; required for
+#                             metric alert rules and Monitor dashboards.
 resource "azurerm_monitor_diagnostic_setting" "apim" {
   count                      = var.enable_diagnostic_settings ? 1 : 0
   name                       = "${azurerm_api_management.main.name}-diagnostics"
   target_resource_id         = azurerm_api_management.main.id
   log_analytics_workspace_id = var.log_analytics_workspace_id
 
-  # Enable all available log categories
+  # Log categories (default: GatewayLogs, WebSocketConnectionLogs,
+  # DeveloperPortalAuditLogs) — cover API traffic, WebSocket sessions, and
+  # portal access audit trail.
   dynamic "enabled_log" {
     for_each = var.diagnostic_log_categories
     content {
@@ -68,7 +98,8 @@ resource "azurerm_monitor_diagnostic_setting" "apim" {
     }
   }
 
-  # Enable all available metric categories
+  # Metric categories (default: AllMetrics) — request volume, capacity, latency
+  # percentiles, and error rates for alerting and dashboards.
   dynamic "enabled_metric" {
     for_each = var.diagnostic_metric_categories
     content {

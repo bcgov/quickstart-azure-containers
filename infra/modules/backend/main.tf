@@ -157,21 +157,64 @@ resource "azurerm_monitor_autoscale_setting" "backend_autoscale" {
   }
 }
 
-# Backend Diagnostics
+# ---------------------------------------------------------------------------
+# Backend App Service Diagnostic Settings
+# ---------------------------------------------------------------------------
+# Routes all App Service log categories and platform metrics to Log Analytics.
+#
+#  AppServiceHTTPLogs      — IIS/HTTP access logs: every inbound request with
+#                            HTTP status, latency, bytes transferred.  Use for
+#                            traffic pattern analysis and SLA reporting.
+#
+#  AppServiceConsoleLogs   — stdout/stderr emitted by the container process.
+#                            Mirrors what `az webapp log tail` shows; needed for
+#                            runtime debugging without SSH access.
+#
+#  AppServiceAppLogs       — structured application logs written through the
+#                            App Service logging SDK (severity-filtered).
+#
+#  AppServiceAuditLogs     — authentication / Easy Auth sign-in and sign-out
+#                            events.  Required for security compliance evidence.
+#
+#  AppServicePlatformLogs  — platform lifecycle events: container start/stop,
+#                            health-check evictions, deployment slot swaps, and
+#                            scaling operations.
+#
+#  AllMetrics              — CPU %, memory %, HTTP queue length, response time,
+#                            and request counts sent to Azure Monitor for
+#                            alerting and autoscale observability.
 resource "azurerm_monitor_diagnostic_setting" "backend_diagnostics" {
   name                       = "${var.app_name}-backend-diagnostics"
   target_resource_id         = module.backend_site.resource_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
+
+  # Per-request HTTP access log (latency, status code, bytes).
   enabled_log {
     category = "AppServiceHTTPLogs"
   }
+
+  # Container stdout/stderr — primary source for runtime error details.
   enabled_log {
     category = "AppServiceConsoleLogs"
   }
+
+  # SDK-level application log entries (structured, severity-filtered).
   enabled_log {
     category = "AppServiceAppLogs"
   }
+
+  # Easy Auth / authentication audit trail — sign-in/sign-out events.
+  enabled_log {
+    category = "AppServiceAuditLogs"
+  }
+
+  # Platform events: restarts, health-check evictions, scaling, deployments.
   enabled_log {
     category = "AppServicePlatformLogs"
+  }
+
+  # CPU, memory, HTTP queue, response time, and request-count metrics.
+  enabled_metric {
+    category = "AllMetrics"
   }
 }
