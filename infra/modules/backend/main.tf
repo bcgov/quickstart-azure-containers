@@ -2,7 +2,7 @@
 
 module "backend_plan" {
   source  = "Azure/avm-res-web-serverfarm/azurerm"
-  version = "1.0.0"
+  version = "2.0.2"
 
   name                   = "${var.app_name}-backend-asp"
   resource_group_name    = var.resource_group_name
