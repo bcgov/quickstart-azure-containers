@@ -10,11 +10,13 @@
 
 import { useAzureMonitor } from "@azure/monitor-opentelemetry";
 
+import { createAzureMonitorOptions } from "./common/telemetry.config";
+
 const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
 
 if (connectionString) {
   try {
-    useAzureMonitor();
+    useAzureMonitor(createAzureMonitorOptions());
     console.log("Azure Monitor OpenTelemetry initialized successfully");
   } catch (error) {
     console.error("Failed to initialize Azure Monitor OpenTelemetry:", error);
