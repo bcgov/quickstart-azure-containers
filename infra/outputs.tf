@@ -4,6 +4,25 @@ output "frontend_public_url" {
 }
 
 # -------------
+# ACR Outputs
+# -------------
+
+output "acr_name" {
+  description = "The name of the Azure Container Registry."
+  value       = try(module.acr[0].name, null)
+}
+
+output "acr_resource_id" {
+  description = "The resource ID of the Azure Container Registry."
+  value       = try(module.acr[0].resource_id, null)
+}
+
+output "acr_login_server" {
+  description = "The ACR login server (e.g., <name>.azurecr.io)."
+  value       = try(module.acr[0].login_server, null)
+}
+
+# -------------
 # API Management Outputs
 # -------------
 

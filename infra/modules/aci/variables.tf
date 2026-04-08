@@ -47,3 +47,9 @@ variable "resource_group_name" {
   type        = string
   nullable    = false
 }
+
+variable "enable_telemetry" {
+  description = "Controls whether AVM telemetry is enabled."
+  type        = bool
+  default     = true
+}

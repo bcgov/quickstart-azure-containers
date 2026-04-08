@@ -33,6 +33,11 @@ variable "client_id" {
   description = "Azure client ID for the service principal"
   type        = string
   sensitive   = true
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F-]{36}$", var.client_id))
+    error_message = "client_id must be a valid GUID string."
+  }
 }
 
 variable "common_tags" {
@@ -50,6 +55,66 @@ variable "database_name" {
 
 variable "enable_aci" {
   description = "Whether to enable the ACI toolbox"
+  type        = bool
+  default     = false
+}
+
+variable "enable_acr" {
+  description = "Whether to create an Azure Container Registry (ACR) using the AVM module."
+  type        = bool
+  default     = false
+}
+
+variable "acr_name" {
+  description = "ACR name (5-50 lowercase alphanumeric). Required when enable_acr=true."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = !var.enable_acr || can(regex("^[a-z0-9]{5,50}$", var.acr_name))
+    error_message = "When enable_acr=true, acr_name must be 5-50 characters, lowercase alphanumeric only (a-z, 0-9)."
+  }
+}
+
+variable "acr_sku" {
+  description = <<-EOT
+  ACR SKU (Basic, Standard, Premium).
+
+  Pricing/feature guidance:
+  - Basic: lowest cost, best for dev/test and light usage.
+  - Standard: higher throughput/limits than Basic for many production workloads.
+  - Premium: required for Private Link/private endpoints.
+
+  Official pricing: https://azure.microsoft.com/en-us/pricing/details/container-registry/#pricing
+  EOT
+  type        = string
+  default     = "Basic"
+}
+
+variable "acr_public_network_access_enabled" {
+  description = <<-EOT
+  Whether public access is permitted for the ACR.
+
+  Note (BC Gov Azure Landing Zone): public ACR and Basic SKU are allowed.
+  If you need private connectivity (Private Link/private endpoints), keep public access disabled and use Premium.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "acr_enable_private_endpoint" {
+  description = "Whether to create a private endpoint (Private Link) for the ACR. Premium is required when enabled."
+  type        = bool
+  default     = false
+}
+variable "acr_admin_enabled" {
+  description = "Whether the admin user is enabled for the ACR."
+  type        = bool
+  default     = false
+}
+
+variable "acr_enable_telemetry" {
+  description = "Controls whether AVM telemetry is enabled for the ACR module."
   type        = bool
   default     = false
 }
@@ -100,12 +165,22 @@ variable "container_apps_cpu" {
   description = "CPU allocation for Container Apps (in cores)"
   type        = number
   default     = 0.25
+
+  validation {
+    condition     = var.container_apps_cpu > 0
+    error_message = "container_apps_cpu must be greater than 0."
+  }
 }
 
 variable "container_apps_memory" {
   description = "Memory allocation for Container Apps"
   type        = string
   default     = ".5Gi"
+
+  validation {
+    condition     = can(regex("^[0-9]+(\\.[0-9]+)?(Gi|Mi)$", var.container_apps_memory))
+    error_message = "container_apps_memory must use Mi or Gi units, e.g. 512Mi or 0.5Gi."
+  }
 }
 
 variable "container_apps_min_replicas" {
@@ -118,6 +193,11 @@ variable "container_apps_max_replicas" {
   description = "Maximum number of replicas for Container Apps"
   type        = number
   default     = 3
+
+  validation {
+    condition     = var.container_apps_max_replicas >= var.container_apps_min_replicas
+    error_message = "container_apps_max_replicas must be greater than or equal to container_apps_min_replicas."
+  }
 }
 
 variable "enable_frontdoor" {
@@ -130,6 +210,33 @@ variable "frontdoor_sku_name" {
   description = "SKU name for the Front Door"
   type        = string
   default     = "Standard_AzureFrontDoor"
+
+  validation {
+    condition     = contains(["Standard_AzureFrontDoor", "Premium_AzureFrontDoor"], var.frontdoor_sku_name)
+    error_message = "frontdoor_sku_name must be Standard_AzureFrontDoor or Premium_AzureFrontDoor."
+  }
+}
+
+variable "rate_limit_duration_in_minutes" {
+  description = "Duration in minutes for Front Door rate limiting"
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.rate_limit_duration_in_minutes >= 1 && var.rate_limit_duration_in_minutes <= 60
+    error_message = "rate_limit_duration_in_minutes must be between 1 and 60."
+  }
+}
+
+variable "rate_limit_threshold" {
+  description = "Request threshold for Front Door rate limiting (requests per duration)"
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.rate_limit_threshold >= 1 && var.rate_limit_threshold <= 2147483647
+    error_message = "rate_limit_threshold must be between 1 and 2147483647."
+  }
 }
 
 variable "location" {
@@ -142,6 +249,11 @@ variable "log_analytics_retention_days" {
   description = "Number of days to retain data in Log Analytics Workspace"
   type        = number
   default     = 30
+
+  validation {
+    condition     = var.log_analytics_retention_days >= 30 && var.log_analytics_retention_days <= 730
+    error_message = "log_analytics_retention_days must be between 30 and 730."
+  }
 }
 
 variable "log_analytics_sku" {
@@ -385,12 +497,22 @@ variable "subscription_id" {
   description = "Azure subscription ID"
   type        = string
   sensitive   = true
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F-]{36}$", var.subscription_id))
+    error_message = "subscription_id must be a valid GUID string."
+  }
 }
 
 variable "tenant_id" {
   description = "Azure tenant ID"
   type        = string
   sensitive   = true
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F-]{36}$", var.tenant_id))
+    error_message = "tenant_id must be a valid GUID string."
+  }
 }
 
 variable "use_oidc" {
@@ -472,4 +594,9 @@ variable "azure_proxy_image" {
   description = "The image for the Azure Proxy container"
   type        = string
   nullable    = true
+}
+variable "prevent_rg_deletion_if_contains_resources" {
+  description = "AzureRM provider feature flag: refuse to delete a resource group if Azure reports it still contains resources. Set false to allow RG deletion even when Azure-managed/auto-created resources remain (e.g., App Insights Smart Detector rules)."
+  type        = bool
+  default     = true
 }

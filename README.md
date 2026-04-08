@@ -16,7 +16,7 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 - **Secure Azure infrastructure**: Landing Zone compliant with proper network isolation
 - **Database management**: PostgreSQL with Flyway migrations and optional CloudBeaver admin UI
 - **CI/CD pipeline**: GitHub Actions with OIDC authentication
-- **Infrastructure as Code**: Terraform with Terragrunt for multi-environment management
+- **Infrastructure as Code**: Terraform with environment-specific `.tfvars` and a CI-friendly wrapper script
 - **Monitoring & observability**: Azure Monitor, Application Insights, and comprehensive logging
 - **Security best practices**: Managed identities, private endpoints, and network security groups
 
@@ -367,16 +367,27 @@ These are built on every commit and tagged for deployment to your chosen environ
 
 #### Deploy Infrastructure
 ```bash
-# Navigate to environment configuration
-cd terragrunt/dev  # or test/prod
+# From repo root
+cd infra
 
-# Initialize and plan
-terragrunt init
-terragrunt plan
+# CI (and recommended local usage) configures the AzureRM remote backend via env vars.
+# Required backend env vars:
+# - BACKEND_RESOURCE_GROUP
+# - BACKEND_STORAGE_ACCOUNT
+# - BACKEND_CONTAINER_NAME (default: tfstate)
+# - BACKEND_STATE_KEY (example: <stack_prefix>/<app_env>/terraform.tfstate)
 
-# Apply changes
-terragrunt apply
+# Initialize + plan using an environment tfvars file (examples: tools.tfvars, dev.tfvars)
+./deploy-terraform.sh init -var-file=tools.tfvars
+./deploy-terraform.sh plan -var-file=tools.tfvars
+
+# Apply
+./deploy-terraform.sh apply -var-file=tools.tfvars
 ```
+
+Deployment topology:
+- Preferred: App Service frontend (Caddy) + Container Apps backend (runtime reverse proxy via `VITE_BACKEND_URL`).
+- Alternative: App Service frontend + App Service backend for low-scale use cases (disable Container Apps).
 
 ## 🗄️ Database Management
 
@@ -629,11 +640,9 @@ Access monitoring through:
 ### Testing in CI/CD
 
 The GitHub Actions workflows include:
-- **Unit tests** for frontend and backend
-- **Integration tests** with test database
-- **E2E tests** in containerized environment
-- **Security scanning** of dependencies and containers
-- **Performance testing** with load simulation
+- **Unit tests + lint + coverage** for frontend and backend (backend uses a Postgres service for tests)
+- **IaC linting** via `tflint` (recursive)
+- **Security scanning** via Trivy (repo scan, SARIF upload)
 
 ## 🏷️ Environment Management
 
@@ -700,11 +709,14 @@ Error: Error acquiring the state lock
 **Solution**:
 ```bash
 # Force unlock (use with caution)
-terragrunt force-unlock <lock-id>
+cd infra
+terraform force-unlock <lock-id>
 
 # Or check Azure storage account permissions
 az storage blob list --account-name your-storage --container-name tfstate
 ```
+
+If CI fails with an Azure "already exists" error, `infra/deploy-terraform.sh` will attempt an automatic `terraform import` using `infra/scripts/extract-import-target.sh` and retry the apply.
 
 #### 3. Container Deployment Issues - ACR (Azure Container Registry)
 
@@ -751,7 +763,6 @@ az webapp log tail --name your-app --resource-group your-rg
 
 ### Documentation Links
 - [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
-- [Terragrunt Documentation](https://terragrunt.gruntwork.io/docs/)
 - [NestJS Documentation](https://docs.nestjs.com/)
 - [React + Vite Documentation](https://vitejs.dev/guide/)
 - [Prisma Documentation](https://www.prisma.io/docs/)

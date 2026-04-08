@@ -41,6 +41,24 @@ module "monitoring" {
   depends_on = [azurerm_resource_group.main, module.network]
 }
 
+module "acr" {
+  count  = var.enable_acr ? 1 : 0
+  source = "./modules/acr"
+
+  acr_name                      = var.acr_name
+  location                      = var.location
+  resource_group_name           = azurerm_resource_group.main.name
+  common_tags                   = var.common_tags
+  sku                           = var.acr_sku
+  public_network_access_enabled = var.acr_public_network_access_enabled
+  enable_private_endpoint       = var.acr_enable_private_endpoint
+  private_endpoint_subnet_id    = module.network.private_endpoint_subnet_id
+  log_analytics_workspace_id    = module.monitoring.log_analytics_workspace_id
+  enable_telemetry              = var.acr_enable_telemetry
+  admin_enabled                 = var.acr_admin_enabled
+  depends_on                    = [azurerm_resource_group.main, module.network, module.monitoring]
+}
+
 module "postgresql" {
   source = "./modules/postgresql"
 
@@ -83,14 +101,17 @@ module "postgresql" {
 
 
 module "frontdoor" {
-  source              = "./modules/frontdoor"
-  count               = var.enable_frontdoor ? 1 : 0
-  app_name            = var.app_name
-  common_tags         = var.common_tags
-  frontdoor_sku_name  = var.frontdoor_sku_name
-  resource_group_name = azurerm_resource_group.main.name
+  source                         = "./modules/frontdoor"
+  count                          = var.enable_frontdoor ? 1 : 0
+  app_name                       = var.app_name
+  common_tags                    = var.common_tags
+  frontdoor_sku_name             = var.frontdoor_sku_name
+  rate_limit_duration_in_minutes = var.rate_limit_duration_in_minutes
+  rate_limit_threshold           = var.rate_limit_threshold
+  resource_group_name            = azurerm_resource_group.main.name
+  log_analytics_workspace_id     = module.monitoring.log_analytics_workspace_id
 
-  depends_on = [azurerm_resource_group.main, module.network]
+  depends_on = [azurerm_resource_group.main, module.network, module.monitoring]
 }
 
 module "frontend" {
@@ -102,6 +123,7 @@ module "frontend" {
   app_service_sku_name_frontend         = var.app_service_sku_name_frontend
   appinsights_connection_string         = module.monitoring.appinsights_connection_string
   appinsights_instrumentation_key       = module.monitoring.appinsights_instrumentation_key
+  appinsights_resource_id               = module.monitoring.appinsights_resource_id
   common_tags                           = var.common_tags
   enable_frontdoor                      = var.enable_frontdoor
   frontend_frontdoor_id                 = var.enable_frontdoor ? module.frontdoor[0].frontdoor_id : null
@@ -113,6 +135,9 @@ module "frontend" {
   log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
   repo_name                             = var.repo_name
   resource_group_name                   = azurerm_resource_group.main.name
+  # This is a runtime env var consumed by Caddy's reverse_proxy upstream in the frontend container.
+  # Prefer Container Apps backend when enabled; otherwise fall back to the predictable App Service backend hostname.
+  backend_url = var.enable_container_apps ? try(module.container_apps[0].backend_container_app_url, null) : "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net"
 
   depends_on = [module.monitoring, module.network]
 }
@@ -202,21 +227,28 @@ module "container_apps" {
   count  = var.enable_container_apps ? 1 : 0
   source = "./modules/container-apps"
 
-  app_name                            = var.app_name
-  app_env                             = var.app_env
-  location                            = var.location
-  resource_group_name                 = azurerm_resource_group.main.name
-  common_tags                         = var.common_tags
-  container_apps_subnet_id            = module.network.container_apps_subnet_id
-  log_analytics_workspace_id          = module.monitoring.log_analytics_workspace_id
-  backend_image                       = var.api_image
-  database_name                       = var.database_name
-  postgres_host                       = module.postgresql.postgres_host
-  postgresql_admin_username           = var.postgresql_admin_username
-  db_master_password                  = module.postgresql.db_master_password
-  appinsights_connection_string       = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key     = module.monitoring.appinsights_instrumentation_key
-  app_service_frontend_url            = var.enable_app_service_frontend && length(module.frontend) > 0 ? module.frontend[0].frontend_url : ""
+  app_name                        = var.app_name
+  app_env                         = var.app_env
+  location                        = var.location
+  resource_group_name             = azurerm_resource_group.main.name
+  common_tags                     = var.common_tags
+  container_apps_subnet_id        = module.network.container_apps_subnet_id
+  log_analytics_workspace_id      = module.monitoring.log_analytics_workspace_id
+  backend_image                   = var.api_image
+  database_name                   = var.database_name
+  postgres_host                   = module.postgresql.postgres_host
+  postgresql_admin_username       = var.postgresql_admin_username
+  db_master_password              = module.postgresql.db_master_password
+  appinsights_connection_string   = module.monitoring.appinsights_connection_string
+  appinsights_instrumentation_key = module.monitoring.appinsights_instrumentation_key
+  # Avoid referencing module.frontend here to prevent a dependency cycle.
+  # Frontend App Service hostname is deterministic: <repo>-<env>-frontend.azurewebsites.net
+  # Front Door endpoint hostname is also deterministic: <repo>-<env>-frontend-fd.azurefd.net
+  app_service_frontend_url = var.enable_app_service_frontend ? (
+    var.enable_frontdoor
+    ? "https://${var.repo_name}-${var.app_env}-frontend-fd.azurefd.net"
+    : "https://${var.repo_name}-${var.app_env}-frontend.azurewebsites.net"
+  ) : ""
   container_cpu                       = var.container_apps_cpu
   container_memory                    = var.container_apps_memory
   min_replicas                        = var.container_apps_min_replicas
@@ -227,7 +259,7 @@ module "container_apps" {
   log_analytics_workspace_customer_id = module.monitoring.log_analytics_workspace_workspaceId
   log_analytics_workspace_key         = module.monitoring.log_analytics_workspace_key
 
-  depends_on = [module.network, module.monitoring, module.postgresql, module.frontend]
+  depends_on = [module.network, module.monitoring, module.postgresql]
 }
 
 module "aci" {

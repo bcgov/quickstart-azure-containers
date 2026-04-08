@@ -1,5 +1,5 @@
 # Build
-FROM node:24.11.1-slim AS build
+FROM node:24.14.0-slim AS build
 
 # Prisma requires OpenSSL/libssl detection during generate/build.
 RUN apt-get update -y \
@@ -13,7 +13,7 @@ ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 RUN npm run deploy
 
 # Dependencies
-FROM node:24.11.1-slim AS dependencies
+FROM node:24.14.0-slim AS dependencies
 
 # Prisma (and some native deps) expect OpenSSL/libssl present.
 RUN apt-get update -y \
@@ -27,7 +27,7 @@ ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 RUN npm ci --ignore-scripts --no-update-notifier --omit=dev
 
 # Deploy using minimal Distroless image
-FROM node:24.11.1
+FROM node:24.14.0
 ENV NODE_ENV=production
 
 # Copy app and dependencies
@@ -42,4 +42,4 @@ EXPOSE 3001
 HEALTHCHECK --start-period=2s --start-interval=5s --interval=30s --timeout=3s CMD curl -f http://localhost:3001/api
 
 
-CMD ["--require", "/app/dist/instrumentation.js", "--max-old-space-size=150", "/app/dist/main"]
+CMD ["--require", "/app/dist/instrumentation.js", "--max-old-space-size=250", "/app/dist/main"]

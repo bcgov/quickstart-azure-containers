@@ -222,12 +222,79 @@ resource "azurerm_postgresql_flexible_server_configuration" "pg_stat_statements_
   ]
 }
 
-# Send diagnostics to Log Analytics (metrics & logs) if enabled
+# ---------------------------------------------------------------------------
+# PostgreSQL Flexible Server Diagnostic Settings
+# ---------------------------------------------------------------------------
+# Conditional (controlled by var.enable_diagnostic_insights) — enabled by
+# default.  Sends server logs and metrics to Log Analytics.
+#
+# ── How to view logs in the Azure Portal ─────────────────────────────────────
+# 1. Open the Log Analytics workspace in the Portal.
+# 2. Click "Logs" in the left nav (under General).
+# 3. Dismiss the query picker and paste any KQL below into the editor.
+# 4. Adjust the time range picker (top-right) — ingestion lag is ~2-5 min.
+# ---------------------------------------------------------------------------
+#
+# Note: PostgreSQL Flexible Server writes all log categories into the shared
+# AzureDiagnostics table.  Filter by ResourceProvider and Category in KQL.
+#
+# Log categories are variable-driven (var.diagnostic_log_categories) to allow
+# callers to tune verbosity without editing this module.  The default is:
+#
+#  PostgreSQLLogs — server-level log stream: slow queries
+#                  (log_min_duration_statement), connection/disconnection
+#                  events, DDL statements (log_statement), autovacuum
+#                  activity, and pg_cron output.  The exact content is
+#                  shaped by the server-parameter resources above; this
+#                  setting is the Azure-side pipe that ships those logs
+#                  to Log Analytics.  Lands in AzureDiagnostics with
+#                  ResourceProvider == "MICROSOFT.DBFORPOSTGRESQL" and
+#                  Category == "PostgreSQLLogs".
+#                  Key fields: errorLevel_s, LogicalServerName_s, Message.
+#
+#    KQL — slow query detection:
+#      AzureDiagnostics
+#      | where ResourceProvider == "MICROSOFT.DBFORPOSTGRESQL"
+#      | where Category == "PostgreSQLLogs"
+#      | where Message contains "duration:"
+#      | project TimeGenerated, errorLevel_s, LogicalServerName_s, Message
+#      | order by TimeGenerated desc
+#
+#    KQL — error and warning events:
+#      AzureDiagnostics
+#      | where ResourceProvider == "MICROSOFT.DBFORPOSTGRESQL"
+#      | where Category == "PostgreSQLLogs"
+#      | where errorLevel_s in ("ERROR", "WARNING", "FATAL", "PANIC")
+#      | project TimeGenerated, errorLevel_s, LogicalServerName_s, Message
+#      | order by TimeGenerated desc
+#
+# Metric categories are variable-driven (var.diagnostic_metric_categories).
+# The default is:
+#
+#  AllMetrics — CPU %, memory %, active connections, storage used,
+#               IOPS, replication lag, and deadlock counts.  Used for
+#               the metric-alert rules configured further down this
+#               file and for capacity planning dashboards.
+#
+#    KQL — CPU, connections, and storage over time:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.DBFORPOSTGRESQL"
+#      | where MetricName in ("cpu_percent", "active_connections", "storage_used")
+#      | summarize avg(Average) by MetricName, bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
+#
+#    KQL — IOPS and network utilisation:
+#      AzureMetrics
+#      | where ResourceProvider == "MICROSOFT.DBFORPOSTGRESQL"
+#      | where MetricName in ("iops", "network_bytes_ingress", "network_bytes_egress")
+#      | summarize avg(Average) by MetricName, bin(TimeGenerated, 5m)
+#      | order by TimeGenerated desc
 resource "azurerm_monitor_diagnostic_setting" "postgres_diagnostics" {
   count                      = var.enable_diagnostic_insights ? 1 : 0
   name                       = "${var.app_name}-postgres-diagnostics"
   target_resource_id         = azurerm_postgresql_flexible_server.postgresql.id
   log_analytics_workspace_id = var.log_analytics_workspace_id
+
   lifecycle {
     precondition {
       condition     = var.enable_diagnostic_insights ? (var.log_analytics_workspace_id != "") : true
@@ -235,6 +302,8 @@ resource "azurerm_monitor_diagnostic_setting" "postgres_diagnostics" {
     }
   }
 
+  # Log categories (default: PostgreSQLLogs) — shaped by the server-parameter
+  # resources above; ships slow queries, connections, DDL, and autovacuum output.
   dynamic "enabled_log" {
     for_each = var.diagnostic_log_categories
     content {
@@ -242,6 +311,8 @@ resource "azurerm_monitor_diagnostic_setting" "postgres_diagnostics" {
     }
   }
 
+  # Metric categories (default: AllMetrics) — CPU, memory, connections, IOPS,
+  # storage, replication lag, and deadlock counts for alerting and dashboards.
   dynamic "enabled_metric" {
     for_each = var.diagnostic_metric_categories
     content {

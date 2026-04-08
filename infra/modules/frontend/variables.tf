@@ -13,13 +13,22 @@ variable "app_name" {
 variable "appinsights_connection_string" {
   description = "The Application Insights connection string for monitoring."
   type        = string
+  sensitive   = true
   nullable    = false
 }
 
 variable "appinsights_instrumentation_key" {
   description = "The Application Insights instrumentation key."
   type        = string
+  sensitive   = true
   nullable    = false
+}
+
+variable "appinsights_resource_id" {
+  description = "Resource ID of the Application Insights component used by this app. Used to include Azure's hidden-link tag on the App Service to prevent tag drift."
+  type        = string
+  nullable    = true
+  default     = null
 }
 
 variable "common_tags" {
@@ -83,6 +92,13 @@ variable "repo_name" {
   nullable    = false
 }
 
+variable "backend_url" {
+  description = "Backend base URL for the frontend (e.g., https://<backend-host>). Used to set VITE_BACKEND_URL in the App Service container."
+  type        = string
+  nullable    = true
+  default     = null
+}
+
 variable "resource_group_name" {
   description = "The name of the resource group in which to create resources."
   type        = string
@@ -96,8 +112,38 @@ variable "app_service_sku_name_frontend" {
   nullable    = false
 }
 
+variable "app_service_plan_worker_count" {
+  description = <<-EOT
+  App Service Plan worker count (instance count).
+
+  Why this exists:
+  - The AVM App Service Plan (serverfarm) module can default to multiple workers.
+  - For Basic tiers (e.g., B1), requesting multiple workers can trigger Azure capacity/conflict errors (e.g., 409) depending on region/quota/availability.
+
+  Recommended default:
+  - Keep this at 1 for Basic SKUs unless you explicitly need more instances.
+
+  References:
+  - AVM serverfarm module: https://registry.terraform.io/modules/Azure/avm-res-web-serverfarm/azurerm/1.0.0
+  - AzureRM Service Plan worker_count: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/service_plan#worker_count
+  EOT
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.app_service_plan_worker_count >= 1
+    error_message = "app_service_plan_worker_count must be >= 1."
+  }
+}
+
 variable "enable_frontdoor" {
   description = "Whether Front Door is enabled. When false, frontend is exposed directly via its default hostname."
   type        = bool
   nullable    = false
+}
+
+variable "enable_telemetry" {
+  description = "Whether AVM modules should send telemetry."
+  type        = bool
+  default     = false
 }

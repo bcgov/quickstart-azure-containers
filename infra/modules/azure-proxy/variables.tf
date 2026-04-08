@@ -19,12 +19,14 @@ variable "app_service_subnet_id" {
 variable "appinsights_connection_string" {
   description = "The Application Insights connection string for monitoring."
   type        = string
+  sensitive   = true
   nullable    = false
 }
 
 variable "appinsights_instrumentation_key" {
   description = "The Application Insights instrumentation key."
   type        = string
+  sensitive   = true
   nullable    = false
 }
 
@@ -70,5 +72,35 @@ variable "app_service_sku_name_azure_proxy" {
   description = "The SKU name for the azure db proxy App Service plan."
   type        = string
   nullable    = false
+}
+
+variable "app_service_plan_worker_count" {
+  description = <<-EOT
+  App Service Plan worker count (instance count).
+
+  Why this exists:
+  - The AVM App Service Plan (serverfarm) module can default to multiple workers.
+  - For Basic tiers (e.g., B1), requesting multiple workers can trigger Azure capacity/conflict errors (e.g., 409) depending on region/quota/availability.
+
+  Recommended default:
+  - Keep this at 1 for Basic SKUs unless you explicitly need more instances.
+
+  References:
+  - AVM serverfarm module: https://registry.terraform.io/modules/Azure/avm-res-web-serverfarm/azurerm/1.0.0
+  - AzureRM Service Plan worker_count: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/service_plan#worker_count
+  EOT
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.app_service_plan_worker_count >= 1
+    error_message = "app_service_plan_worker_count must be >= 1."
+  }
+}
+
+variable "enable_telemetry" {
+  description = "Controls whether AVM telemetry is enabled."
+  type        = bool
+  default     = false
 }
 
