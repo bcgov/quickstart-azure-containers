@@ -13,6 +13,10 @@ resource "azurerm_resource_group" "main" {
   }
 }
 
+locals {
+  effective_application_alert_emails = length(var.application_alert_emails) > 0 ? var.application_alert_emails : var.postgres_alert_emails
+}
+
 # -------------
 # Modules based on Dependency
 # -------------
@@ -182,6 +186,9 @@ module "backend" {
   frontend_possible_outbound_ip_addresses = var.enable_app_service_frontend ? module.frontend[0].possible_outbound_ip_addresses : ""
   location                                = var.location
   log_analytics_workspace_id              = module.monitoring.log_analytics_workspace_id
+  log_level                               = var.backend_log_level
+  http_access_log_mode                    = var.backend_http_access_log_mode
+  slow_query_log_threshold_ms             = var.backend_slow_query_log_threshold_ms
   postgres_host                           = module.postgresql.postgres_host
   postgresql_admin_username               = var.postgresql_admin_username
   repo_name                               = var.repo_name
@@ -258,8 +265,32 @@ module "container_apps" {
   enable_system_assigned_identity     = true
   log_analytics_workspace_customer_id = module.monitoring.log_analytics_workspace_workspaceId
   log_analytics_workspace_key         = module.monitoring.log_analytics_workspace_key
+  log_level                           = var.backend_log_level
+  http_access_log_mode                = var.backend_http_access_log_mode
+  slow_query_log_threshold_ms         = var.backend_slow_query_log_threshold_ms
 
   depends_on = [module.network, module.monitoring, module.postgresql]
+}
+
+module "app_alerting" {
+  source = "./modules/app-alerting"
+
+  app_name                              = var.app_name
+  resource_group_name                   = azurerm_resource_group.main.name
+  location                              = var.location
+  common_tags                           = var.common_tags
+  enable_alerts                         = var.enable_application_alerts
+  alert_emails                          = local.effective_application_alert_emails
+  application_insights_id               = module.monitoring.appinsights_resource_id
+  log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
+  app_service_backend_id                = try(module.backend[0].backend_app_service_id, null)
+  container_app_id                      = try(module.container_apps[0].backend_container_app_id, null)
+  runtime_issue_log_threshold           = var.application_runtime_issue_alert_threshold
+  database_connectivity_issue_threshold = var.application_database_issue_alert_threshold
+  app_service_http_5xx_threshold        = var.app_service_http_5xx_alert_threshold
+  container_app_restart_threshold       = var.container_app_restart_alert_threshold
+
+  depends_on = [module.monitoring, module.backend, module.container_apps]
 }
 
 module "aci" {

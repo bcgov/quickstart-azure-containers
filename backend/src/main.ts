@@ -1,7 +1,12 @@
-import { NestExpressApplication } from "@nestjs/platform-express";
-import { bootstrap } from "./app";
+import "./instrumentation";
+
 import { Logger } from "@nestjs/common";
+import { NestExpressApplication } from "@nestjs/platform-express";
+
+import { bootstrap } from "./app";
+
 const logger = new Logger("NestApplication");
+
 bootstrap()
   .then(async (app: NestExpressApplication) => {
     await app.listen(process.env.PORT || 3001);

@@ -3,6 +3,12 @@ import { Injectable, Logger } from "@nestjs/common";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Prisma, PrismaClient } from "@prisma/client";
 
+import {
+  emitOperationalConsoleLog,
+  shouldEmitSlowQueryLog,
+  summarizeSqlStatement,
+} from "./common/logging.policy";
+
 const DB_HOST = process.env.POSTGRES_HOST || "localhost";
 const DB_USER = process.env.POSTGRES_USER || "postgres";
 const DB_PWD = encodeURIComponent(process.env.POSTGRES_PASSWORD || "default"); // this needs to be encoded, if the password contains special characters it will break connection string.
@@ -62,9 +68,10 @@ class PrismaService
 
   async onModuleInit() {
     await this.$connect();
+    this.logger.log("Connected to PostgreSQL");
     this.$on<any>("query", (e: Prisma.QueryEvent) => {
-      // dont print the health check queries, which contains SELECT 1 or COMMIT , BEGIN, DEALLOCATE ALL
-      // this is to avoid logging health check queries which are executed by the framework.
+      // Skip framework and transaction-management chatter to avoid flooding
+      // container logs with noise that is already visible in request/dependency telemetry.
       const excludedPatterns = [
         "COMMIT",
         "BEGIN",
@@ -78,13 +85,21 @@ class PrismaService
       ) {
         return;
       }
-      this.logger.log(
-        `Query: ${e.query} - Params: ${e.params} - Duration: ${e.duration}ms`,
-      );
+
+      if (!shouldEmitSlowQueryLog(e.duration)) {
+        return;
+      }
+
+      emitOperationalConsoleLog("warn", "db_slow_query", {
+        durationMs: e.duration,
+        statement: summarizeSqlStatement(e.query),
+        database: DB_NAME,
+      });
     });
   }
 
   async onModuleDestroy() {
+    this.logger.log("Disconnecting from PostgreSQL");
     await this.$disconnect();
   }
 }

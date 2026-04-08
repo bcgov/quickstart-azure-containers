@@ -3,6 +3,7 @@ import { ConfigModule } from "@nestjs/config";
 import { TerminusModule } from "@nestjs/terminus";
 import "dotenv/config";
 import { PrismaService } from "src/prisma.service";
+
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { HealthController } from "./health.controller";

@@ -1,12 +1,14 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { UsersController } from "./users.controller";
-import { UsersService } from "./users.service";
-import request from "supertest";
 import { HttpException, INestApplication } from "@nestjs/common";
+import { Test, TestingModule } from "@nestjs/testing";
+import { PrismaService } from "src/prisma.service";
+import request from "supertest";
+
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UserDto } from "./dto/user.dto";
-import { PrismaService } from "src/prisma.service";
+import { UsersController } from "./users.controller";
+import { UsersService } from "./users.service";
+
 describe("UserController", () => {
   let controller: UsersController;
   let usersService: UsersService;

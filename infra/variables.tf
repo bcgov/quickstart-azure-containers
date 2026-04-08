@@ -262,6 +262,95 @@ variable "log_analytics_sku" {
   default     = "PerGB2018"
 }
 
+variable "backend_log_level" {
+  description = "Winston/Nest log level for structured backend application logs that are eligible for AppTraces export."
+  type        = string
+  default     = "info"
+
+  validation {
+    condition     = contains(["error", "warn", "info", "http", "verbose", "debug", "silly"], var.backend_log_level)
+    error_message = "backend_log_level must be one of: error, warn, info, http, verbose, debug, silly."
+  }
+}
+
+variable "backend_http_access_log_mode" {
+  description = "Controls backend request access logs written to container stdout for LAW ingestion. Supported values: off, failures, all."
+  type        = string
+  default     = "failures"
+
+  validation {
+    condition     = contains(["off", "failures", "all"], var.backend_http_access_log_mode)
+    error_message = "backend_http_access_log_mode must be one of: off, failures, all."
+  }
+}
+
+variable "backend_slow_query_log_threshold_ms" {
+  description = "Emit backend Prisma slow-query diagnostics to container stdout when query duration meets or exceeds this threshold in milliseconds. Set to -1 to disable."
+  type        = number
+  default     = 1000
+
+  validation {
+    condition     = var.backend_slow_query_log_threshold_ms >= -1
+    error_message = "backend_slow_query_log_threshold_ms must be greater than or equal to -1."
+  }
+}
+
+variable "enable_application_alerts" {
+  description = "Whether application alert resources should be created when alert recipients are configured."
+  type        = bool
+  default     = true
+}
+
+variable "application_alert_emails" {
+  description = "Email recipients for backend application alerts. If empty, PostgreSQL alert recipients are reused when available."
+  type        = list(string)
+  default     = []
+}
+
+variable "application_runtime_issue_alert_threshold" {
+  description = "Number of matching runtime failure log entries within the alert window required to trigger the backend runtime issue alert."
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = var.application_runtime_issue_alert_threshold >= 1
+    error_message = "application_runtime_issue_alert_threshold must be greater than or equal to 1."
+  }
+}
+
+variable "application_database_issue_alert_threshold" {
+  description = "Number of matching database connectivity failures within the alert window required to trigger the backend database alert."
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = var.application_database_issue_alert_threshold >= 1
+    error_message = "application_database_issue_alert_threshold must be greater than or equal to 1."
+  }
+}
+
+variable "app_service_http_5xx_alert_threshold" {
+  description = "Total backend App Service HTTP 5xx responses in five minutes required to trigger the platform error alert."
+  type        = number
+  default     = 5
+
+  validation {
+    condition     = var.app_service_http_5xx_alert_threshold >= 1
+    error_message = "app_service_http_5xx_alert_threshold must be greater than or equal to 1."
+  }
+}
+
+variable "container_app_restart_alert_threshold" {
+  description = "Total backend container restarts in fifteen minutes required to trigger the restart alert."
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.container_app_restart_alert_threshold >= 1
+    error_message = "container_app_restart_alert_threshold must be greater than or equal to 1."
+  }
+}
+
 variable "postgres_alert_emails" {
   description = "List of email addresses to receive PostgreSQL alerts"
   type        = list(string)

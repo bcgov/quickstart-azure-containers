@@ -7,3 +7,8 @@ output "backend_app_service_name" {
   description = "The name of the backend App Service"
   value       = module.backend_site.name
 }
+
+output "backend_app_service_id" {
+  description = "The resource ID of the backend App Service"
+  value       = module.backend_site.resource_id
+}

@@ -212,6 +212,31 @@ resource "azurerm_container_app" "backend" {
       }
 
       env {
+        name  = "LOG_LEVEL"
+        value = var.log_level
+      }
+
+      env {
+        name  = "HTTP_ACCESS_LOG_MODE"
+        value = var.http_access_log_mode
+      }
+
+      env {
+        name  = "DB_SLOW_QUERY_LOG_THRESHOLD_MS"
+        value = tostring(var.slow_query_log_threshold_ms)
+      }
+
+      env {
+        name  = "OTEL_SERVICE_NAME"
+        value = "${var.app_name}-backend"
+      }
+
+      env {
+        name  = "OTEL_RESOURCE_ATTRIBUTES"
+        value = "deployment.environment.name=${var.app_env}"
+      }
+
+      env {
         name  = "PORT"
         value = "3000"
       }
