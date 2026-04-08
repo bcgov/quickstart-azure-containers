@@ -8,18 +8,22 @@ import {
 } from "./telemetry.config";
 
 describe("telemetry config", () => {
-  const originalEnv = process.env;
+  const envKeys = [
+    "OTEL_SERVICE_NAME",
+    "CONTAINER_APP_NAME",
+    "WEBSITE_SITE_NAME",
+    "HOSTNAME",
+  ] as const;
 
   beforeEach(() => {
-    process.env = { ...originalEnv };
-    delete process.env.OTEL_SERVICE_NAME;
-    delete process.env.CONTAINER_APP_NAME;
-    delete process.env.WEBSITE_SITE_NAME;
-    delete process.env.HOSTNAME;
+    vi.unstubAllEnvs();
+    for (const key of envKeys) {
+      vi.stubEnv(key, undefined);
+    }
   });
 
-  afterAll(() => {
-    process.env = originalEnv;
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("enables winston log export", () => {
@@ -30,23 +34,23 @@ describe("telemetry config", () => {
   });
 
   it("prefers configured service names before the default", () => {
-    process.env.OTEL_SERVICE_NAME = "explicit-service";
+    vi.stubEnv("OTEL_SERVICE_NAME", "explicit-service");
     expect(getServiceName()).toBe("explicit-service");
 
-    delete process.env.OTEL_SERVICE_NAME;
-    process.env.CONTAINER_APP_NAME = "container-app-service";
+    vi.stubEnv("OTEL_SERVICE_NAME", undefined);
+    vi.stubEnv("CONTAINER_APP_NAME", "container-app-service");
     expect(getServiceName()).toBe("container-app-service");
 
-    delete process.env.CONTAINER_APP_NAME;
-    process.env.WEBSITE_SITE_NAME = "app-service-site";
+    vi.stubEnv("CONTAINER_APP_NAME", undefined);
+    vi.stubEnv("WEBSITE_SITE_NAME", "app-service-site");
     expect(getServiceName()).toBe("app-service-site");
 
-    delete process.env.WEBSITE_SITE_NAME;
+    vi.stubEnv("WEBSITE_SITE_NAME", undefined);
     expect(getServiceName()).toBe(defaultServiceName);
   });
 
   it("uses the host name for the service instance id when available", () => {
-    process.env.HOSTNAME = "replica-1";
+    vi.stubEnv("HOSTNAME", "replica-1");
 
     const options = createAzureMonitorOptions();
 
