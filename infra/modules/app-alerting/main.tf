@@ -36,80 +36,63 @@ resource "azurerm_monitor_smart_detector_alert_rule" "application" {
   tags = var.common_tags
 }
 
-resource "azurerm_monitor_scheduled_query_rules_alert_v2" "runtime_issues" {
-  count               = local.alerts_enabled ? 1 : 0
-  name                = "${var.app_name}-runtime-issues"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  display_name        = "${var.app_name} runtime issues"
-  description         = "Detect repeated backend startup, crash-loop, or telemetry initialization failures from host runtime logs."
-
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT5M"
-  scopes               = [var.log_analytics_workspace_id]
-  severity             = 2
-  enabled              = true
-
-  criteria {
-    query                   = local.runtime_issues_query
-    operator                = "GreaterThanOrEqual"
-    threshold               = var.runtime_issue_log_threshold
-    time_aggregation_method = "Count"
-
-    failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
-    }
-  }
-
-  action {
-    action_groups = [azurerm_monitor_action_group.application[0].id]
-    custom_properties = {
-      alert_scope = "runtime"
-      signal_type = "log-query"
-    }
-  }
-
-  auto_mitigation_enabled = true
-  skip_query_validation   = true
-  tags                    = var.common_tags
+moved {
+  from = azurerm_monitor_scheduled_query_rules_alert_v2.runtime_issues[0]
+  to   = azurerm_monitor_scheduled_query_rules_alert_v2.application["runtime_issues"]
 }
 
-resource "azurerm_monitor_scheduled_query_rules_alert_v2" "database_connectivity" {
-  count               = local.alerts_enabled ? 1 : 0
-  name                = "${var.app_name}-db-connectivity"
+moved {
+  from = azurerm_monitor_scheduled_query_rules_alert_v2.database_connectivity[0]
+  to   = azurerm_monitor_scheduled_query_rules_alert_v2.application["database_connectivity"]
+}
+
+moved {
+  from = azurerm_monitor_scheduled_query_rules_alert_v2.backend_http_5xx[0]
+  to   = azurerm_monitor_scheduled_query_rules_alert_v2.application["backend_http_5xx"]
+}
+
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "application" {
+  for_each            = local.alerts_enabled ? local.scheduled_query_alerts : {}
+  name                = "${var.app_name}-${each.value.name_suffix}"
   resource_group_name = var.resource_group_name
   location            = var.location
-  display_name        = "${var.app_name} database connectivity"
-  description         = "Detect repeated Prisma and PostgreSQL connectivity failures from Application Insights telemetry."
+  display_name        = each.value.display_name
+  description         = each.value.description
 
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT5M"
-  scopes               = [var.application_insights_id]
-  severity             = 1
+  evaluation_frequency = local.scheduled_query_evaluation_frequency
+  window_duration      = local.scheduled_query_window_duration
+  scopes               = each.value.scopes
+  severity             = each.value.severity
   enabled              = true
 
-  criteria {
-    query                   = local.database_connectivity_query
-    operator                = "GreaterThanOrEqual"
-    threshold               = var.database_connectivity_issue_threshold
-    time_aggregation_method = "Count"
+  dynamic "criteria" {
+    for_each = [each.value.criteria]
+    content {
+      query                   = criteria.value.query
+      operator                = "GreaterThanOrEqual"
+      threshold               = criteria.value.threshold
+      time_aggregation_method = "Count"
 
-    failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
+      failing_periods {
+        minimum_failing_periods_to_trigger_alert = 1
+        number_of_evaluation_periods             = 1
+      }
     }
   }
 
-  action {
-    action_groups = [azurerm_monitor_action_group.application[0].id]
-    custom_properties = {
-      alert_scope = "database"
-      signal_type = "application-insights-query"
+  dynamic "action" {
+    for_each = [each.value.action]
+    content {
+      action_groups = [azurerm_monitor_action_group.application[0].id]
+      custom_properties = {
+        alert_scope = action.value.alert_scope
+        signal_type = action.value.signal_type
+      }
     }
   }
 
   auto_mitigation_enabled = true
+  skip_query_validation   = each.value.skip_query_validation
   tags                    = var.common_tags
 }
 

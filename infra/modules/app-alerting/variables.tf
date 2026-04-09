@@ -94,6 +94,17 @@ variable "database_connectivity_issue_threshold" {
   }
 }
 
+variable "backend_http_5xx_threshold" {
+  description = "Total backend HTTP 5xx responses observed in request and access logs within five minutes required to trigger the backend HTTP 5xx alert."
+  type        = number
+  default     = 5
+
+  validation {
+    condition     = var.backend_http_5xx_threshold >= 1
+    error_message = "backend_http_5xx_threshold must be greater than or equal to 1."
+  }
+}
+
 variable "app_service_http_5xx_threshold" {
   description = "Total App Service HTTP 5xx responses in five minutes required to trigger the platform error alert."
   type        = number

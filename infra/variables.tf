@@ -347,6 +347,17 @@ variable "app_service_http_5xx_alert_threshold" {
   }
 }
 
+variable "backend_http_5xx_alert_threshold" {
+  description = "Total backend HTTP 5xx responses in request and access logs within five minutes required to trigger the backend HTTP 5xx alert across App Service and Container Apps."
+  type        = number
+  default     = 5
+
+  validation {
+    condition     = var.backend_http_5xx_alert_threshold >= 1
+    error_message = "backend_http_5xx_alert_threshold must be greater than or equal to 1."
+  }
+}
+
 variable "container_app_restart_alert_threshold" {
   description = "Total backend container restarts in fifteen minutes required to trigger the restart alert."
   type        = number
