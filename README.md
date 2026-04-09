@@ -570,7 +570,7 @@ Operational guidance:
 Terraform now creates a dedicated application alerting layer when recipients are configured:
 
 - Application Insights smart detectors for failure anomalies, request latency regressions, dependency latency regressions, and exception-volume spikes.
-- Log Analytics scheduled query alerts for repeated startup/runtime failures and database connectivity issues.
+- Log Analytics scheduled query alerts for repeated startup/runtime failures, blocked SQL injection attempts, and database connectivity issues.
 - Metric alerts for backend App Service HTTP 5xx volume and backend Container App restart counts.
 
 Key Terraform variables:
@@ -578,6 +578,7 @@ Key Terraform variables:
 - `enable_application_alerts`: master switch for application alert resources.
 - `application_alert_emails`: email recipients for application alerts. If empty, Terraform reuses `postgres_alert_emails` when available.
 - `application_runtime_issue_alert_threshold`: count threshold for runtime/startup failure log matches.
+- `application_sql_injection_alert_threshold`: count threshold for blocked SQL injection security log matches.
 - `application_database_issue_alert_threshold`: count threshold for database connectivity failures.
 - `app_service_http_5xx_alert_threshold`: 5xx total in five minutes before the App Service alert fires.
 - `container_app_restart_alert_threshold`: restart total in fifteen minutes before the Container Apps alert fires.

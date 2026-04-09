@@ -22,7 +22,6 @@ locals {
   #   - probe failed                     : health-check failures
   #   - UnhandledPromiseRejection        : uncaught async errors in Node.js
   #   - EADDRINUSE                       : port conflict on startup
-  #   - SQLInjectionAttackDetected       : blocked SQL injection payload reached backend
   #
   # Tables queried:
   #   AppServiceConsoleLogs, AppServicePlatformLogs          (App Service)
@@ -41,8 +40,7 @@ locals {
       "Back-off restarting",
       "probe failed",
       "UnhandledPromiseRejection",
-      "EADDRINUSE",
-      "SQLInjectionAttackDetected"
+      "EADDRINUSE"
     ]);
     let appServiceConsole = AppServiceConsoleLogs
     | where TimeGenerated > lookback
@@ -74,6 +72,59 @@ locals {
     | extend RuntimeMessage = tostring(Log)
     | where RuntimeMessage has_any(runtimeIssuePatterns)
     | project TimeGenerated, RuntimeMessage;
+    union isfuzzy=true appServiceConsole, appServicePlatform, containerConsole, containerSystem, containerConsoleDiag, containerSystemDiag
+  QUERY
+
+  # SQL Injection Query
+  # ---------------------------------------------------------------------------
+  # Scoped to: Log Analytics Workspace
+  # Lookback:  10 minutes
+  #
+  # Detects backend requests that were explicitly blocked as SQL injection
+  # attempts. The backend middleware emits structured console logs with the
+  # `SQLInjectionAttackDetected` indicator when it rejects a suspicious payload.
+  #
+  # Tables queried:
+  #   AppServiceConsoleLogs, AppServicePlatformLogs          (App Service)
+  #   ContainerAppConsoleLogs_CL, ContainerAppSystemLogs_CL  (Container Apps custom)
+  #   ContainerAppConsoleLogs, ContainerAppSystemLogs        (Container Apps diagnostic)
+  #
+  # Returns: rows of (TimeGenerated, SecurityMessage) that contain the security
+  # indicator used by the middleware.
+  # ---------------------------------------------------------------------------
+  sql_injection_query = <<-QUERY
+    let lookback = ago(10m);
+    let sqlInjectionIndicator = "SQLInjectionAttackDetected";
+    let appServiceConsole = AppServiceConsoleLogs
+    | where TimeGenerated > lookback
+    | extend SecurityMessage = tostring(ResultDescription)
+    | where SecurityMessage has sqlInjectionIndicator
+    | project TimeGenerated, SecurityMessage;
+    let appServicePlatform = AppServicePlatformLogs
+    | where TimeGenerated > lookback
+    | extend SecurityMessage = tostring(Message)
+    | where SecurityMessage has sqlInjectionIndicator
+    | project TimeGenerated, SecurityMessage;
+    let containerConsole = ContainerAppConsoleLogs_CL
+    | where TimeGenerated > lookback
+    | extend SecurityMessage = tostring(Log_s)
+    | where SecurityMessage has sqlInjectionIndicator
+    | project TimeGenerated, SecurityMessage;
+    let containerSystem = ContainerAppSystemLogs_CL
+    | where TimeGenerated > lookback
+    | extend SecurityMessage = tostring(Log_s)
+    | where SecurityMessage has sqlInjectionIndicator
+    | project TimeGenerated, SecurityMessage;
+    let containerConsoleDiag = ContainerAppConsoleLogs
+    | where TimeGenerated > lookback
+    | extend SecurityMessage = tostring(Log)
+    | where SecurityMessage has sqlInjectionIndicator
+    | project TimeGenerated, SecurityMessage;
+    let containerSystemDiag = ContainerAppSystemLogs
+    | where TimeGenerated > lookback
+    | extend SecurityMessage = tostring(Log)
+    | where SecurityMessage has sqlInjectionIndicator
+    | project TimeGenerated, SecurityMessage;
     union isfuzzy=true appServiceConsole, appServicePlatform, containerConsole, containerSystem, containerConsoleDiag, containerSystemDiag
   QUERY
 
