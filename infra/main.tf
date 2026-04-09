@@ -283,6 +283,8 @@ module "app_alerting" {
   alert_emails                          = local.effective_application_alert_emails
   application_insights_id               = module.monitoring.appinsights_resource_id
   log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
+  enable_app_service_backend            = var.enable_app_service_backend
+  enable_container_apps_backend         = var.enable_container_apps
   app_service_backend_id                = try(module.backend[0].backend_app_service_id, null)
   container_app_id                      = try(module.container_apps[0].backend_container_app_id, null)
   runtime_issue_log_threshold           = var.application_runtime_issue_alert_threshold

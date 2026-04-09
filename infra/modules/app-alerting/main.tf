@@ -114,7 +114,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "database_connectivity
 }
 
 resource "azurerm_monitor_metric_alert" "app_service_http_5xx" {
-  count                    = local.alerts_enabled && var.app_service_backend_id != null ? 1 : 0
+  count                    = local.alerts_enabled && var.enable_app_service_backend ? 1 : 0
   name                     = "${var.app_name}-appservice-http5xx"
   resource_group_name      = var.resource_group_name
   scopes                   = [var.app_service_backend_id]
@@ -142,7 +142,7 @@ resource "azurerm_monitor_metric_alert" "app_service_http_5xx" {
 }
 
 resource "azurerm_monitor_metric_alert" "container_app_restarts" {
-  count                    = local.alerts_enabled && var.container_app_id != null ? 1 : 0
+  count                    = local.alerts_enabled && var.enable_container_apps_backend ? 1 : 0
   name                     = "${var.app_name}-containerapp-restarts"
   resource_group_name      = var.resource_group_name
   scopes                   = [var.container_app_id]

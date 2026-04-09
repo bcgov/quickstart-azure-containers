@@ -46,6 +46,18 @@ variable "log_analytics_workspace_id" {
   nullable    = false
 }
 
+variable "enable_app_service_backend" {
+  description = "Whether the backend App Service deployment is enabled in this stack."
+  type        = bool
+  nullable    = false
+}
+
+variable "enable_container_apps_backend" {
+  description = "Whether the backend Container Apps deployment is enabled in this stack."
+  type        = bool
+  nullable    = false
+}
+
 variable "app_service_backend_id" {
   description = "Resource ID of the backend App Service, if deployed."
   type        = string
