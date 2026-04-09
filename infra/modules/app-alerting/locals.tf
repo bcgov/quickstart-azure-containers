@@ -106,9 +106,10 @@ locals {
   #   - timeout                          : generic query or connection timeout
   #
   # Tables queried:
-  #   AppExceptions  — structured exception telemetry (checks Message,
-  #                    InnermostMessage, OuterMessage, and ProblemId)
-  #   AppTraces      — free-text trace logs
+  #   exceptions     — native Application Insights exception telemetry
+  #                    (checks message, innermostMessage, outerMessage,
+  #                    and problemId)
+  #   traces         — native Application Insights trace telemetry
   #
   # Returns: rows of (TimeGenerated, Message) unioned across both tables.
   # ---------------------------------------------------------------------------
@@ -122,15 +123,15 @@ locals {
       "Connection terminated unexpectedly",
       "timeout"
     ]);
-    let exceptionMatches = AppExceptions
-    | where TimeGenerated > lookback
-    | extend MessageText = coalesce(Message, InnermostMessage, OuterMessage, ProblemId)
+    let exceptionMatches = exceptions
+    | where timestamp > lookback
+    | extend MessageText = coalesce(message, innermostMessage, outerMessage, problemId)
     | where MessageText has_any(databaseIssuePatterns)
-    | project TimeGenerated, Message = MessageText;
-    let traceMatches = AppTraces
-    | where TimeGenerated > lookback
-    | where Message has_any(databaseIssuePatterns)
-    | project TimeGenerated, Message;
+    | project TimeGenerated = timestamp, Message = MessageText;
+    let traceMatches = traces
+    | where timestamp > lookback
+    | where message has_any(databaseIssuePatterns)
+    | project TimeGenerated = timestamp, Message = message;
     union isfuzzy=true exceptionMatches, traceMatches
   QUERY
 }
