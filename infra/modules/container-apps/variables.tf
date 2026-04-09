@@ -154,6 +154,12 @@ variable "postgres_host" {
   nullable    = false
 }
 
+variable "backend_postgres_host" {
+  description = "PostgreSQL host endpoint used by the backend container at runtime."
+  type        = string
+  nullable    = false
+}
+
 variable "postgresql_admin_username" {
   description = "PostgreSQL admin username"
   type        = string

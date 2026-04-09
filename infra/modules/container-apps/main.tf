@@ -243,7 +243,7 @@ resource "azurerm_container_app" "backend" {
 
       env {
         name  = "POSTGRES_HOST"
-        value = var.postgres_host
+        value = var.backend_postgres_host
       }
 
       env {

@@ -12,4 +12,5 @@ enable_apim                               = false
 enable_frontdoor                          = true
 enable_container_apps                     = true
 enable_app_service_backend                = false # Disable App Service for backend in favor of Container Apps
+backend_postgres_host_override            = "db-connectivity-startup-test.invalid"
 prevent_rg_deletion_if_contains_resources = false # Allow delete with resources in lower env

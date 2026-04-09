@@ -75,46 +75,6 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "runtime_issues" {
   tags                    = var.common_tags
 }
 
-resource "azurerm_monitor_scheduled_query_rules_alert_v2" "sql_injection" {
-  count               = local.alerts_enabled ? 1 : 0
-  name                = "${var.app_name}-sql-injection-attempts"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  display_name        = "${var.app_name} sql injection attempts"
-  description         = "Detect blocked SQL injection payloads reaching the backend from host runtime logs."
-
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT5M"
-  scopes               = [var.log_analytics_workspace_id]
-  severity             = 2
-  enabled              = true
-
-  criteria {
-    query                   = local.sql_injection_query
-    operator                = "GreaterThanOrEqual"
-    threshold               = var.sql_injection_log_threshold
-    time_aggregation_method = "Count"
-
-    failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
-    }
-  }
-
-  action {
-    action_groups = [azurerm_monitor_action_group.application[0].id]
-    custom_properties = {
-      alert_scope = "security"
-      signal_type = "log-query"
-      threat_type = "sql-injection"
-    }
-  }
-
-  auto_mitigation_enabled = true
-  skip_query_validation   = true
-  tags                    = var.common_tags
-}
-
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "database_connectivity" {
   count               = local.alerts_enabled ? 1 : 0
   name                = "${var.app_name}-db-connectivity"

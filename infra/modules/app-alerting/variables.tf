@@ -83,17 +83,6 @@ variable "runtime_issue_log_threshold" {
   }
 }
 
-variable "sql_injection_log_threshold" {
-  description = "Number of blocked SQL injection security log entries within the alert window required to trigger the backend SQL injection alert."
-  type        = number
-  default     = 2
-
-  validation {
-    condition     = var.sql_injection_log_threshold >= 1
-    error_message = "sql_injection_log_threshold must be greater than or equal to 1."
-  }
-}
-
 variable "database_connectivity_issue_threshold" {
   description = "Number of matching database connectivity errors within the alert window required to trigger the connectivity alert."
   type        = number
