@@ -61,8 +61,28 @@ jobs:
 
       - name: Populate Environment Variables
         shell: bash
+        env:
+          NOTIFY_EMAILS_RAW: ${{ secrets.NOTIFY_EMAILS }}
         run: |
           set -euo pipefail
+
+          notify_emails_json="$(python3 - <<'PY'
+          import json
+          import os
+
+          raw = os.getenv('NOTIFY_EMAILS_RAW', '')
+          normalized = raw.replace('\r', '\n').replace(';', ',')
+          emails = []
+
+          for line in normalized.split('\n'):
+            for item in line.split(','):
+              email = item.strip()
+              if email:
+                emails.append(email)
+
+          print(json.dumps(emails))
+          PY
+          )"
 
           echo "CI=true" >> "$GITHUB_ENV"
           echo "ARM_USE_OIDC=true" >> "$GITHUB_ENV"
@@ -98,6 +118,8 @@ jobs:
           echo "TF_VAR_use_oidc=true" >> "$GITHUB_ENV"
           echo "TF_VAR_repo_name=${{ github.event.repository.name }}" >> "$GITHUB_ENV"
           echo "TF_VAR_resource_group_name=${{ github.event.repository.name }}-${{ inputs.app_env }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_application_alert_emails=$notify_emails_json" >> "$GITHUB_ENV"
+          echo "TF_VAR_postgres_alert_emails=$notify_emails_json" >> "$GITHUB_ENV"
 
           echo "TF_VAR_common_tags<<EOF" >> "$GITHUB_ENV"
           echo '{"environment":"${{ inputs.environment_name }}","stack_prefix":"${{ inputs.stack_prefix }}","app_env":"${{ inputs.app_env }}","repo_name":"${{ github.event.repository.name }}"}' >> "$GITHUB_ENV"
