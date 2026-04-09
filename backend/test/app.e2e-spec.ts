@@ -18,4 +18,20 @@ describe("AppController (e2e)", () => {
 
   it("/ (GET)", () =>
     request(app.getHttpServer()).get("/").expect(200).expect("Hello Backend!"));
+
+  it("rejects SQL injection payloads with 400", () =>
+    request(app.getHttpServer())
+      .get("/users/search")
+      .query({
+        page: 1,
+        limit: 10,
+        sort: '[{"name":"ASC"}]',
+        filter:
+          '[{"key":"name","operation":"like","value":"\' OR 1=1 --"}]',
+      })
+      .expect(400)
+      .expect({
+        statusCode: 400,
+        message: "Potential SQL injection payload detected",
+      }));
 });

@@ -22,6 +22,7 @@ locals {
   #   - probe failed                     : health-check failures
   #   - UnhandledPromiseRejection        : uncaught async errors in Node.js
   #   - EADDRINUSE                       : port conflict on startup
+  #   - SQLInjectionAttackDetected       : blocked SQL injection payload reached backend
   #
   # Tables queried:
   #   AppServiceConsoleLogs, AppServicePlatformLogs          (App Service)
@@ -40,7 +41,8 @@ locals {
       "Back-off restarting",
       "probe failed",
       "UnhandledPromiseRejection",
-      "EADDRINUSE"
+      "EADDRINUSE",
+      "SQLInjectionAttackDetected"
     ]);
     let appServiceConsole = AppServiceConsoleLogs
     | where TimeGenerated > lookback
