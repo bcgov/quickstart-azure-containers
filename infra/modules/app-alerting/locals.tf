@@ -2,25 +2,23 @@ locals {
   alerts_enabled = var.enable_alerts && length(var.alert_emails) > 0
 
   smart_detectors = {
-    failure-anomalies = {
-      description = "Detect abnormal increases in failed backend requests."
-      detector    = "FailureAnomaliesDetector"
-      severity    = "Sev2"
-    }
     request-performance = {
       description = "Detect backend request latency regressions compared with historical baselines."
       detector    = "RequestPerformanceDegradationDetector"
       severity    = "Sev2"
+      frequency   = "PT1H"
     }
     dependency-performance = {
       description = "Detect anomalous degradation in downstream dependency latency."
       detector    = "DependencyPerformanceDegradationDetector"
       severity    = "Sev2"
+      frequency   = "PT1H"
     }
     exception-volume = {
       description = "Detect abnormal increases in backend exception volume."
       detector    = "ExceptionVolumeChangedDetector"
       severity    = "Sev2"
+      frequency   = "PT1H"
     }
   }
 

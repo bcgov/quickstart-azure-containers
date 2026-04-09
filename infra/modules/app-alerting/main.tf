@@ -26,7 +26,7 @@ resource "azurerm_monitor_smart_detector_alert_rule" "application" {
   description         = each.value.description
   detector_type       = each.value.detector
   severity            = each.value.severity
-  frequency           = "PT1M"
+  frequency           = each.value.frequency
   throttling_duration = "PT1H"
 
   action_group {
