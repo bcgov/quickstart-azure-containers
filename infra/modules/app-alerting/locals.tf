@@ -1,26 +1,12 @@
 locals {
   alerts_enabled = var.enable_alerts && length(var.alert_emails) > 0
 
-  smart_detectors = {
-    request-performance = {
-      description = "Detect backend request latency regressions compared with historical baselines."
-      detector    = "RequestPerformanceDegradationDetector"
-      severity    = "Sev2"
-      frequency   = "PT1H"
-    }
-    dependency-performance = {
-      description = "Detect anomalous degradation in downstream dependency latency."
-      detector    = "DependencyPerformanceDegradationDetector"
-      severity    = "Sev2"
-      frequency   = "PT1H"
-    }
-    exception-volume = {
-      description = "Detect abnormal increases in backend exception volume."
-      detector    = "ExceptionVolumeChangedDetector"
-      severity    = "Sev2"
-      frequency   = "PT1H"
-    }
-  }
+  # Application Insights smart detection remains available as a platform-managed
+  # capability on the component itself. Custom alert-rule provisioning for these
+  # detector types is not accepted by the Azure Monitor API in this environment,
+  # so Terraform only manages the action group plus the explicit scheduled-query
+  # and metric alerts below.
+  smart_detectors = {}
 
   # Runtime Issues Query
   # ---------------------------------------------------------------------------
