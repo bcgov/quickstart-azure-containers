@@ -29,7 +29,7 @@ jobs:
           ]
     timeout-minutes: 10
     steps:
-      - uses: bcgov/action-builder-ghcr@fe69125408b878f9edb6cd1a3df7c4bf451c963d # post-v4.2.1, updates Node-runtime-sensitive internal actions
+      - uses: bcgov/action-builder-ghcr@v4.2.1
         with:
           package: ${{ matrix.package }}
           tags: ${{ inputs.tags }}
