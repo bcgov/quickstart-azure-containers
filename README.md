@@ -576,11 +576,11 @@ Terraform now creates a dedicated application alerting layer when recipients are
 
 Scheduled query alert cadence:
 
-- The Container Apps backend HTTP 5xx log alert evaluates every minute over a five-minute rolling window. That keeps the existing five-minute threshold but cuts time-to-detect for failing backend requests.
-- The runtime and database scheduled query alerts stay on a five-minute cadence because Azure Monitor doesn't allow one-minute log alerts for the multi-table `union` queries those rules use.
+- The scheduled query alerts in this repo evaluate every five minutes over a five-minute rolling window.
 - Azure Monitor scheduled query alert cost scales with how often the rule executes. A one-minute cadence runs roughly five times as many evaluations as a five-minute cadence for the same rule, so it improves time-to-detect at the cost of higher alert-query spend.
-- If you split today's multi-table runtime or database queries into multiple single-table rules so they can run every minute, both cost and notification fan-out increase because Azure bills and evaluates each rule separately.
-- If you need to reduce the Container Apps 5xx alert cost, change `scheduled_query_alerts.backend_http_5xx.evaluation_frequency` in `infra/modules/app-alerting/locals.tf` from `PT1M` back to `PT5M`. The tradeoff is up to four extra minutes of detection latency for backend 5xx bursts.
+- Azure rejected the current runtime, database, and Container Apps 5xx queries at one-minute frequency. The runtime and database rules use multi-table `union` queries, and the Container Apps 5xx rule depends on the current log shape in `ContainerAppConsoleLogs_CL`, so the supported configuration here remains `PT5M`.
+- Backend App Service 5xx coverage is still faster because the native `Http5xx` metric alert runs every minute and doesn't have the same log-query limitation.
+- If Azure later exposes a 5xx request-count metric for Container Apps or relaxes the one-minute log-alert restrictions, revisiting `scheduled_query_default_evaluation_frequency` in `infra/modules/app-alerting/locals.tf` is the place to start.
 
 Key Terraform variables:
 

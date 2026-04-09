@@ -59,7 +59,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "application" {
   display_name        = each.value.display_name
   description         = each.value.description
 
-  evaluation_frequency = each.value.evaluation_frequency
+  evaluation_frequency = local.scheduled_query_default_evaluation_frequency
   window_duration      = local.scheduled_query_window_duration
   scopes               = each.value.scopes
   severity             = each.value.severity

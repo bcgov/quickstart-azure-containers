@@ -87,25 +87,21 @@ locals {
   #
   # The backend App Service already has a native Http5xx metric alert that runs
   # every minute, so the log-query alert only needs to cover the Container Apps
-  # path here. This also keeps the query eligible for Azure Monitor's one-minute
-  # evaluation frequency, which doesn't allow multi-table `union` queries.
+  # path here.
   #
   # Tables queried:
   #   ContainerAppConsoleLogs_CL (Container Apps app logs)
   #
-  # Returns: rows of (TimeGenerated, HttpStatusCode, RequestPath) for failing
-  # backend requests handled by Container Apps.
+  # Returns: rows of (TimeGenerated) for failing backend requests handled by
+  # Container Apps.
   # ---------------------------------------------------------------------------
   backend_http_5xx_query = <<-QUERY
     let lookback = ago(10m);
     ContainerAppConsoleLogs_CL
     | where TimeGenerated > lookback
-    | extend LogText = tostring(Log_s)
-    | where LogText has '"event":"http_request"'
-    | extend ParsedLog = parse_json(LogText)
-    | extend HttpStatusCode = toint(ParsedLog.statusCode), RequestPath = tostring(ParsedLog.url)
-    | where HttpStatusCode >= 500 and HttpStatusCode < 600
-    | project TimeGenerated, HttpStatusCode, RequestPath
+    | where Log_s has '"event":"http_request"'
+    | where Log_s matches regex '"statusCode":5[0-9]{2}'
+    | project TimeGenerated
   QUERY
 
   # Database Connectivity Query
@@ -157,7 +153,6 @@ locals {
       name_suffix           = "runtime-issues"
       display_name          = "${var.app_name} runtime issues"
       description           = "Detect repeated backend startup, crash-loop, or telemetry initialization failures from host runtime logs."
-      evaluation_frequency  = local.scheduled_query_default_evaluation_frequency
       scopes                = [var.log_analytics_workspace_id]
       severity              = 2
       skip_query_validation = true
@@ -174,7 +169,6 @@ locals {
       name_suffix           = "db-connectivity"
       display_name          = "${var.app_name} database connectivity"
       description           = "Detect repeated Prisma and PostgreSQL connectivity failures from Application Insights telemetry."
-      evaluation_frequency  = local.scheduled_query_default_evaluation_frequency
       scopes                = [var.application_insights_id]
       severity              = 1
       skip_query_validation = false
@@ -191,7 +185,6 @@ locals {
       name_suffix           = "backend-http5xx"
       display_name          = "${var.app_name} backend HTTP 5xx"
       description           = "Detect repeated backend HTTP 5xx responses from Container Apps request logs. The backend App Service remains covered by its native Http5xx metric alert."
-      evaluation_frequency  = "PT1M"
       scopes                = [var.log_analytics_workspace_id]
       severity              = 2
       skip_query_validation = true
