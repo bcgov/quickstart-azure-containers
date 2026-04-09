@@ -571,20 +571,22 @@ Operational guidance:
 Terraform now creates a dedicated application alerting layer when recipients are configured:
 
 - Application Insights smart detectors for failure anomalies, request latency regressions, dependency latency regressions, and exception-volume spikes.
-- Log Analytics scheduled query alerts for repeated backend HTTP 5xx responses, startup/runtime failures, and database connectivity issues.
+- Log Analytics scheduled query alerts for repeated backend HTTP 5xx responses from Container Apps request logs, startup/runtime failures, and database connectivity issues.
 - Metric alerts for backend App Service HTTP 5xx volume as a platform backstop and backend Container App restart counts.
 
 Scheduled query alert cadence:
 
-- The application scheduled query rules evaluate every minute over a five-minute rolling window. This keeps the existing five-minute thresholds but reduces detection latency compared with a five-minute evaluation cadence.
+- The Container Apps backend HTTP 5xx log alert evaluates every minute over a five-minute rolling window. That keeps the existing five-minute threshold but cuts time-to-detect for failing backend requests.
+- The runtime and database scheduled query alerts stay on a five-minute cadence because Azure Monitor doesn't allow one-minute log alerts for the multi-table `union` queries those rules use.
 - Azure Monitor scheduled query alert cost scales with how often the rule executes. A one-minute cadence runs roughly five times as many evaluations as a five-minute cadence for the same rule, so it improves time-to-detect at the cost of higher alert-query spend.
-- If you need to reduce alert-query cost, change `scheduled_query_evaluation_frequency` in `infra/modules/app-alerting/locals.tf` from `PT1M` back to `PT5M`. The tradeoff is that alerts can take up to four extra minutes to fire.
+- If you split today's multi-table runtime or database queries into multiple single-table rules so they can run every minute, both cost and notification fan-out increase because Azure bills and evaluates each rule separately.
+- If you need to reduce the Container Apps 5xx alert cost, change `scheduled_query_alerts.backend_http_5xx.evaluation_frequency` in `infra/modules/app-alerting/locals.tf` from `PT1M` back to `PT5M`. The tradeoff is up to four extra minutes of detection latency for backend 5xx bursts.
 
 Key Terraform variables:
 
 - `enable_application_alerts`: master switch for application alert resources.
 - `application_alert_emails`: email recipients for application alerts. If empty, Terraform reuses `postgres_alert_emails` when available.
-- `backend_http_5xx_alert_threshold`: 5xx total in five minutes before the host-agnostic backend HTTP 5xx log alert fires.
+- `backend_http_5xx_alert_threshold`: Container Apps 5xx total in five minutes before the backend HTTP 5xx log alert fires.
 - `application_runtime_issue_alert_threshold`: count threshold for runtime/startup failure log matches.
 - `application_database_issue_alert_threshold`: count threshold for database connectivity failures.
 - `app_service_http_5xx_alert_threshold`: 5xx total in five minutes before the App Service platform metric backstop alert fires.

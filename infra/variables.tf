@@ -348,7 +348,7 @@ variable "app_service_http_5xx_alert_threshold" {
 }
 
 variable "backend_http_5xx_alert_threshold" {
-  description = "Total backend HTTP 5xx responses in request and access logs within five minutes required to trigger the backend HTTP 5xx alert across App Service and Container Apps."
+  description = "Total backend HTTP 5xx responses in Container Apps request logs within five minutes required to trigger the backend HTTP 5xx log alert. The backend App Service remains covered by the native Http5xx metric alert."
   type        = number
   default     = 5
 

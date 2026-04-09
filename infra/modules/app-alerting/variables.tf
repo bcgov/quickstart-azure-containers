@@ -95,7 +95,7 @@ variable "database_connectivity_issue_threshold" {
 }
 
 variable "backend_http_5xx_threshold" {
-  description = "Total backend HTTP 5xx responses observed in request and access logs within five minutes required to trigger the backend HTTP 5xx alert."
+  description = "Total backend HTTP 5xx responses observed in Container Apps request logs within five minutes required to trigger the backend HTTP 5xx log alert. The backend App Service remains covered by the native Http5xx metric alert."
   type        = number
   default     = 5
 

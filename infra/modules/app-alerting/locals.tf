@@ -1,6 +1,6 @@
 locals {
   alerts_enabled = var.enable_alerts && length(var.alert_emails) > 0
-  scheduled_query_evaluation_frequency = "PT1M"
+  scheduled_query_default_evaluation_frequency = "PT5M"
   scheduled_query_window_duration      = "PT5M"
 
   # Application Insights smart detection remains available as a platform-managed
@@ -82,43 +82,30 @@ locals {
   # Scoped to: Log Analytics Workspace
   # Lookback:  10 minutes
   #
-  # Detects backend HTTP 5xx responses across both hosting models:
-  #   - App Service        : native AppServiceHTTPLogs access logs
-  #   - Container Apps     : structured `http_request` access logs emitted by
-  #                          the Nest middleware to stdout/stderr and ingested
-  #                          into ContainerAppConsoleLogs tables
+  # Detects backend HTTP 5xx responses for Container Apps from structured
+  # `http_request` access logs emitted by the Nest middleware to stdout/stderr.
+  #
+  # The backend App Service already has a native Http5xx metric alert that runs
+  # every minute, so the log-query alert only needs to cover the Container Apps
+  # path here. This also keeps the query eligible for Azure Monitor's one-minute
+  # evaluation frequency, which doesn't allow multi-table `union` queries.
   #
   # Tables queried:
-  #   AppServiceHTTPLogs                                   (App Service access logs)
-  #   ContainerAppConsoleLogs_CL, ContainerAppConsoleLogs (Container Apps app logs)
+  #   ContainerAppConsoleLogs_CL (Container Apps app logs)
   #
-  # Returns: rows of (TimeGenerated, HttpStatusCode, RequestPath) across all
-  # relevant request/access-log sources.
+  # Returns: rows of (TimeGenerated, HttpStatusCode, RequestPath) for failing
+  # backend requests handled by Container Apps.
   # ---------------------------------------------------------------------------
   backend_http_5xx_query = <<-QUERY
     let lookback = ago(10m);
-    let appServiceHttp = AppServiceHTTPLogs
-    | where TimeGenerated > lookback
-    | extend HttpStatusCode = toint(ScStatus), RequestPath = tostring(CsUriStem)
-    | where HttpStatusCode >= 500 and HttpStatusCode < 600
-    | project TimeGenerated, HttpStatusCode, RequestPath;
-    let containerConsole = ContainerAppConsoleLogs_CL
+    ContainerAppConsoleLogs_CL
     | where TimeGenerated > lookback
     | extend LogText = tostring(Log_s)
     | where LogText has '"event":"http_request"'
     | extend ParsedLog = parse_json(LogText)
     | extend HttpStatusCode = toint(ParsedLog.statusCode), RequestPath = tostring(ParsedLog.url)
     | where HttpStatusCode >= 500 and HttpStatusCode < 600
-    | project TimeGenerated, HttpStatusCode, RequestPath;
-    let containerConsoleDiag = ContainerAppConsoleLogs
-    | where TimeGenerated > lookback
-    | extend LogText = tostring(Log)
-    | where LogText has '"event":"http_request"'
-    | extend ParsedLog = parse_json(LogText)
-    | extend HttpStatusCode = toint(ParsedLog.statusCode), RequestPath = tostring(ParsedLog.url)
-    | where HttpStatusCode >= 500 and HttpStatusCode < 600
-    | project TimeGenerated, HttpStatusCode, RequestPath;
-    union isfuzzy=true appServiceHttp, containerConsole, containerConsoleDiag
+    | project TimeGenerated, HttpStatusCode, RequestPath
   QUERY
 
   # Database Connectivity Query
@@ -170,6 +157,7 @@ locals {
       name_suffix           = "runtime-issues"
       display_name          = "${var.app_name} runtime issues"
       description           = "Detect repeated backend startup, crash-loop, or telemetry initialization failures from host runtime logs."
+      evaluation_frequency  = local.scheduled_query_default_evaluation_frequency
       scopes                = [var.log_analytics_workspace_id]
       severity              = 2
       skip_query_validation = true
@@ -186,6 +174,7 @@ locals {
       name_suffix           = "db-connectivity"
       display_name          = "${var.app_name} database connectivity"
       description           = "Detect repeated Prisma and PostgreSQL connectivity failures from Application Insights telemetry."
+      evaluation_frequency  = local.scheduled_query_default_evaluation_frequency
       scopes                = [var.application_insights_id]
       severity              = 1
       skip_query_validation = false
@@ -201,7 +190,8 @@ locals {
     backend_http_5xx = {
       name_suffix           = "backend-http5xx"
       display_name          = "${var.app_name} backend HTTP 5xx"
-      description           = "Detect repeated backend HTTP 5xx responses from request and access logs across App Service and Container Apps."
+      description           = "Detect repeated backend HTTP 5xx responses from Container Apps request logs. The backend App Service remains covered by its native Http5xx metric alert."
+      evaluation_frequency  = "PT1M"
       scopes                = [var.log_analytics_workspace_id]
       severity              = 2
       skip_query_validation = true
