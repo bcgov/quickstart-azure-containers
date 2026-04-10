@@ -11,7 +11,7 @@ type WinstonLogLevel =
 
 export type HttpAccessLogMode = "off" | "failures" | "all";
 
-type OperationalConsoleLogLevel = "info" | "warn" | "error";
+type OperationalStreamLogLevel = "info" | "warn" | "error";
 
 const validWinstonLogLevels = new Set<WinstonLogLevel>([
   "error",
@@ -29,15 +29,32 @@ const validHttpAccessLogModes = new Set<HttpAccessLogMode>([
   "all",
 ]);
 
+/**
+ * Reads an environment variable and removes surrounding whitespace.
+ *
+ * @param name Name of the environment variable to inspect.
+ * @returns Trimmed value when present, otherwise `undefined`.
+ */
 function getTrimmedEnv(name: string): string | undefined {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
 }
 
+/**
+ * Indicates whether the current process is running in production mode.
+ *
+ * @returns `true` when `NODE_ENV` is `production`.
+ */
 function isProduction(): boolean {
   return (process.env.NODE_ENV ?? "").trim().toLowerCase() === "production";
 }
 
+/**
+ * Validates that a string is one of Winston's supported log levels.
+ *
+ * @param value Candidate log level value.
+ * @returns Whether the provided value is a valid Winston log level.
+ */
 function isWinstonLogLevel(
   value: string | undefined,
 ): value is WinstonLogLevel {
@@ -47,6 +64,12 @@ function isWinstonLogLevel(
   );
 }
 
+/**
+ * Validates that a string matches the supported HTTP access log modes.
+ *
+ * @param value Candidate HTTP access log mode.
+ * @returns Whether the provided value is a supported mode.
+ */
 function isHttpAccessLogMode(
   value: string | undefined,
 ): value is HttpAccessLogMode {
@@ -56,6 +79,11 @@ function isHttpAccessLogMode(
   );
 }
 
+/**
+ * Resolves the effective Winston log level for application logs.
+ *
+ * @returns Configured log level or the environment-specific default.
+ */
 export function getWinstonLogLevel(): WinstonLogLevel {
   const configuredLevel = getTrimmedEnv("LOG_LEVEL")?.toLowerCase();
 
@@ -66,7 +94,12 @@ export function getWinstonLogLevel(): WinstonLogLevel {
   return isProduction() ? "info" : "debug";
 }
 
-export function createConsoleLoggerFormat(): winston.Logform.Format {
+/**
+ * Creates the formatter used by the application logger's console transport.
+ *
+ * @returns JSON formatting in production and colorized text formatting locally.
+ */
+export function createApplicationLoggerFormat(): winston.Logform.Format {
   if (isProduction()) {
     return winston.format.combine(
       winston.format.timestamp(),
@@ -98,6 +131,11 @@ export function createConsoleLoggerFormat(): winston.Logform.Format {
   );
 }
 
+/**
+ * Resolves how HTTP access logs should be emitted.
+ *
+ * @returns Effective access log mode for the current environment.
+ */
 export function getHttpAccessLogMode(): HttpAccessLogMode {
   const configuredMode = getTrimmedEnv("HTTP_ACCESS_LOG_MODE")?.toLowerCase();
 
@@ -108,6 +146,12 @@ export function getHttpAccessLogMode(): HttpAccessLogMode {
   return isProduction() ? "failures" : "all";
 }
 
+/**
+ * Determines whether a response status code should be emitted to the access log.
+ *
+ * @param statusCode HTTP response status code.
+ * @returns Whether the request should be logged.
+ */
 export function shouldEmitHttpAccessLog(statusCode: number): boolean {
   const mode = getHttpAccessLogMode();
 
@@ -122,6 +166,11 @@ export function shouldEmitHttpAccessLog(statusCode: number): boolean {
   return statusCode >= 400;
 }
 
+/**
+ * Resolves the minimum query duration that qualifies as a slow query.
+ *
+ * @returns Threshold in milliseconds.
+ */
 export function getSlowQueryLogThresholdMs(): number {
   const configuredThreshold = getTrimmedEnv("DB_SLOW_QUERY_LOG_THRESHOLD_MS");
 
@@ -136,18 +185,51 @@ export function getSlowQueryLogThresholdMs(): number {
   return isProduction() ? 1000 : 250;
 }
 
+/**
+ * Determines whether a query duration should be emitted as a slow-query event.
+ *
+ * @param durationMs Query duration in milliseconds.
+ * @returns Whether the query exceeds the configured slow-query threshold.
+ */
 export function shouldEmitSlowQueryLog(durationMs: number): boolean {
   const thresholdMs = getSlowQueryLogThresholdMs();
   return thresholdMs >= 0 && durationMs >= thresholdMs;
 }
 
+/**
+ * Extracts the leading SQL verb from a query for compact log output.
+ *
+ * @param query SQL statement text.
+ * @returns Uppercase operation name, or `UNKNOWN` when it cannot be inferred.
+ */
 export function summarizeSqlStatement(query: string): string {
   const match = query.trim().match(/^[A-Za-z]+/);
   return match?.[0].toUpperCase() ?? "UNKNOWN";
 }
 
-export function emitOperationalConsoleLog(
-  level: OperationalConsoleLogLevel,
+/**
+ * Console-backed logger that writes structured operational events to stdout or stderr.
+ */
+export const operationalStreamLogger = winston.createLogger({
+  level: "info",
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.printf(({ message }) => String(message)),
+      stderrLevels: ["warn", "error"],
+    }),
+  ],
+  exitOnError: false,
+});
+
+/**
+ * Emits a structured operational event as a single JSON log line.
+ *
+ * @param level Severity used for the log transport.
+ * @param event Stable event name describing the operational signal.
+ * @param fields Additional event-specific fields to include in the payload.
+ */
+export function emitOperationalStreamLog(
+  level: OperationalStreamLogLevel,
   event: string,
   fields: Record<string, unknown>,
 ): void {
@@ -157,14 +239,5 @@ export function emitOperationalConsoleLog(
     ...fields,
   });
 
-  switch (level) {
-    case "error":
-      console.error(payload);
-      return;
-    case "warn":
-      console.warn(payload);
-      return;
-    default:
-      console.info(payload);
-  }
+  operationalStreamLogger.log(level, payload);
 }

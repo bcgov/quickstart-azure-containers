@@ -6,15 +6,17 @@ import helmet from "helmet";
 import { metricsMiddleware } from "src/middleware/prom";
 
 import { AppModule } from "./app.module";
-import { customLogger } from "./common/logger.config";
+import { applicationLogger } from "./common/logger.config";
 
 /**
+ * Creates and configures the Nest application instance used by the runtime and tests.
  *
+ * @returns Fully configured Nest Express application.
  */
 export async function bootstrap() {
   const app: NestExpressApplication =
     await NestFactory.create<NestExpressApplication>(AppModule, {
-      logger: customLogger,
+      logger: applicationLogger,
     });
   app.use(helmet());
   app.enableCors();

@@ -3,13 +3,16 @@ import { WinstonModule } from "nest-winston";
 import * as winston from "winston";
 
 import {
-  createConsoleLoggerFormat,
+  createApplicationLoggerFormat,
   getWinstonLogLevel,
 } from "./logging.policy";
 
 const loggerLevel = getWinstonLogLevel();
 
-export const customLogger: LoggerService = WinstonModule.createLogger({
+/**
+ * Shared Nest-compatible Winston logger used for application log events.
+ */
+export const applicationLogger: LoggerService = WinstonModule.createLogger({
   level: loggerLevel,
   defaultMeta: {
     component: "backend",
@@ -17,7 +20,7 @@ export const customLogger: LoggerService = WinstonModule.createLogger({
   transports: [
     new winston.transports.Console({
       level: loggerLevel,
-      format: createConsoleLoggerFormat(),
+      format: createApplicationLoggerFormat(),
     }),
   ],
   exitOnError: false,

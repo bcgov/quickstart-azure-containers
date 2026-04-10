@@ -6,10 +6,24 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UserDto } from "./dto/user.dto";
 
+/**
+ * Implements user persistence, lookup, and query operations.
+ */
 @Injectable()
 export class UsersService {
+  /**
+   * Creates the service with the shared Prisma client wrapper.
+   *
+   * @param prisma Database service used for user queries and mutations.
+   */
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Persists a new user.
+   *
+   * @param user User data to insert.
+   * @returns Newly created user data.
+   */
   async create(user: CreateUserDto): Promise<UserDto> {
     const savedUser = await this.prisma.users.create({
       data: {
@@ -25,6 +39,11 @@ export class UsersService {
     };
   }
 
+  /**
+   * Retrieves every user in the database.
+   *
+   * @returns All persisted users mapped to DTOs.
+   */
   async findAll(): Promise<UserDto[]> {
     const users = await this.prisma.users.findMany();
     return users.flatMap((user) => {
@@ -37,6 +56,12 @@ export class UsersService {
     });
   }
 
+  /**
+   * Retrieves a single user by numeric identifier.
+   *
+   * @param id Identifier of the user to fetch.
+   * @returns The matching user DTO.
+   */
   async findOne(id: number): Promise<UserDto> {
     const user = await this.prisma.users.findUnique({
       where: {
@@ -50,6 +75,13 @@ export class UsersService {
     };
   }
 
+  /**
+   * Updates an existing user record.
+   *
+   * @param id Identifier of the user to update.
+   * @param updateUserDto Replacement field values.
+   * @returns Updated user DTO.
+   */
   async update(id: number, updateUserDto: UpdateUserDto): Promise<UserDto> {
     const user = await this.prisma.users.update({
       where: {
@@ -67,6 +99,12 @@ export class UsersService {
     };
   }
 
+  /**
+   * Deletes a user by identifier.
+   *
+   * @param id Identifier of the user to delete.
+   * @returns Deletion status and an optional error message.
+   */
   async remove(id: number): Promise<{ deleted: boolean; message?: string }> {
     try {
       await this.prisma.users.delete({
@@ -83,6 +121,15 @@ export class UsersService {
     }
   }
 
+  /**
+   * Searches users with pagination, sorting, and filter criteria passed as JSON strings.
+   *
+   * @param page Requested page number.
+   * @param limit Maximum number of results per page.
+   * @param sort JSON-encoded Prisma order-by clauses.
+   * @param filter JSON-encoded filter descriptors.
+   * @returns Paginated users together with total counts.
+   */
   async searchUsers(
     page: number,
     limit: number,
@@ -123,6 +170,12 @@ export class UsersService {
     };
   }
 
+  /**
+   * Converts parsed filter descriptors into a Prisma-compatible where clause.
+   *
+   * @param filterObj Parsed filter descriptors from the request.
+   * @returns Prisma where object built from the supplied filters.
+   */
   public convertFiltersToPrismaFormat(filterObj): any {
     const prismaFilterObj = {};
 

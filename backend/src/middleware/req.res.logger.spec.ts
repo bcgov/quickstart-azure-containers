@@ -1,6 +1,7 @@
 import { Test } from "@nestjs/testing";
 import { Request, Response } from "express";
 
+import { operationalStreamLogger } from "../common/logging.policy";
 import { HTTPLoggerMiddleware } from "./req.res.logger";
 
 describe("HTTPLoggerMiddleware", () => {
@@ -40,15 +41,16 @@ describe("HTTPLoggerMiddleware", () => {
       },
     } as unknown as Response;
 
-    const infoSpy = vi
-      .spyOn(console, "info")
-      .mockImplementation(() => undefined);
+    const logSpy = vi
+      .spyOn(operationalStreamLogger, "log")
+      .mockImplementation(() => operationalStreamLogger);
 
     middleware.use(request, response, () => {});
 
-    expect(infoSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy).toHaveBeenCalledWith("info", expect.any(String));
 
-    const payload = JSON.parse(String(infoSpy.mock.calls[0][0])) as Record<
+    const payload = JSON.parse(String(logSpy.mock.calls[0][1])) as Record<
       string,
       unknown
     >;
@@ -84,21 +86,13 @@ describe("HTTPLoggerMiddleware", () => {
       },
     } as unknown as Response;
 
-    const infoSpy = vi
-      .spyOn(console, "info")
-      .mockImplementation(() => undefined);
-    const warnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
-    const errorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
+    const logSpy = vi
+      .spyOn(operationalStreamLogger, "log")
+      .mockImplementation(() => operationalStreamLogger);
 
     middleware.use(request, response, () => {});
 
-    expect(infoSpy).not.toHaveBeenCalled();
-    expect(warnSpy).not.toHaveBeenCalled();
-    expect(errorSpy).not.toHaveBeenCalled();
+    expect(logSpy).not.toHaveBeenCalled();
   });
 
   it("writes 5xx responses to stderr as operational failures", () => {
@@ -120,15 +114,16 @@ describe("HTTPLoggerMiddleware", () => {
       },
     } as unknown as Response;
 
-    const errorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
+    const logSpy = vi
+      .spyOn(operationalStreamLogger, "log")
+      .mockImplementation(() => operationalStreamLogger);
 
     middleware.use(request, response, () => {});
 
-    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy).toHaveBeenCalledWith("error", expect.any(String));
 
-    const payload = JSON.parse(String(errorSpy.mock.calls[0][0])) as Record<
+    const payload = JSON.parse(String(logSpy.mock.calls[0][1])) as Record<
       string,
       unknown
     >;

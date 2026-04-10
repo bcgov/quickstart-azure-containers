@@ -1,5 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 
+/**
+ * Represents the user shape exposed by the API.
+ */
 export class UserDto {
   @ApiProperty({
     description: "The ID of the user",
