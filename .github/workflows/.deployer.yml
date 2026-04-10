@@ -32,9 +32,11 @@ env:
   TF_VERSION: 1.12.2
   TF_LOG: ERROR
   AZURE_REGION: Canada Central
+
 permissions:
   id-token: write # This is required for requesting the JWT
   contents: write # This is required for actions/checkout
+
 jobs:
   infra:
     environment: ${{ inputs.environment_name }}
@@ -61,8 +63,38 @@ jobs:
 
       - name: Populate Environment Variables
         shell: bash
+        env:
+          NOTIFY_EMAILS_RAW: ${{ secrets.NOTIFY_EMAILS }}
         run: |
           set -euo pipefail
+
+          trim() {
+            local value="$1"
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+            printf '%s' "$value"
+          }
+
+          normalized_notify_emails="${NOTIFY_EMAILS_RAW//$'\r'/}"
+          normalized_notify_emails="${normalized_notify_emails//;/,}"
+
+          notify_email_items=()
+          while IFS= read -r line; do
+            IFS=',' read -r -a parts <<< "$line"
+            for part in "${parts[@]}"; do
+              email="$(trim "$part")"
+              if [[ -n "$email" ]]; then
+                email="${email//\\/\\\\}"
+                email="${email//\"/\\\"}"
+                notify_email_items+=("\"$email\"")
+              fi
+            done
+          done <<< "$normalized_notify_emails"
+
+          notify_emails_json="[$(
+            IFS=,
+            echo "${notify_email_items[*]-}"
+          )]"
 
           echo "CI=true" >> "$GITHUB_ENV"
           echo "ARM_USE_OIDC=true" >> "$GITHUB_ENV"
@@ -98,6 +130,8 @@ jobs:
           echo "TF_VAR_use_oidc=true" >> "$GITHUB_ENV"
           echo "TF_VAR_repo_name=${{ github.event.repository.name }}" >> "$GITHUB_ENV"
           echo "TF_VAR_resource_group_name=${{ github.event.repository.name }}-${{ inputs.app_env }}" >> "$GITHUB_ENV"
+          echo "TF_VAR_application_alert_emails=$notify_emails_json" >> "$GITHUB_ENV"
+          echo "TF_VAR_postgres_alert_emails=$notify_emails_json" >> "$GITHUB_ENV"
 
           echo "TF_VAR_common_tags<<EOF" >> "$GITHUB_ENV"
           echo '{"environment":"${{ inputs.environment_name }}","stack_prefix":"${{ inputs.stack_prefix }}","app_env":"${{ inputs.app_env }}","repo_name":"${{ github.event.repository.name }}"}' >> "$GITHUB_ENV"

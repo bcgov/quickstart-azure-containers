@@ -63,6 +63,11 @@ module "backend_site" {
   app_settings = {
     NODE_ENV                              = var.node_env
     PORT                                  = "80"
+    LOG_LEVEL                             = var.log_level
+    HTTP_ACCESS_LOG_MODE                  = var.http_access_log_mode
+    DB_SLOW_QUERY_LOG_THRESHOLD_MS        = tostring(var.slow_query_log_threshold_ms)
+    OTEL_SERVICE_NAME                     = "${var.app_name}-backend"
+    OTEL_RESOURCE_ATTRIBUTES              = "deployment.environment.name=${var.app_env}"
     DOCKER_ENABLE_CI                      = "true"
     APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
     APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key

@@ -543,6 +543,55 @@ resource "azurerm_application_insights" "main" {
 }
 ```
 
+### Backend Telemetry and Log Routing
+
+The backend now splits observability data by intent instead of sending every message to Application Insights:
+
+- `AppTraces` receive curated Nest/Winston application logs, exceptions, traces, and dependency telemetry.
+- `Log Analytics Workspace` receives high-volume operational stdout/stderr logs such as HTTP access logs and Prisma slow-query diagnostics.
+- Azure Monitor trace-based log sampling remains enabled so logs correlated to unsampled traces are not exported as orphaned `AppTraces` entries.
+
+Backend logging behavior is controlled through Terraform and injected into App Service and Container Apps:
+
+- `backend_log_level`: structured Nest/Winston log level exported through Application Insights. Defaults to `info` in production.
+- `backend_http_access_log_mode`: `off`, `failures`, or `all` for request access logs written to stdout/stderr. Production default is `failures`.
+- `backend_slow_query_log_threshold_ms`: Prisma slow-query threshold for operational logs. Set `-1` to disable.
+- `OTEL_SERVICE_NAME`: pinned to `${var.app_name}-backend` so telemetry from different Azure hosts lands under one logical service.
+- `OTEL_RESOURCE_ATTRIBUTES`: includes `deployment.environment.name=${var.app_env}` for environment scoping.
+
+Operational guidance:
+
+- Keep `backend_log_level` at `info` or `warn` in production unless actively debugging.
+- Keep `backend_http_access_log_mode = "failures"` for normal production use to avoid ingesting successful request noise.
+- Do not set `backend_http_access_log_mode = "off"` if you want Container Apps HTTP 5xx alerting, because the cross-host 5xx query relies on structured `http_request` logs from the backend.
+- Start with `backend_slow_query_log_threshold_ms = 1000` and lower it temporarily during performance investigations.
+
+### Application Alerting
+
+Terraform now creates a dedicated application alerting layer when recipients are configured:
+
+- Application Insights smart detectors for failure anomalies, request latency regressions, dependency latency regressions, and exception-volume spikes.
+- Log Analytics scheduled query alerts for repeated backend HTTP 5xx responses from Container Apps request logs, startup/runtime failures, and database connectivity issues.
+- Metric alerts for backend App Service HTTP 5xx volume as a platform backstop and backend Container App restart counts.
+
+Scheduled query alert cadence:
+
+- The scheduled query alerts in this repo evaluate every five minutes over a five-minute rolling window.
+- Azure Monitor scheduled query alert cost scales with how often the rule executes. A one-minute cadence runs roughly five times as many evaluations as a five-minute cadence for the same rule, so it improves time-to-detect at the cost of higher alert-query spend.
+- Azure rejected the current runtime, database, and Container Apps 5xx queries at one-minute frequency. The runtime and database rules use multi-table `union` queries, and the Container Apps 5xx rule depends on the current log shape in `ContainerAppConsoleLogs_CL`, so the supported configuration here remains `PT5M`.
+- Backend App Service 5xx coverage is still faster because the native `Http5xx` metric alert runs every minute and doesn't have the same log-query limitation.
+- If Azure later exposes a 5xx request-count metric for Container Apps or relaxes the one-minute log-alert restrictions, revisiting `scheduled_query_default_evaluation_frequency` in `infra/modules/app-alerting/locals.tf` is the place to start.
+
+Key Terraform variables:
+
+- `enable_application_alerts`: master switch for application alert resources.
+- `application_alert_emails`: email recipients for application alerts. If empty, Terraform reuses `postgres_alert_emails` when available.
+- `backend_http_5xx_alert_threshold`: Container Apps 5xx total in five minutes before the backend HTTP 5xx log alert fires.
+- `application_runtime_issue_alert_threshold`: count threshold for runtime/startup failure log matches.
+- `application_database_issue_alert_threshold`: count threshold for database connectivity failures.
+- `app_service_http_5xx_alert_threshold`: 5xx total in five minutes before the App Service platform metric backstop alert fires.
+- `container_app_restart_alert_threshold`: restart total in fifteen minutes before the Container Apps alert fires.
+
 ### PostgreSQL Backups & Point-In-Time Recovery (PITR)
 
 Azure PostgreSQL Flexible Server automatically supports point-in-time restore (PITR) to any moment within the configured backup retention window (`postgres_backup_retention_period`).

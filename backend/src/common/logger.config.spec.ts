@@ -1,13 +1,13 @@
-import { customLogger } from "./logger.config";
+import { applicationLogger } from "./logger.config";
 
-describe("CustomLogger", () => {
+describe("applicationLogger", () => {
   it("should be defined", () => {
-    expect(customLogger).toBeDefined();
+    expect(applicationLogger).toBeDefined();
   });
 
   it("should log a message", () => {
-    const spy = vi.spyOn(customLogger, "verbose");
-    customLogger.verbose("Test message");
+    const spy = vi.spyOn(applicationLogger, "verbose");
+    applicationLogger.verbose("Test message");
     expect(spy).toHaveBeenCalledWith("Test message");
     spy.mockRestore();
   });
