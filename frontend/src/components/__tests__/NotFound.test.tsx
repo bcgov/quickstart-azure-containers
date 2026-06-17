@@ -1,5 +1,6 @@
-import { vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
+
 import NotFound from '@/components/NotFound'
 
 vi.mock('@tanstack/react-router', () => ({

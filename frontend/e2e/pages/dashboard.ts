@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test'
-import { baseURL } from '../utils'
 import type { Page } from 'playwright'
+
+import { baseURL } from '../utils'
 
 export const dashboard_page = async (page: Page) => {
   await page.goto(baseURL)

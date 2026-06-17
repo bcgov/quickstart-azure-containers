@@ -1,5 +1,6 @@
-import { vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
+
 import Dashboard from '@/components/Dashboard'
 
 vi.mock('@tanstack/react-router', () => ({

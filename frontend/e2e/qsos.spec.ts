@@ -1,4 +1,5 @@
 import { test } from '@playwright/test'
+
 import { dashboard_page } from './pages/dashboard'
 
 test.describe.parallel('QSOS', () => {

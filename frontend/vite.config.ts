@@ -54,16 +54,28 @@ export default ({ mode }) => {
       // https://vitejs.dev/config/build-options.html#build-target
       target: 'esnext',
       // Minify option
-      // https://vitejs.dev/config/build-options.html#build-minify
-      minify: 'esbuild',
+      // https://vite.dev/config/build-options.html#build-minify
+      // Vite 8 (Rolldown) uses the native `oxc` minifier by default;
+      // `esbuild` is no longer bundled.
+      minify: 'oxc',
       // Rollup Options
       // https://vitejs.dev/config/build-options.html#build-rollupoptions
       rollupOptions: {
         output: {
-          manualChunks: {
-            // Split external library from transpiled code.
-            react: ['react', 'react-dom'],
-            axios: ['axios'],
+          // Split external libraries from transpiled code.
+          // Vite 8 uses Rolldown, which replaces Rollup's object-form
+          // `manualChunks` with `advancedChunks.groups`.
+          advancedChunks: {
+            groups: [
+              {
+                name: 'react',
+                test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+              },
+              {
+                name: 'axios',
+                test: /[\\/]node_modules[\\/]axios[\\/]/,
+              },
+            ],
           },
         },
       },

@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
-import importPlugin from "eslint-plugin-import";
+import importPlugin from "eslint-plugin-import-x";
 import promisePlugin from "eslint-plugin-promise";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,7 +37,7 @@ export default [
     plugins: {
       "@typescript-eslint": typescriptEslint,
       prettier,
-      import: importPlugin,
+      "import-x": importPlugin,
       promise: promisePlugin,
     },
 
@@ -111,7 +111,7 @@ export default [
       ],
 
       // Import plugin rules
-      "import/order": [
+      "import-x/order": [
         "error",
         {
           groups: [

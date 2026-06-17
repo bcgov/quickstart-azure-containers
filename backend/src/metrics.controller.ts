@@ -1,6 +1,7 @@
 import { Controller, Get, Res } from "@nestjs/common";
 import { Response } from "express";
-import { register } from "src/middleware/prom";
+
+import { register } from "./middleware/prom";
 
 /**
  * Exposes Prometheus-formatted application metrics.

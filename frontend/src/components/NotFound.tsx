@@ -1,6 +1,6 @@
+import { useNavigate } from '@tanstack/react-router'
 import type { FC } from 'react'
 import { Button } from 'react-bootstrap'
-import { useNavigate } from '@tanstack/react-router'
 
 const NotFound: FC = () => {
   const navigate = useNavigate()

@@ -3,10 +3,10 @@ import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
-import { metricsMiddleware } from "src/middleware/prom";
 
 import { AppModule } from "./app.module";
 import { applicationLogger } from "./common/logger.config";
+import { metricsMiddleware } from "./middleware/prom";
 
 /**
  * Creates and configures the Nest application instance used by the runtime and tests.

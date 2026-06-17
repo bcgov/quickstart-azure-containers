@@ -1,4 +1,5 @@
 import { render, screen } from '../test-utils'
+
 import Dashboard from '@/components/Dashboard'
 
 describe('Simple working test', () => {

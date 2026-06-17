@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { PrismaService } from "src/prisma.service";
+
+import { PrismaService } from "../prisma.service";
 
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
@@ -141,8 +142,8 @@ export class UsersService {
       limit = 10;
     }
 
-    let sortObj = [];
-    let filterObj = {};
+    let sortObj;
+    let filterObj;
     try {
       sortObj = JSON.parse(sort);
       filterObj = JSON.parse(filter);
