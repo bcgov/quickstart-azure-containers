@@ -1,9 +1,10 @@
 import type { FC } from 'react'
-import type { AxiosResponse } from '~/axios'
-import type UserDto from '@/interfaces/UserDto'
 import { useEffect, useState } from 'react'
 import { Table, Modal, Button } from 'react-bootstrap'
+
+import type UserDto from '@/interfaces/UserDto'
 import apiService from '@/service/api-service'
+import type { AxiosResponse } from '~/axios'
 
 type ModalProps = {
   show: boolean

@@ -1,6 +1,6 @@
-import type { FC } from 'react'
 import { Footer, Header } from '@bcgov/design-system-react-components'
 import { Link } from '@tanstack/react-router'
+import type { FC } from 'react'
 import { Button } from 'react-bootstrap'
 
 type Props = {
@@ -10,7 +10,10 @@ type Props = {
 const Layout: FC<Props> = ({ children }) => {
   return (
     <div className="d-flex flex-column min-vh-100">
-      <Header title={'QuickStart Azure Containers Using App Service'} className="mb-3">
+      <Header
+        title={'QuickStart Azure Containers Using App Service'}
+        className="mb-3"
+      >
         {' '}
         <Link to="/">
           <Button variant="light" size="lg">

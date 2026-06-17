@@ -4,7 +4,8 @@ import {
   HealthCheck,
   PrismaHealthIndicator,
 } from "@nestjs/terminus";
-import { PrismaService } from "src/prisma.service";
+
+import { PrismaService } from "./prisma.service";
 
 /**
  * Publishes health information for the service and its database dependency.

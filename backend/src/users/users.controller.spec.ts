@@ -1,7 +1,8 @@
 import { HttpException, INestApplication } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
-import { PrismaService } from "src/prisma.service";
 import request from "supertest";
+
+import { PrismaService } from "../prisma.service";
 
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";

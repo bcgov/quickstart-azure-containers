@@ -1,14 +1,15 @@
 import { MiddlewareConsumer, Module, RequestMethod } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TerminusModule } from "@nestjs/terminus";
+
 import "dotenv/config";
-import { PrismaService } from "src/prisma.service";
 
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { HealthController } from "./health.controller";
 import { MetricsController } from "./metrics.controller";
 import { HTTPLoggerMiddleware } from "./middleware/req.res.logger";
+import { PrismaService } from "./prisma.service";
 import { UsersModule } from "./users/users.module";
 import { UsersService } from "./users/users.service";
 
