@@ -313,21 +313,3 @@ module "aci" {
   depends_on = [module.network, module.monitoring, module.postgresql]
 }
 
-module "azure_proxy" {
-  source = "./modules/azure-proxy"
-  count  = var.enable_azure_proxy ? 1 : 0
-
-  app_env                          = var.app_env
-  app_name                         = var.app_name
-  app_service_sku_name_azure_proxy = var.app_service_sku_name_azure_proxy
-  app_service_subnet_id            = module.network.app_service_subnet_id
-  appinsights_connection_string    = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key  = module.monitoring.appinsights_instrumentation_key
-  azure_proxy_image                = var.azure_proxy_image
-  common_tags                      = var.common_tags
-  location                         = var.location
-  log_analytics_workspace_id       = module.monitoring.log_analytics_workspace_id
-  resource_group_name              = azurerm_resource_group.main.name
-
-  depends_on = [module.monitoring, module.network]
-}

@@ -120,7 +120,6 @@ jobs:
           echo "TF_VAR_flyway_image=ghcr.io/${{ github.repository }}/migrations:${{ inputs.tag }}" >> "$GITHUB_ENV"
           echo "TF_VAR_api_image=ghcr.io/${{ github.repository }}/backend:${{ inputs.tag }}" >> "$GITHUB_ENV"
           echo "TF_VAR_frontend_image=ghcr.io/${{ github.repository }}/frontend:${{ inputs.tag }}" >> "$GITHUB_ENV"
-          echo "TF_VAR_azure_proxy_image=ghcr.io/${{ github.repository }}/azure-proxy/chisel:${{ inputs.tag }}" >> "$GITHUB_ENV"
 
           echo "TF_VAR_stack_prefix=${{ inputs.stack_prefix }}" >> "$GITHUB_ENV"
           echo "TF_VAR_app_env=${{ inputs.app_env }}" >> "$GITHUB_ENV"
