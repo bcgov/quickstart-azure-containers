@@ -24,8 +24,6 @@ jobs:
             backend,
             migrations,
             frontend,
-            azure-proxy/chisel,
-            azure-proxy/privoxy,
           ]
     timeout-minutes: 10
     steps:

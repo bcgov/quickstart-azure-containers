@@ -685,23 +685,6 @@ variable "apim_enable_application_insights_logger" {
 }
 
 
-variable "enable_azure_proxy" {
-  description = "Whether to enable Proxy in Azure which allows tunneling to postgres db or other services on Azure from local system."
-  type        = bool
-  default     = false
-}
-
-variable "app_service_sku_name_azure_proxy" {
-  description = "The SKU name for the azure proxy App Service plan."
-  type        = string
-  nullable    = true
-}
-
-variable "azure_proxy_image" {
-  description = "The image for the Azure Proxy container"
-  type        = string
-  nullable    = true
-}
 variable "prevent_rg_deletion_if_contains_resources" {
   description = "AzureRM provider feature flag: refuse to delete a resource group if Azure reports it still contains resources. Set false to allow RG deletion even when Azure-managed/auto-created resources remain (e.g., App Insights Smart Detector rules)."
   type        = bool

@@ -52,5 +52,3 @@ apim_enable_application_insights_logger = true  # Enable App Insights integratio
 # -----------------------------------------------------------------------------
 frontdoor_sku_name               = "Standard_AzureFrontDoor" # Standard_AzureFrontDoor or Premium_AzureFrontDoor
 enable_frontdoor                 = false
-enable_azure_proxy               = false
-app_service_sku_name_azure_proxy = "B1"
