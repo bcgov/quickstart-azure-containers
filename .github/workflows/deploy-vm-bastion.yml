@@ -10,6 +10,7 @@ on:
         type: choice
         default: apply
         options: [apply, plan, destroy]
+  pull_request: # testing purposes, will be remvoved
 
 permissions: {}
 
