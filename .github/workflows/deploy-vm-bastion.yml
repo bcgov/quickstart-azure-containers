@@ -17,14 +17,14 @@ permissions: {}
 jobs:
   deploy:
     runs-on: ubuntu-24.04
-    environment: ${{ inputs.environment || 'tools' }}
+    environment: ${{ inputs.environment || 'dev' }}
     permissions:
       id-token: write
     steps:
       - uses: bcgov/action-deployer-vm-bastion-alz@feat/reusable-action # pin to SHA in prod
         with:
           app_name: qsac
-          app_env: ${{ inputs.environment || 'tools' }}
+          app_env: ${{ inputs.environment || 'dev' }}
           terraform_command: ${{ inputs.terraform_command || 'apply' }}
           backend_storage_account: ${{ vars.STORAGE_ACCOUNT_NAME }}
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
