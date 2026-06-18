@@ -10,7 +10,6 @@ on:
         type: choice
         default: apply
         options: [apply, plan, destroy]
-  pull_request:
 
 permissions: {}
 
@@ -20,6 +19,7 @@ jobs:
     environment: ${{ inputs.environment || 'dev' }}
     permissions:
       id-token: write
+      contents: read
     steps:
       - uses: bcgov/action-deployer-vm-bastion-alz@feat/reusable-action # pin to SHA in prod
         with:
