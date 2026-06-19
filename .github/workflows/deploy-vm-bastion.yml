@@ -1,0 +1,44 @@
+name: Deploy VM + Bastion
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [dev, test, prod, tools]
+      terraform_command:
+        type: choice
+        default: apply
+        options: [apply, plan, destroy]
+
+permissions: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment || 'dev' }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: bcgov/action-deployer-vm-bastion-alz@b7053b77b6030a98909ad12182f588ad4302c0a2 # pin to SHA in prod
+        with:
+          app_name: qsac
+          app_env: ${{ inputs.environment || 'dev' }}
+          terraform_command: ${{ inputs.terraform_command || 'plan' }}
+          backend_storage_account: ${{ vars.STORAGE_ACCOUNT_NAME }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          vnet_name: ${{ secrets.VNET_NAME }}
+          vnet_resource_group_name: ${{ secrets.VNET_RESOURCE_GROUP_NAME }}
+          vnet_address_space: ${{ secrets.VNET_ADDRESS_SPACE }}
+          bastion_subnet_address_prefix: ${{ secrets.BASTION_SUBNET_ADDRESS_PREFIX }}
+          jumpbox_subnet_address_prefix: ${{ secrets.JUMPBOX_SUBNET_ADDRESS_PREFIX }}
+          vm_admin_login_principal_ids: ${{ secrets.VM_ADMIN_LOGIN_PRINCIPAL_IDS }}
+          vm_size: Standard_B2als_v2
+          bastion_sku: Standard
+          enable_bastion: true
+          enable_jumpbox: true
+          enable_bastion_automation: true
+          enable_monitoring: false

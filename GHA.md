@@ -3,6 +3,7 @@
 This repository uses GitHub Actions to:
 - Build and publish container images to GitHub Container Registry (GHCR)
 - Run Terraform plan/apply/destroy using Azure OIDC authentication
+- Deploy an Azure Bastion + Linux jumpbox into the BC Gov ALZ spoke VNet
 
 The workflows are defined in `.github/workflows/`.
 
@@ -35,6 +36,9 @@ Networking inputs (used by Terraform variables):
 - `VNET_RESOURCE_GROUP_NAME`
 - `VNET_NAME`
 - `VNET_ADDRESS_SPACE`
+- `BASTION_SUBNET_ADDRESS_PREFIX` — must be `/26` or larger (used by `deploy-vm-bastion.yml`)
+- `JUMPBOX_SUBNET_ADDRESS_PREFIX` — e.g. `/28` (used by `deploy-vm-bastion.yml`)
+- `VM_ADMIN_LOGIN_PRINCIPAL_IDS` — comma-separated Entra object IDs (GUIDs) of users who can log in to the jumpbox
 
 ### Environment variables (per environment)
 
@@ -71,10 +75,24 @@ Notes:
 - The plan job uses the `tools.tfvars` file because `environment_name` is set to `tools`.
 - `app_env` is separate from `environment_name` and influences resource naming and the state key.
 
-### Manual deploy to Tools
+### Deploy VM + Bastion
 
-In `.github/workflows/pr-open.yml`, the `deploy-to-tools` job runs only when the workflow is started via `workflow_dispatch`.
-It calls `.github/workflows/.deploy_stack.yml` with `command: apply`.
+Workflow file: `.github/workflows/deploy-vm-bastion.yml`
+
+Triggers:
+- `workflow_dispatch` — inputs: `environment` (dev / test / prod / tools) and `terraform_command` (apply / plan / destroy)
+
+What it does:
+- Deploys an Azure Bastion host and a Linux jumpbox VM into the selected environment's spoke VNet using the [`bcgov/action-deployer-vm-bastion-alz`](https://github.com/bcgov/action-deployer-vm-bastion-alz) composite action.
+- VM options (size, SKU, feature toggles) are passed as inline `with:` inputs directly in the workflow file.
+- Reads subnet CIDRs and OIDC credentials from GitHub Environment secrets (see above).
+- Terraform state is stored in the same backend storage account as the main stack.
+
+Notes:
+- The OIDC identity needs **Contributor** on the subscription/resource group and **User Access Administrator** (for RBAC assignments to the jumpbox).
+- `BASTION_SUBNET_ADDRESS_PREFIX` must be `/26` or larger — Terraform validation rejects anything smaller.
+- `VM_ADMIN_LOGIN_PRINCIPAL_IDS` must contain Entra **object IDs** (GUIDs), not UPNs.
+- The action reference (`@feat/reusable-action`) should be pinned to an immutable SHA before going to production.
 
 ### Manual destroy
 
