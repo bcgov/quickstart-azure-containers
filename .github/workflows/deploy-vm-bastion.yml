@@ -26,7 +26,7 @@ jobs:
         with:
           app_name: qsac
           app_env: ${{ inputs.environment || 'dev' }}
-          terraform_command: ${{ inputs.terraform_command || 'apply' }}
+          terraform_command: ${{ inputs.terraform_command || 'destroy' }}
           backend_storage_account: ${{ vars.STORAGE_ACCOUNT_NAME }}
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
