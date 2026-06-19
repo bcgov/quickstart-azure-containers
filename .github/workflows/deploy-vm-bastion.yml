@@ -22,7 +22,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: bcgov/action-deployer-vm-bastion-alz@feat/reusable-action # pin to SHA in prod
+      - uses: bcgov/action-deployer-vm-bastion-alz@b7053b77b6030a98909ad12182f588ad4302c0a2 # pin to SHA in prod
         with:
           app_name: qsac
           app_env: ${{ inputs.environment || 'dev' }}
