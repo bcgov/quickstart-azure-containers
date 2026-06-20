@@ -72,6 +72,8 @@
   },
   "overrides": {
     "rollup@<4.22.4": "^4.22.4",
+    "js-yaml": "^4.2.0",
+    "lodash": "^4.18.0",
     "@types/react": "$@types/react"
   },
   "engines": {
