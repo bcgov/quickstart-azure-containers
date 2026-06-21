@@ -123,9 +123,9 @@ variable "enable_app_service_frontend" {
   }
 }
 variable "enable_app_service_backend" {
-  description = "Whether to enable the App Service backend (off by default; Container Apps is the default backend host)"
+  description = "Whether to enable the App Service backend (default backend hosting option)"
   type        = bool
-  default     = false
+  default     = true
   validation {
     # Valid when at least one backend hosting option is enabled.
     condition     = var.enable_container_apps || var.enable_app_service_backend
@@ -148,11 +148,11 @@ variable "frontend_image" {
   type        = string
 }
 
-# Container Apps Configuration
+# Container Apps Configuration (optional, alongside App Service)
 variable "enable_container_apps" {
-  description = "Enable Azure Container Apps as the default backend host"
+  description = "Enable Azure Container Apps alongside App Service (optional for higher scaling needs)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "container_apps_cpu" {

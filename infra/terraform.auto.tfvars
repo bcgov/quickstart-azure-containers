@@ -5,9 +5,11 @@
 
 # -----------------------------------------------------------------------------
 # Backend Hosting (Azure App Service is the default backend)
+# Set enable_container_apps = true to deploy alongside App Service for higher scaling.
+# At least one backend must be enabled.
 # -----------------------------------------------------------------------------
-enable_container_apps       = false   # Container Apps backend host for higher scaling needs.
-enable_app_service_backend  = true    # App Service backend
+enable_app_service_backend  = true    # App Service is the default backend host
+enable_container_apps       = false   # Optional: set to true for Container Apps (alongside App Service)
 container_apps_cpu          = 0.25    # CPU cores per container (lower for Consumption)
 container_apps_memory       = "0.5Gi" # Memory per container (lower for Consumption)
 container_apps_min_replicas = 0       # Minimum replicas (0 for scale-to-zero)
