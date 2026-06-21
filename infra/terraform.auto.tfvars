@@ -4,9 +4,10 @@
 # ========================================================================================================
 
 # -----------------------------------------------------------------------------
-# Container Apps Configuration (optional alongside App Service) - Backend Only
+# Backend Hosting (Azure App Service is the default backend)
 # -----------------------------------------------------------------------------
-enable_container_apps       = false   # Set to true to deploy Container Apps alongside App Service
+enable_container_apps       = false   # Container Apps backend host for higher scaling needs.
+enable_app_service_backend  = true    # App Service backend
 container_apps_cpu          = 0.25    # CPU cores per container (lower for Consumption)
 container_apps_memory       = "0.5Gi" # Memory per container (lower for Consumption)
 container_apps_min_replicas = 0       # Minimum replicas (0 for scale-to-zero)
@@ -50,5 +51,5 @@ apim_enable_application_insights_logger = true  # Enable App Insights integratio
 # -----------------------------------------------------------------------------
 # Front Door Configuration
 # -----------------------------------------------------------------------------
-frontdoor_sku_name               = "Standard_AzureFrontDoor" # Standard_AzureFrontDoor or Premium_AzureFrontDoor
-enable_frontdoor                 = false
+frontdoor_sku_name = "Standard_AzureFrontDoor" # Standard_AzureFrontDoor or Premium_AzureFrontDoor
+enable_frontdoor   = false
