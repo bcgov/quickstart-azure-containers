@@ -20,86 +20,14 @@ resource "azurerm_network_security_group" "privateendpoints" {
   location            = var.location
   resource_group_name = var.vnet_resource_group_name
 
-  # Private Endpoints subnet
-  # - This subnet hosts private endpoint NICs.
-  # PostgreSQL Flexible Server private endpoint access (TCP/5432).
-  security_rule {
-    name                       = "AllowInboundPostgresFromAppService"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_address_prefix      = local.app_service_subnet_cidr
-    destination_address_prefix = local.private_endpoints_subnet_cidr
-    source_port_range          = "*"
-    destination_port_range     = "5432"
-  }
-
-  # Container Apps Environment private endpoint access (HTTPS/TCP 443).
-  security_rule {
-    name                       = "AllowInboundHttpsFromAppService"
-    priority                   = 101
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_address_prefix      = local.app_service_subnet_cidr
-    destination_address_prefix = local.private_endpoints_subnet_cidr
-    source_port_range          = "*"
-    destination_port_range     = "443"
-  }
-
-  # PostgreSQL migrations run from ACI/Flyway in the Container Instances subnet.
-  security_rule {
-    name                       = "AllowInboundPostgresFromContainerInstance"
-    priority                   = 110
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_address_prefix      = local.container_instance_subnet_cidr
-    destination_address_prefix = local.private_endpoints_subnet_cidr
-    source_port_range          = "*"
-    destination_port_range     = "5432"
-  }
-
-  # APIM may call Container Apps backends via private networking (HTTPS/TCP 443).
-  security_rule {
-    name                       = "AllowInboundHttpsFromAPIM"
-    priority                   = 120
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_address_prefix      = local.apim_subnet_cidr
-    destination_address_prefix = local.private_endpoints_subnet_cidr
-    source_port_range          = "*"
-    destination_port_range     = "443"
-  }
-
-  # Container Apps backend connects to PostgreSQL over TCP/5432.
-  security_rule {
-    name                       = "AllowInboundPostgresFromContainerApps"
-    priority                   = 130
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_address_prefix      = local.container_apps_subnet_cidr
-    destination_address_prefix = local.private_endpoints_subnet_cidr
-    source_port_range          = "*"
-    destination_port_range     = "5432"
-  }
-
-  # Enforce least-privilege by overriding the NSG default AllowVnetInBound rule.
-  # Anything in the VNet not explicitly allowed above is denied.
-  security_rule {
-    name                       = "DenyInboundFromVirtualNetwork"
-    priority                   = 4096
-    direction                  = "Inbound"
-    access                     = "Deny"
-    protocol                   = "*"
-    source_address_prefix      = "VirtualNetwork"
-    destination_address_prefix = local.private_endpoints_subnet_cidr
-    source_port_range          = "*"
-    destination_port_range     = "*"
-  }
+  # Private Endpoints subnet — hosts private endpoint NICs.
+  #
+  # No security rules are defined here on purpose. The subnet sets
+  # privateEndpointNetworkPolicies = "Disabled" (see the subnet below), so NSG
+  # rules are not evaluated for private endpoint NICs. Access to the private
+  # endpoints is governed on the consumer subnets (App Service / Container Apps /
+  # Container Instances) instead. This NSG is still created and attached because
+  # the landing zone requires every subnet to carry an NSG from creation.
   tags = var.common_tags
   lifecycle {
     ignore_changes = [
@@ -742,6 +670,10 @@ resource "azapi_resource" "privateendpoints_subnet" {
   body = {
     properties = {
       addressPrefix = local.private_endpoints_subnet_cidr
+      # NSG is not evaluated for private endpoint NICs; access is governed on the
+      # consumer subnets. Pinned explicitly so behaviour is reproducible
+      # regardless of the platform default.
+      privateEndpointNetworkPolicies = "Disabled"
       networkSecurityGroup = {
         id = azurerm_network_security_group.privateendpoints.id
       }

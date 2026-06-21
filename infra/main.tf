@@ -297,19 +297,3 @@ module "app_alerting" {
   depends_on = [module.monitoring, module.backend, module.container_apps]
 }
 
-module "aci" {
-  count  = var.enable_aci ? 1 : 0
-  source = "./modules/aci"
-
-  app_name                     = var.app_name
-  location                     = var.location
-  resource_group_name          = azurerm_resource_group.main.name
-  common_tags                  = var.common_tags
-  container_instance_subnet_id = module.network.container_instance_subnet_id
-  log_analytics_workspace_id   = module.monitoring.log_analytics_workspace_workspaceId
-  log_analytics_workspace_key  = module.monitoring.log_analytics_workspace_key
-  dns_servers                  = module.network.dns_servers
-
-  depends_on = [module.network, module.monitoring, module.postgresql]
-}
-

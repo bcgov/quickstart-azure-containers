@@ -1,5 +1,5 @@
 {
-  "name": "quickstart-aws-containers-monorepo",
+  "name": "quickstart-azure-containers-monorepo",
   "version": "1.0.0",
   "private": true,
   "devDependencies": {

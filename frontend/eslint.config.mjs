@@ -5,7 +5,6 @@ import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
 import importPlugin from "eslint-plugin-import-x";
-import cypressPlugin from "eslint-plugin-cypress";
 import prettier from "eslint-plugin-prettier";
 import prettierRecommended from "eslint-plugin-prettier/recommended";
 import globals from "globals";
@@ -140,20 +139,6 @@ export default [
         { endOfLine: "auto" },
         { usePrettierrc: true },
       ],
-    },
-  },
-  {
-    files: ["**/*.cy.{js,jsx,ts,tsx}", "e2e/**/*.{js,ts}"],
-    plugins: {
-      cypress: cypressPlugin,
-    },
-    languageOptions: {
-      globals: {
-        ...globals.mocha,
-      },
-    },
-    rules: {
-      ...cypressPlugin.configs.recommended.rules,
     },
   },
   prettierRecommended,

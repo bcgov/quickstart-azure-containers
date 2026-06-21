@@ -1,5 +1,5 @@
 # Build
-FROM node:24-slim AS build
+FROM node:24.17.0-slim AS build
 
 # Copy, build static files; see .dockerignore for exclusions
 WORKDIR /app
@@ -7,7 +7,7 @@ COPY . ./
 RUN npm run deploy
 
 # Deploy using Caddy to host static files
-FROM caddy:2.11.2-alpine
+FROM caddy:2.11.4-alpine
 RUN apk add --no-cache ca-certificates curl
 
 
