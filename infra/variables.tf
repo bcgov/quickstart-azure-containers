@@ -53,12 +53,6 @@ variable "database_name" {
 
 
 
-variable "enable_aci" {
-  description = "Whether to enable the ACI toolbox"
-  type        = bool
-  default     = false
-}
-
 variable "enable_acr" {
   description = "Whether to create an Azure Container Registry (ACR) using the AVM module."
   type        = bool
@@ -129,7 +123,7 @@ variable "enable_app_service_frontend" {
   }
 }
 variable "enable_app_service_backend" {
-  description = "Whether to enable the App Service backend"
+  description = "Whether to enable the App Service backend (default backend hosting option)"
   type        = bool
   default     = true
   validation {
@@ -154,11 +148,11 @@ variable "frontend_image" {
   type        = string
 }
 
-# Container Apps Configuration
+# Container Apps Configuration (optional, alongside App Service)
 variable "enable_container_apps" {
-  description = "Enable Azure Container Apps alongside App Service"
+  description = "Enable Azure Container Apps alongside App Service (optional for higher scaling needs)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "container_apps_cpu" {
@@ -650,7 +644,7 @@ variable "vnet_resource_group_name" {
 variable "enable_apim" {
   description = "Whether to enable API Management service"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "apim_publisher_name" {
