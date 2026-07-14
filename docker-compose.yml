@@ -57,6 +57,7 @@ services:
       <<: *postgres-vars
       NODE_ENV: development
       PORT: 3001
+      POSTGRES_SSLMODE: disable
     image: ${BACKEND_IMAGE:-backend}
     build:
       context: ./backend
@@ -78,7 +79,6 @@ services:
     ports: ["3000:3000"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
-    working_dir: "/app"
     depends_on:
       backend:
         condition: service_started

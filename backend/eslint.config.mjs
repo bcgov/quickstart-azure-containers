@@ -20,12 +20,7 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: [
-      "**/node_modules/",
-      "**/dist/",
-      "**/.git/",
-      "**/coverage/",
-    ],
+    ignores: ["**/node_modules/", "**/dist/", "**/.git/", "**/coverage/"],
   },
   ...compat.extends(
     "eslint:recommended",
@@ -70,7 +65,7 @@ export default [
       "no-undef": "off",
       "no-use-before-define": "off",
       semi: ["error", "always"],
-      
+
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -137,4 +132,3 @@ export default [
   },
   eslintPluginPrettierRecommended,
 ];
-
