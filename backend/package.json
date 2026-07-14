@@ -82,7 +82,7 @@
     "@hono/node-server": "^1.19.13",
     "@opentelemetry/core": "^2.8.0",
     "hono@<4.11.4": "4.11.4",
-    "js-yaml": "^4.2.0",
+    "js-yaml": "^5.0.0",
     "multer": "^2.2.0",
     "reflect-metadata": "^0.2.2"
   },
