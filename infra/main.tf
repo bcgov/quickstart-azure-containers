@@ -139,6 +139,7 @@ module "frontend" {
   log_analytics_workspace_id            = module.monitoring.log_analytics_workspace_id
   repo_name                             = var.repo_name
   resource_group_name                   = azurerm_resource_group.main.name
+  resource_group_id                     = azurerm_resource_group.main.id
   # This is a runtime env var consumed by Caddy's reverse_proxy upstream in the frontend container.
   # Prefer Container Apps backend when enabled; otherwise fall back to the predictable App Service backend hostname.
   backend_url = var.enable_container_apps ? try(module.container_apps[0].backend_container_app_url, null) : "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net"
@@ -193,6 +194,7 @@ module "backend" {
   postgresql_admin_username               = var.postgresql_admin_username
   repo_name                               = var.repo_name
   resource_group_name                     = azurerm_resource_group.main.name
+  resource_group_id                       = azurerm_resource_group.main.id
 
   depends_on = [module.frontend]
 }

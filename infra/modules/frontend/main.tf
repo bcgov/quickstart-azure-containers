@@ -1,3 +1,14 @@
+# avm-res-web-site (v0.22+) builds the site via a generic azapi_resource and only exports
+# properties.defaultHostName/customDomainVerificationId/identity.principalId — it no longer
+# surfaces possible_outbound_ip_addresses. Look it up natively; the backend module needs it
+# to scope its inbound IP restrictions to the frontend's actual egress IPs.
+data "azurerm_linux_web_app" "frontend_lookup" {
+  name                = module.frontend_site.name
+  resource_group_name = var.resource_group_name
+
+  depends_on = [module.frontend_site]
+}
+
 module "frontend_plan" {
   source  = "Azure/avm-res-web-serverfarm/azurerm"
   version = "1.0.0"
@@ -20,7 +31,7 @@ module "frontend_site" {
 
   kind                     = "webapp"
   name                     = "${var.repo_name}-${var.app_env}-frontend"
-  resource_group_name      = var.resource_group_name
+  parent_id                = var.resource_group_id
   location                 = var.location
   os_type                  = "Linux"
   service_plan_resource_id = module.frontend_plan.resource_id
@@ -89,10 +100,10 @@ module "frontend_site" {
     }
   }
 
-  # Disable AVM-internal Application Insights creation — the monitoring module
-  # already provisions App Insights and its LAW.  Connection string & key are
-  # passed via app_settings above, so no duplicate resource is needed.
-  enable_application_insights = false
+  # avm-res-web-site no longer creates Application Insights internally (as of v0.22) —
+  # it only wires up an externally managed instance via application_insights_connection_string
+  # / application_insights_key, which we don't pass since the monitoring module already
+  # provisions App Insights and its LAW; connection string & key are passed via app_settings above.
 
   # Azure may automatically add a hidden-link tag to connect the Web App to Application Insights.
   # If we don't model it, Terraform will see it as out-of-band drift and may try to remove it.

@@ -22,7 +22,7 @@ module "backend_site" {
 
   kind                     = "webapp"
   name                     = "${var.repo_name}-${var.app_env}-api"
-  resource_group_name      = var.resource_group_name
+  parent_id                = var.resource_group_id
   location                 = var.location
   os_type                  = "Linux"
   service_plan_resource_id = module.backend_plan.resource_id
@@ -100,11 +100,10 @@ module "backend_site" {
     }
   }
 
-  # Disable AVM-internal Application Insights creation — the monitoring module
-  # already provisions App Insights and its LAW.  Connection string & key are
-  # passed via app_settings above, so no duplicate resource is needed.
-  enable_application_insights = false
-
+  # avm-res-web-site no longer creates Application Insights internally (as of v0.22) —
+  # it only wires up an externally managed instance via application_insights_connection_string
+  # / application_insights_key, which we don't pass since the monitoring module already
+  # provisions App Insights and its LAW; connection string & key are passed via app_settings above.
   tags             = var.common_tags
   enable_telemetry = var.enable_telemetry
 }

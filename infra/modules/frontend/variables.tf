@@ -105,6 +105,12 @@ variable "resource_group_name" {
   nullable    = false
 }
 
+variable "resource_group_id" {
+  description = "The resource ID of the resource group in which to create resources (required by avm-res-web-site's parent_id argument)."
+  type        = string
+  nullable    = false
+}
+
 
 variable "app_service_sku_name_frontend" {
   description = "The SKU name for the frontend App Service plan."
