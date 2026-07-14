@@ -8,7 +8,9 @@ export const dashboard_page = async (page: Page) => {
   await expect(
     page.getByRole('link', { name: 'Government of British Columbia' }),
   ).toBeVisible()
-  await expect(page.getByText('QuickStart AWS')).toBeVisible()
+  await expect(
+    page.getByText('QuickStart Azure Containers Using App Service'),
+  ).toBeVisible()
   await expect(page.getByText('Employee ID')).toBeVisible()
   await expect(page.getByText('Employee Name')).toBeVisible()
   await expect(page.getByText('Employee Email')).toBeVisible()

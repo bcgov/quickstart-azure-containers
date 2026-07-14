@@ -3,48 +3,50 @@ locals {
     for ip in split(",", var.frontend_possible_outbound_ip_addresses) : trimspace(ip)
   ])
 
-  allow_frontend_outbound_ips = {
-    for index, ip in local.frontend_possible_outbound_ips :
-    "allow_frontend_${replace(ip, ".", "_")}" => {
-      action     = "Allow"
-      name       = "AFInbound${replace(ip, ".", "")}"
-      priority   = 200 + index
-      ip_address = ip != "" ? "${ip}/32" : null
-
+  allow_frontend_outbound_ips = [
+    for index, ip in local.frontend_possible_outbound_ips : {
+      action                    = "Allow"
+      name                      = "AFInbound${replace(ip, ".", "")}"
+      priority                  = 200 + index
+      ip_address                = ip != "" ? "${ip}/32" : null
       virtual_network_subnet_id = ip == "" ? var.app_service_subnet_id : null
       service_tag               = ip == "" ? "AppService" : null
+      headers                   = null
     }
-  }
+  ]
 
-  allow_frontdoor = var.enable_frontdoor ? {
-    allow_frontdoor = {
+  allow_frontdoor = var.enable_frontdoor ? [
+    {
       action      = "Allow"
       name        = "Allow traffic from Front Door"
       priority    = 100
       service_tag = "AzureFrontDoor.Backend"
+      ip_address  = null
 
+      virtual_network_subnet_id = null
       headers = {
-        default = {
-          x_azure_fdid      = [var.frontend_frontdoor_resource_guid]
-          x_fd_health_probe = []
-          x_forwarded_for   = []
-          x_forwarded_host  = []
-        }
+        x_azure_fdid      = [var.frontend_frontdoor_resource_guid]
+        x_fd_health_probe = []
+        x_forwarded_for   = []
+        x_forwarded_host  = []
       }
     }
-  } : {}
+  ] : []
 
-  deny_all = var.enable_frontdoor ? {
-    deny_all = {
-      action      = "Deny"
-      name        = "DenyAll"
-      priority    = 1000
-      ip_address  = "0.0.0.0/0"
-      description = "Deny all other traffic"
+  # "Deny all other traffic" — lowest-priority catch-all once Front Door is enabled.
+  deny_all = var.enable_frontdoor ? [
+    {
+      action                    = "Deny"
+      name                      = "DenyAll"
+      priority                  = 1000
+      ip_address                = "0.0.0.0/0"
+      service_tag               = null
+      virtual_network_subnet_id = null
+      headers                   = null
     }
-  } : {}
+  ] : []
 
-  backend_ip_restrictions = merge(
+  backend_ip_restrictions = concat(
     local.allow_frontend_outbound_ips,
     local.allow_frontdoor,
     local.deny_all

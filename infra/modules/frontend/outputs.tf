@@ -6,5 +6,5 @@ output "frontend_url" {
 
 output "possible_outbound_ip_addresses" {
   description = "Possible outbound IP addresses for the frontend application."
-  value       = nonsensitive(module.frontend_site.resource.possible_outbound_ip_addresses)
+  value       = data.azurerm_linux_web_app.frontend_lookup.possible_outbound_ip_addresses
 }

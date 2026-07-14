@@ -1,13 +1,7 @@
 import * as winston from "winston";
 
 type WinstonLogLevel =
-  | "error"
-  | "warn"
-  | "info"
-  | "http"
-  | "verbose"
-  | "debug"
-  | "silly";
+  "error" | "warn" | "info" | "http" | "verbose" | "debug" | "silly";
 
 export type HttpAccessLogMode = "off" | "failures" | "all";
 

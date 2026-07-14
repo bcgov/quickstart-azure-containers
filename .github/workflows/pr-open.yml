@@ -12,7 +12,19 @@ permissions:
   pull-requests: write
 
 jobs:
+  fork-gate:
+    name: Fork Gate
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Block automated runs for fork PRs
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "::error::This workflow does not build/deploy for PRs from forks. A maintainer must review the change and re-push it from an in-repo branch." >&2
+          exit 1
+
   builds:
+    needs: [fork-gate]
     concurrency:
       # Cancel in progress for PR open and close
       group: builds-${{ github.event.number || 'latest' }}
@@ -26,6 +38,7 @@ jobs:
 
   plan-stack:
     name: Plan Stack
+    needs: [fork-gate]
     concurrency:
       group: plan-stack-${{ github.event.number || 'latest' }}
       cancel-in-progress: false
@@ -38,14 +51,15 @@ jobs:
     secrets: inherit
   lint:
     name: Lint
+    needs: [fork-gate]
     runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./infra
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
-      - uses: actions/cache@v5
+        uses: actions/checkout@v7
+      - uses: actions/cache@v6
         name: Cache plugin dir
         with:
           path: ~/.tflint.d/plugins
@@ -83,9 +97,9 @@ jobs:
 
   results:
     name: PR Results
-    needs: [builds, plan-stack, lint]
+    needs: [fork-gate, builds, plan-stack, lint]
     if: always()
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     steps:
       - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'canceled')
         run: echo "At least one job has failed." && exit 1

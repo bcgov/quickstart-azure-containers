@@ -80,6 +80,10 @@ lcov.*
 # nyc test coverage
 .nyc_output
 
+# Playwright
+test-results/
+playwright-report/
+
 # Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
 
@@ -382,3 +386,6 @@ terraform.tfvars
 *.tfvars.local
 *.auto.tfvars.local
 **/*instructions.md
+.tokensave
+tfplan
+tfplan.*
