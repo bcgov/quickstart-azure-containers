@@ -11,10 +11,10 @@ data "azurerm_linux_web_app" "frontend_lookup" {
 
 module "frontend_plan" {
   source  = "Azure/avm-res-web-serverfarm/azurerm"
-  version = "1.0.0"
+  version = "2.0.8"
 
   name                   = "${var.app_name}-frontend-asp"
-  resource_group_name    = var.resource_group_name
+  parent_id              = var.resource_group_id
   location               = var.location
   os_type                = "Linux"
   sku_name               = var.app_service_sku_name_frontend

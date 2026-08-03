@@ -18,6 +18,12 @@
 #   the same configuration can run locally (developer auth) or in CI (OIDC).
 #
 provider "azurerm" {
+  # azurerm v5 flips resource-provider auto-registration from "legacy" (register everything the
+  # provider might ever need) to "none" by default. "core" is HashiCorp's built-in curated set of
+  # RPs most subscriptions need — keeps first-run deploys to a fresh subscription working without
+  # hand-maintaining an explicit resource_providers_to_register list for this template.
+  resource_provider_registrations = "core"
+
   features {
     #########################################
     # Key Vault

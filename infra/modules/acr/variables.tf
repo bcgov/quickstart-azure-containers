@@ -86,8 +86,3 @@ variable "log_analytics_workspace_id" {
   default     = ""
 }
 
-variable "enable_telemetry" {
-  description = "Controls whether AVM telemetry is enabled."
-  type        = bool
-  default     = true
-}
