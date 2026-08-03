@@ -21,7 +21,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: bcgov/action-deployer-vm-bastion-alz@97815793db79d6e0c5b95f5f43d2618173ea1f36 # v1.0.1
+      - uses: bcgov/action-deployer-vm-bastion-alz@4bf00f5a8687db6ca8aca0cecb9bc85a818e7d2e # v1.1.0
         with:
           app_name: qsac
           app_env: ${{ inputs.environment || 'dev' }}
