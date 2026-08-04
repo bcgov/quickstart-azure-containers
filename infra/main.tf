@@ -58,7 +58,6 @@ module "acr" {
   enable_private_endpoint       = var.acr_enable_private_endpoint
   private_endpoint_subnet_id    = module.network.private_endpoint_subnet_id
   log_analytics_workspace_id    = module.monitoring.log_analytics_workspace_id
-  enable_telemetry              = var.acr_enable_telemetry
   admin_enabled                 = var.acr_admin_enabled
   depends_on                    = [azurerm_resource_group.main, module.network, module.monitoring]
 }

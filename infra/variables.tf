@@ -106,12 +106,6 @@ variable "acr_admin_enabled" {
   type        = bool
   default     = false
 }
-
-variable "acr_enable_telemetry" {
-  description = "Controls whether AVM telemetry is enabled for the ACR module."
-  type        = bool
-  default     = false
-}
 variable "enable_app_service_frontend" {
   description = "Whether to enable the App Service frontend"
   type        = bool
