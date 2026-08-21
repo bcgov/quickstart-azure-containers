@@ -2,13 +2,7 @@
 # 0.2.0), whose newest release still requires "azurerm ~> 4.0" — incompatible with azurerm v5.
 # Hand-rolled here so the repo can move to azurerm v5.
 #
-# `moved` blocks below chain through both prior states (pre-module raw resource, and the module)
-# so state lands back on the same address regardless of which point a given deployment is at.
-moved {
-  from = azurerm_container_group.flyway
-  to   = module.flyway_container_group.azurerm_container_group.this
-}
-
+# `moved` block below preserves state continuity for deployments that used the AVM module.
 moved {
   from = module.flyway_container_group.azurerm_container_group.this
   to   = azurerm_container_group.flyway
