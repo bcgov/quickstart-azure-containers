@@ -389,3 +389,4 @@ terraform.tfvars
 .tokensave
 tfplan
 tfplan.*
+.copilot-memory

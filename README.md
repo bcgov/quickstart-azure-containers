@@ -4,7 +4,6 @@
 
 > **🚨 Important Notice**: This template is currently under active development and should be considered a **DRAFT** version. Features, configurations, and documentation may change without notice. Use in production environments is **not recommended** at this time.
 
-
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Lifecycle:Stable](https://img.shields.io/badge/Lifecycle-Stable-97ca00)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
 
@@ -23,21 +22,22 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 ## 📋 Prerequisites
 
 ### Required Tools
+
 - **Azure CLI** v2.50.0+ - [Installation Guide](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 - **GitHub CLI** v2.0.0+ - [Installation Guide](https://cli.github.com/)
 - **Terraform** v1.5.0+ - [Installation Guide](https://developer.hashicorp.com/terraform/downloads)
 - **Docker** or **Podman** - [Docker Installation](https://docs.docker.com/get-docker/)
 
 ### Required Accounts & Permissions
+
 - **BCGOV Azure account** with appropriate permissions - [Registry Link](https://registry.developer.gov.bc.ca/)
 - **GitHub repository** with Actions enabled
 - **Azure subscription** with Owner or Contributor role
 - **Access to Azure Landing Zone** with network connectivity configured
 
-
 ## 📁 Project Structure
 
-```
+```text
 /quickstart-azure-containers
 ├── .github/                   # GitHub Actions CI/CD workflows & agents
 │   ├── codeowners             # Code ownership assignments
@@ -167,6 +167,7 @@ A production-ready, secure, and compliant infrastructure template for deploying 
 ```
 
 ## Target Architecture
+
 ```mermaid
 flowchart LR
   
@@ -221,6 +222,7 @@ flowchart LR
   API --- HEALTH
   PG --- HEALTH
 ```
+
 ## 🚀 Quick Start Guide
 
 ### 1. Clone and Setup Repository
@@ -239,46 +241,51 @@ cd my-azure-app
 The `initial-azure-setup.sh` script automates the complete Azure environment setup with OIDC authentication for GitHub Actions.
 
 #### Prerequisites for Setup Script
+
 - **Azure CLI** logged in (`az login`)
-- **GitHub CLI** (optional, for automatic secret creation)
+- **GitHub CLI** installed and authenticated (`gh auth login`) to resolve the repository OIDC subject
 - **Azure subscription** with appropriate permissions
 - **Existing Azure Landing Zone** resource group
 
-#### Initial Setup for GHA and Terraform 
+#### Initial Setup for GHA and Terraform
 
 ```bash
 # Make the setup script executable
 chmod +x initial-azure-setup.sh
 ```
-- follow the instruction in the header section of the file.
 
+- follow the instruction in the header section of the file.
 
 #### What the Setup Script Does
 
 **🔐 Identity & Authentication:**
+
 - Creates a user-assigned managed identity in your Landing Zone resource group
 - Configures OIDC federated identity credentials for GitHub Actions
+- Uses the repository's current GitHub OIDC subject prefix, including immutable repository identifiers when enabled
 - Sets up environment-specific authentication (no secrets stored in Azure)
 
 **💾 Terraform State Management:**
+
 - Creates a secure Azure storage account for Terraform state files
 - Enables blob versioning for state file protection
 - Configures appropriate access permissions for the managed identity
 
 **🔑 GitHub Integration:**
+
 - Automatically creates GitHub environment if `--create-github-secrets` is used
 - Sets up required secrets in your GitHub repository:
   - `AZURE_CLIENT_ID`
-  - `AZURE_TENANT_ID` 
+  - `AZURE_TENANT_ID`
   - `AZURE_SUBSCRIPTION_ID`
   - `VNET_NAME` (derived from resource group)
   - `VNET_RESOURCE_GROUP_NAME`
 
 **⚡ Azure Permissions:**
+
 - Assigns security group to the managed identity aligned with landing zone policy.
 - Configures storage-specific permissions for Terraform state management
 - Validates all configurations and provides verification
-
 
 #### Post-Setup Verification
 
@@ -300,6 +307,7 @@ gh workflow run test-azure-connection  # if you have a test workflow
 If you didn't use the `--create-github-secrets` flag, manually add the following secrets to your GitHub repository (`Settings > Secrets and variables > Actions > Environment secrets`):
 
 #### Required Environment Secrets
+
 ```bash
 AZURE_CLIENT_ID=<managed-identity-client-id>
 AZURE_TENANT_ID=<your-azure-tenant-id>
@@ -307,7 +315,6 @@ AZURE_SUBSCRIPTION_ID=<your-azure-subscription-id>
 VNET_NAME=<landing-zone-vnet-name>
 VNET_RESOURCE_GROUP_NAME=<landing-zone-rg-name>
 ```
-
 
 💡 **Tip**: The setup script outputs the exact values to use for these secrets if you didn't use auto-creation.
 
@@ -331,8 +338,9 @@ cd frontend && npm run dev
 ```
 
 Access your local application:
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:3000 (default; see `docker-compose.yml` for overrides)
+
+- **Frontend**: <http://localhost:5173>
+- **Backend API**: <http://localhost:3000> (default; see `docker-compose.yml` for overrides)
 - **Database**: localhost:5432 (postgres/default)
 
 ## 🚢 Deployment Process
@@ -344,6 +352,7 @@ The repository includes comprehensive CI/CD workflows:
 #### Build Containers
 
 The CI/CD pipeline builds the following container images:
+
 - **backend**: NestJS API server
 - **migrations**: Flyway database migration runner
 - **frontend**: React SPA with Caddy reverse proxy
@@ -352,6 +361,7 @@ These are built on every commit and tagged for deployment to your chosen environ
 ### Manual Deployment
 
 #### Deploy Infrastructure
+
 ```bash
 # From repo root
 cd infra
@@ -372,6 +382,7 @@ cd infra
 ```
 
 Deployment topology:
+
 - Preferred: App Service frontend (Caddy) + Container Apps backend (runtime reverse proxy via `VITE_BACKEND_URL`).
 - Alternative: App Service frontend + App Service backend for low-scale use cases (disable Container Apps).
 
@@ -382,6 +393,7 @@ Deployment topology:
 The template uses Flyway for database schema management:
 
 #### Migration Files (`migrations/sql/`)
+
 ```sql
 -- V1.0.0__init.sql
 CREATE SCHEMA IF NOT EXISTS app;
@@ -394,6 +406,7 @@ CREATE TABLE app.users (
 ```
 
 #### Running Migrations
+
 ```bash
 # Local development
 docker-compose exec migrations flyway migrate
@@ -421,16 +434,19 @@ Optional CloudBeaver container provides web-based database management:
 ### Azure Security Best Practices
 
 #### Network Security
+
 - **Private endpoints** for all Azure services
 - **Network Security Groups** with least-privilege rules
 - **Azure Front Door** with WAF protection
 - **VNet integration** for App Services
 
 #### Identity & Access Management
+
 - **Managed identities** for service-to-service authentication
 - **OIDC authentication** for GitHub Actions (no stored credentials)
 
 #### Application Security
+
 - **HTTPS everywhere** with TLS 1.3 minimum
 - **Security headers** (HSTS, CSP, X-Frame-Options)
 - **Container scanning** in CI/CD pipeline
@@ -438,6 +454,7 @@ Optional CloudBeaver container provides web-based database management:
 ### Security Configuration Examples
 
 #### App Service Security (`infra/modules/backend/main.tf`)
+
 ```hcl
 resource "azurerm_linux_web_app" "backend" {
   # ... other configuration
@@ -471,6 +488,7 @@ resource "azurerm_linux_web_app" "backend" {
 ### Azure Monitor Integration
 
 #### Application Insights Setup
+
 ```hcl
 resource "azurerm_application_insights" "main" {
   name                = "${var.app_name}-appinsights"
@@ -535,11 +553,13 @@ Key Terraform variables:
 Azure PostgreSQL Flexible Server automatically supports point-in-time restore (PITR) to any moment within the configured backup retention window (`postgres_backup_retention_period`).
 
 Key points:
+
 - PITR window = retention days (7–35) you set in Terraform.
 - Geo-redundant backup (`postgres_geo_redundant_backup_enabled = true`) improves DR but adds cost.
 - Restores create a new server; you then repoint apps / rotate connection strings.
 
 Restore example (CLI):
+
 ```bash
 az postgres flexible-server restore \
   --resource-group <rg> \
@@ -551,6 +571,7 @@ az postgres flexible-server restore \
 ### PostgreSQL Logging & Cost Tuning
 
 Variables controlling verbosity:
+
 - `postgres_enable_server_logs`: Master toggle for connection / duration logging.
 - `postgres_log_statement_mode`: none | ddl | mod | all (default ddl). Avoid `all` in production unless debugging.
 - `postgres_log_min_duration_statement_ms`: Slow query threshold (default 500 ms). Lower value = more logs & cost.
@@ -558,8 +579,9 @@ Variables controlling verbosity:
 - `postgres_pg_stat_statements_max`: Controls number of statements tracked; higher values consume more memory.
 
 Recommendations:
+
 | Scenario | log_statement | log_min_duration_statement_ms | Notes |
-|----------|---------------|--------------------------------|-------|
+| ---------- | --------------- | -------------------------------- | ------- |
 | Prod steady state | ddl | 500–1000 | Focus on schema changes + slow queries |
 | Perf investigation | mod or all | 100–250 | Temporarily increase verbosity |
 | Heavy cost pressure | none | 1000–2000 | Minimize ingestion volume |
@@ -571,6 +593,7 @@ If you disable full statement logging (`none`/`ddl`) ensure slow query threshold
 Metric alerts are enabled when `postgres_alerts_enabled = true`. Customize or add alerts via `postgres_metric_alerts` map. Default keys: `cpu_percent`, `storage_used`, `active_connections`.
 
 Example override in `terraform.tfvars`:
+
 ```hcl
 postgres_alerts_enabled = true
 postgres_alert_emails   = ["dba-team@example.com", "oncall@example.com"]
@@ -595,6 +618,7 @@ postgres_metric_alerts = {
 Supported metric names (common): `cpu_percent`, `storage_used`, `active_connections`, `connections_failed`, `deadlocks`, `serverlog_storage_percent`.
 
 Action Group:
+
 - Created only if `postgres_alert_emails` is non-empty.
 - Add/remove emails without recreating alerts (resource uses dynamic receivers).
 
@@ -602,8 +626,8 @@ Action Group:
 
 If `postgres_ha_enabled = true`, Terraform validates that `postgres_sku_name` starts with `GP_` or `MO_` (General Purpose / Memory Optimized). Adjust SKU before enabling HA to avoid apply failure.
 
-
 #### Log Analytics Workspace
+
 ```hcl
 resource "azurerm_log_analytics_workspace" "main" {
   name                = "${var.app_name}-log-analytics"
@@ -614,19 +638,19 @@ resource "azurerm_log_analytics_workspace" "main" {
 }
 ```
 
-
 ### Monitoring Dashboards
 
 Access monitoring through:
+
 - **Azure Portal**: Resource group > Monitoring
 - **Application Insights**: Performance, failures, dependencies
 - **Log Analytics**: Custom queries and alerts
 - **Azure Monitor**: Infrastructure metrics and alerts
 
-
 ### Testing in CI/CD
 
 The GitHub Actions workflows include:
+
 - **Unit tests + lint + coverage** for frontend and backend (backend uses a Postgres service for tests)
 - **IaC linting** via `tflint` (recursive)
 - **Security scanning** via Trivy (repo scan, SARIF upload)
@@ -642,7 +666,7 @@ The template supports multiple environments with GitHub Action Environments:
 Key infrastructure feature toggles controlled in `terraform.tfvars` and environment-specific `.tfvars` files:
 
 | Variable | Purpose | Default |
-|----------|---------|---------|
+| ---------- | --------- | --------- |
 | `enable_app_service_backend` | Host the backend on App Service (default backend hosting) | `true` |
 | `enable_container_apps` | Host the backend on Azure Container Apps (optional, alongside App Service) | `false` |
 | `enable_frontdoor` | Deploy Azure Front Door for global distribution | `false` |
@@ -664,8 +688,6 @@ Common variables passed to modules from the root:
 - `use_oidc`: Enable OIDC authentication for service principals
 - All standard Azure variables (subscription_id, tenant_id, location, etc.)
 
-
-
 ## 🚨 Troubleshooting
 
 ### Common Issues and Solutions
@@ -673,23 +695,28 @@ Common variables passed to modules from the root:
 #### 1. GitHub Actions Deployment Failures
 
 **Issue**: OIDC authentication fails
-```
+
+```text
 Error: No subscription found. Run 'az account set' to select a subscription.
 ```
 
-**Solution**: 
+**Solution**:
+
 - Verify `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` secrets
 - Ensure managed identity has proper federated credentials
 - Check that repository URL matches federated identity configuration
+- Re-run `initial-azure-setup.sh` after changing repository or organization OIDC subject customization settings
 
 #### 2. Terraform State Issues
 
 **Issue**: State file conflicts or locks
-```
+
+```text
 Error: Error acquiring the state lock
 ```
 
 **Solution**:
+
 ```bash
 # Force unlock (use with caution)
 cd infra
@@ -704,11 +731,13 @@ If CI fails with an Azure "already exists" error, `infra/deploy-terraform.sh` wi
 #### 3. Container Deployment Issues - ACR (Azure Container Registry)
 
 **Issue**: App Service fails to pull container (if using ACR)
-```
+
+```text
 Error: Failed to pull image: unauthorized
 ```
 
 **Solution**:
+
 - Verify managed identity has `AcrPull` role on container registry
 - Check container registry URL in app settings
 - Ensure container image exists and is accessible
@@ -716,20 +745,22 @@ Error: Failed to pull image: unauthorized
 #### 4. Database Connection Issues
 
 **Issue**: Backend cannot connect to PostgreSQL
-```
+
+```text
 Error: getaddrinfo ENOTFOUND your-postgres-server
 ```
 
 **Solution**:
+
 - Verify VNet integration and private endpoint configuration
 - Check PostgreSQL firewall rules
 - Ensure connection string environment variables are correct
 - if you are using pgpool make sure you have this line `ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false,`
 
-
 ### Debugging Tools
 
 #### 1. Azure CLI Debugging
+
 ```bash
 # Enable debug logging
 az config set core.log_level=debug
@@ -741,16 +772,14 @@ az webapp show --name your-app --resource-group your-rg
 az webapp log tail --name your-app --resource-group your-rg
 ```
 
-
 ## 📚 Additional Resources
 
 ### Documentation Links
+
 - [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
 - [NestJS Documentation](https://docs.nestjs.com/)
 - [React + Vite Documentation](https://vitejs.dev/guide/)
 - [Prisma Documentation](https://www.prisma.io/docs/)
-
-
 
 ## 🤝 Contributing
 
@@ -759,5 +788,3 @@ We welcome contributions to improve this template! Please see our [Contributing 
 ## 📜 License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-**Built with ❤️ by the NRIDS Team**
