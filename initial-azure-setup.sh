@@ -43,11 +43,12 @@
 # - Appropriate permissions in Azure subscription (Owner of security group DO_PuC_Azure_Live_{LicensePlate}_Contributor)
 #   By Default, the Product Owner in Registry is the Owner of the security group. The PO needs to add other tech leads as owners who will run this script.
 #
-# GitHub Requirements (optional):
-# - GitHub CLI installed (for auto secret creation with --create-github-secrets)
+# GitHub Requirements:
+# - GitHub CLI installed and authenticated to resolve the repository OIDC subject
+# - Repository access for the configured GitHub repository
+# - A GitHub token with the `repo` scope to read the repository OIDC subject configuration
 # - Repository admin permissions (if using --create-github-secrets)
-#   Required GitHub token scopes:
-#   • repo (full repository access)
+#   Additional scopes for automatic environment and secret setup:
 #   • admin:repo_hook (if using webhooks)
 #   • admin:org (if repository is in an organization)
 #
@@ -222,7 +223,7 @@ NOTES:
     • Security group will be auto-detected from resource group name (license plate extraction)
     • Storage account names are auto-generated as: tfstate{repo}{env} (sanitized)
     • Use --dry-run first to preview what will be created
-    • Requires Azure CLI logged in and GitHub CLI (optional) for auto-secrets
+    • Requires Azure CLI logged in and GitHub CLI authenticated to resolve the OIDC subject
     • User must be owner of security group for automatic assignment
 
 =============================================================================
@@ -598,14 +599,15 @@ check_and_install_tools() {
         log_success "Terraform found ($(terraform version -json 2>/dev/null | grep -o '"terraform_version":"[^"]*' | cut -d'"' -f4 || echo 'version unknown'))"
     fi
     
-    # Check and optionally install GitHub CLI
+    # Check and install GitHub CLI, which is required to resolve the OIDC subject prefix
     if ! command_exists gh; then
-        log_warning "GitHub CLI not found. It's optional but recommended for auto-secret creation."
+        log_warning "GitHub CLI not found. It is required to resolve the GitHub OIDC subject."
         read -p "Install GitHub CLI? (yes/no) " install_gh
         if [[ "$install_gh" == "yes" ]]; then
             install_github_cli
         else
-            log_info "GitHub CLI is optional. You can install it later if needed: https://cli.github.com/"
+            log_error "GitHub CLI is required. Please install it from: https://cli.github.com/"
+            exit 1
         fi
     else
         log_success "GitHub CLI found ($(gh version 2>/dev/null | head -1 || echo 'version unknown'))"
@@ -622,6 +624,18 @@ check_prerequisites() {
     
     # First, check and install tools if needed
     check_and_install_tools
+
+    # The GitHub API is required to resolve the repository's current OIDC subject prefix.
+    if ! gh auth status &> /dev/null; then
+        log_error "GitHub CLI is not authenticated."
+        log_error "Please run 'gh auth login' or provide a GH_TOKEN with repository access."
+        exit 1
+    fi
+
+    if ! resolve_github_oidc_subject; then
+        log_error "GitHub OIDC subject validation failed."
+        exit 1
+    fi
     
     # Verify user is logged into Azure CLI
     if ! az account show &> /dev/null; then
@@ -664,7 +678,7 @@ check_prerequisites() {
 # ================================================================================
 check_resource_group() {
     log_info "Checking if resource group '$RESOURCE_GROUP' exists..."
-    
+
     if [[ "$DRY_RUN" == "false" ]]; then
         if ! az group show --name "$RESOURCE_GROUP" &> /dev/null; then
             log_error "Resource group '$RESOURCE_GROUP' does not exist or is not accessible!"
@@ -904,11 +918,46 @@ add_to_security_group() {
 # ================================================================================
 # Create federated identity credentials for GitHub Actions OIDC authentication
 # ================================================================================
+resolve_github_oidc_subject() {
+    log_info "Resolving GitHub OIDC subject prefix for '$GITHUB_REPO'..."
+    OIDC_SUBJECT_RESOLVED=false
+
+    local oidc_config
+    if ! oidc_config=$(gh api "repos/$GITHUB_REPO/actions/oidc/customization/sub" \
+        --header "X-GitHub-Api-Version: 2026-03-10" \
+        --jq '[(.use_immutable_subject // false), .sub_claim_prefix] | @tsv' 2>/dev/null); then
+        log_error "Unable to read the OIDC subject configuration for '$GITHUB_REPO'."
+        log_error "Ensure GitHub CLI is authenticated and can access the repository."
+        return 1
+    fi
+
+    local use_immutable_subject
+    local subject_prefix
+    IFS=$'\t' read -r use_immutable_subject subject_prefix <<< "$oidc_config"
+
+    if [[ -z "$subject_prefix" || "$subject_prefix" == "null" ]]; then
+        log_error "GitHub did not return an OIDC subject prefix for '$GITHUB_REPO'."
+        return 1
+    fi
+
+    if [[ "$use_immutable_subject" == "true" ]]; then
+        log_info "Using GitHub immutable OIDC subject prefix: $subject_prefix"
+    else
+        log_warning "Repository '$GITHUB_REPO' is using the legacy GitHub OIDC subject format."
+    fi
+
+    SUBJECT="${subject_prefix}:environment:${GITHUB_ENVIRONMENT}"
+    OIDC_SUBJECT_RESOLVED=true
+}
+
 create_federated_credentials() {
     log_info "Creating federated identity credentials for GitHub Actions OIDC..."
-    
-    # Always create subject claim for environment-specific deployments
-    SUBJECT="repo:$GITHUB_REPO:environment:$GITHUB_ENVIRONMENT"
+
+    if [[ "${OIDC_SUBJECT_RESOLVED:-false}" != "true" ]]; then
+        log_error "GitHub OIDC subject was not validated during prerequisite checks."
+        return 1
+    fi
+
     REPO_NAME_WITHOUT_OWNER=$(echo "$GITHUB_REPO" | cut -d'/' -f2)
     CREDENTIAL_NAME="$REPO_NAME_WITHOUT_OWNER-$GITHUB_ENVIRONMENT"
     
