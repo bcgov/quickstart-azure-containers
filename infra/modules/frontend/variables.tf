@@ -57,9 +57,14 @@ variable "frontend_frontdoor_resource_guid" {
 }
 
 variable "frontend_image" {
-  description = "The Docker image for the frontend application."
+  description = "The Docker image for the frontend application, including an explicit tag."
   type        = string
   nullable    = false
+
+  validation {
+    condition     = can(regex(":[^:/]+$", var.frontend_image))
+    error_message = "frontend_image must include an explicit tag, e.g. 'ghcr.io/org/repo:tag'."
+  }
 }
 
 variable "frontend_subnet_id" {
