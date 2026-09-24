@@ -36,39 +36,39 @@ module "backend_site" {
 
   site_config = {
     always_on                               = true
-    container_registry_use_managed_identity = true
+    container_registry_use_managed_identity = local.api_registry_is_acr
     minimum_tls_version                     = "1.3"
     health_check_path                       = "/api/health"
-    health_check_eviction_time_in_min       = 2
     ftps_state                              = "Disabled"
 
     ip_restriction_default_action = "Allow"
     ip_restriction                = local.backend_ip_restrictions
 
     application_stack = {
-      default = {
-        docker_image_name   = var.api_image
-        docker_registry_url = var.container_registry_url
+      docker = {
+        docker_registry_url = "https://${local.api_registry_host}"
+        docker_image_name   = local.api_repository
+        docker_image_tag    = local.api_image_tag
       }
     }
 
     cors = {
-      default = {
-        allowed_origins     = ["*"]
-        support_credentials = false
-      }
+      allowed_origins     = ["*"]
+      support_credentials = false
     }
   }
 
   app_settings = {
-    NODE_ENV                              = var.node_env
-    PORT                                  = "80"
-    LOG_LEVEL                             = var.log_level
-    HTTP_ACCESS_LOG_MODE                  = var.http_access_log_mode
-    DB_SLOW_QUERY_LOG_THRESHOLD_MS        = tostring(var.slow_query_log_threshold_ms)
-    OTEL_SERVICE_NAME                     = "${var.app_name}-backend"
-    OTEL_RESOURCE_ATTRIBUTES              = "deployment.environment.name=${var.app_env}"
-    DOCKER_ENABLE_CI                      = "true"
+    NODE_ENV                       = var.node_env
+    PORT                           = "80"
+    LOG_LEVEL                      = var.log_level
+    HTTP_ACCESS_LOG_MODE           = var.http_access_log_mode
+    DB_SLOW_QUERY_LOG_THRESHOLD_MS = tostring(var.slow_query_log_threshold_ms)
+    OTEL_SERVICE_NAME              = "${var.app_name}-backend"
+    OTEL_RESOURCE_ATTRIBUTES       = "deployment.environment.name=${var.app_env}"
+    DOCKER_ENABLE_CI               = "true"
+    # Health check eviction time in minutes; the AVM module has no site_config equivalent.
+    WEBSITE_HEALTHCHECK_MAXPINGFAILURES   = "2"
     APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
     APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
     POSTGRES_HOST                         = var.postgres_host
@@ -83,10 +83,12 @@ module "backend_site" {
   logs = {
     default = {
       detailed_error_messages = true
-      failed_request_tracing  = true
+      failed_requests_tracing = true
       application_logs = {
         default = {
-          file_system_level = "Off"
+          file_system = {
+            level = "Off"
+          }
         }
       }
       http_logs = {

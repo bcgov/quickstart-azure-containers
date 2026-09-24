@@ -1,7 +1,12 @@
 variable "api_image" {
-  description = "The Docker image for the backend API."
+  description = "The Docker image for the backend API, including an explicit tag."
   type        = string
   nullable    = false
+
+  validation {
+    condition     = can(regex(":[^:/]+$", var.api_image))
+    error_message = "api_image must include an explicit tag, e.g. 'ghcr.io/org/repo:tag'."
+  }
 }
 
 variable "app_env" {
