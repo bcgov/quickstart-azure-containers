@@ -23,7 +23,7 @@ export default defineConfig({
   reporter: [
     ['line'],
     ['list', { printSteps: true }],
-    ['html', { open: 'always' }],
+    ['html', { open: process.env.CI ? 'never' : 'always' }],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
