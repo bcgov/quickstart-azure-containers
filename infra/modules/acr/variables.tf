@@ -80,8 +80,15 @@ variable "private_endpoint_subnet_id" {
   }
 }
 
+variable "enable_diagnostic_settings" {
+  description = "Whether to send ACR logs and metrics to var.log_analytics_workspace_id."
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
 variable "log_analytics_workspace_id" {
-  description = "Log Analytics workspace resource ID for diagnostic settings. Leave empty to disable diagnostics."
+  description = "Log Analytics workspace resource ID for diagnostic settings. Required when enable_diagnostic_settings = true."
   type        = string
   default     = ""
 }

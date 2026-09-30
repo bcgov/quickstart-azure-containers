@@ -39,6 +39,15 @@ module "frontend_site" {
   https_only                = true
   virtual_network_subnet_id = var.frontend_subnet_id
 
+  # avm-res-web-site v0.22+ defaults this to false (v0.20 defaulted to true), which sets
+  # publicNetworkAccess = "Disabled" and blocks the default endpoint before the ip_restriction
+  # rules below are ever evaluated — including Front Door Standard, which has no Private Link.
+  public_network_access_enabled = true
+
+  # Deployments go through Terraform/ARM, never SCM publishing credentials; the module
+  # defaults this to true.
+  scm_publish_basic_authentication_enabled = false
+
   managed_identities = {
     system_assigned = true
   }
@@ -73,12 +82,14 @@ module "frontend_site" {
     WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
     DOCKER_ENABLE_CI                    = "true"
     # Health check eviction time in minutes; the AVM module has no site_config equivalent.
-    WEBSITE_HEALTHCHECK_MAXPINGFAILURES   = "2"
-    APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
-    VITE_BACKEND_URL                      = coalesce(var.backend_url, "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net")
-    LOG_LEVEL                             = "info"
+    WEBSITE_HEALTHCHECK_MAXPINGFAILURES = "2"
+    VITE_BACKEND_URL                    = coalesce(var.backend_url, "https://${var.repo_name}-${var.app_env}-api.azurewebsites.net")
+    LOG_LEVEL                           = "info"
   }
+
+  # The module merges this into app settings as APPLICATIONINSIGHTS_CONNECTION_STRING. The
+  # instrumentation key is not passed: key-based ingestion is retired in favour of connection strings.
+  application_insights_connection_string = var.appinsights_connection_string
 
   logs = {
     default = {
@@ -101,11 +112,6 @@ module "frontend_site" {
       }
     }
   }
-
-  # avm-res-web-site no longer creates Application Insights internally (as of v0.22) —
-  # it only wires up an externally managed instance via application_insights_connection_string
-  # / application_insights_key, which we don't pass since the monitoring module already
-  # provisions App Insights and its LAW; connection string & key are passed via app_settings above.
 
   # Azure may automatically add a hidden-link tag to connect the Web App to Application Insights.
   # If we don't model it, Terraform will see it as out-of-band drift and may try to remove it.

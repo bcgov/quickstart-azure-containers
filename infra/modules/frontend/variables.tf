@@ -17,13 +17,6 @@ variable "appinsights_connection_string" {
   nullable    = false
 }
 
-variable "appinsights_instrumentation_key" {
-  description = "The Application Insights instrumentation key."
-  type        = string
-  sensitive   = true
-  nullable    = false
-}
-
 variable "appinsights_resource_id" {
   description = "Resource ID of the Application Insights component used by this app. Used to include Azure's hidden-link tag on the App Service to prevent tag drift."
   type        = string
@@ -128,15 +121,14 @@ variable "app_service_plan_worker_count" {
   App Service Plan worker count (instance count).
 
   Why this exists:
-  - The AVM App Service Plan (serverfarm) module can default to multiple workers.
+  - The AVM App Service Plan (serverfarm) module defaults worker_count to 3.
   - For Basic tiers (e.g., B1), requesting multiple workers can trigger Azure capacity/conflict errors (e.g., 409) depending on region/quota/availability.
 
   Recommended default:
   - Keep this at 1 for Basic SKUs unless you explicitly need more instances.
 
   References:
-  - AVM serverfarm module: https://registry.terraform.io/modules/Azure/avm-res-web-serverfarm/azurerm/1.0.0
-  - AzureRM Service Plan worker_count: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/service_plan#worker_count
+  - AVM serverfarm module: https://registry.terraform.io/modules/Azure/avm-res-web-serverfarm/azurerm/2.0.8
   EOT
   type        = number
   default     = 1

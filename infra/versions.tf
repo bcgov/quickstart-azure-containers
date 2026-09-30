@@ -7,7 +7,7 @@ terraform {
     }
     azapi = {
       source  = "Azure/azapi"
-      version = ">= 2.8.0, < 3.0.0"
+      version = ">= 2.12.0, < 3.0.0" # floor set by avm-res-web-site 0.23.0 (~> 2.12)
     }
     modtm = {
       source  = "Azure/modtm"

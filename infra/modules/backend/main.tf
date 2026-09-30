@@ -4,12 +4,15 @@ module "backend_plan" {
   source  = "Azure/avm-res-web-serverfarm/azurerm"
   version = "2.0.8"
 
-  name                   = "${var.app_name}-backend-asp"
-  parent_id              = var.resource_group_id
-  location               = var.location
-  os_type                = "Linux"
-  sku_name               = var.app_service_sku_name_backend
-  worker_count           = var.app_service_plan_worker_count
+  name      = "${var.app_name}-backend-asp"
+  parent_id = var.resource_group_id
+  location  = var.location
+  os_type   = "Linux"
+  sku_name  = var.app_service_sku_name_backend
+  # The module writes sku.capacity from worker_count and does not ignore it, so a fixed value would
+  # reset the instance count chosen by the autoscale setting below on every apply. Per the module
+  # docs, null hands capacity to the external autoscale setting.
+  worker_count           = var.enable_backend_autoscale ? null : var.app_service_plan_worker_count
   zone_balancing_enabled = false
   tags                   = var.common_tags
 
@@ -29,6 +32,14 @@ module "backend_site" {
 
   https_only                = true
   virtual_network_subnet_id = var.backend_subnet_id
+
+  # avm-res-web-site v0.22+ defaults this to false (v0.20 defaulted to true). The frontend and APIM
+  # reach this app on its public *.azurewebsites.net hostname; inbound is scoped by ip_restriction.
+  public_network_access_enabled = true
+
+  # Deployments go through Terraform/ARM, never SCM publishing credentials; the module
+  # defaults this to true.
+  scm_publish_basic_authentication_enabled = false
 
   managed_identities = {
     system_assigned = true
@@ -68,17 +79,19 @@ module "backend_site" {
     OTEL_RESOURCE_ATTRIBUTES       = "deployment.environment.name=${var.app_env}"
     DOCKER_ENABLE_CI               = "true"
     # Health check eviction time in minutes; the AVM module has no site_config equivalent.
-    WEBSITE_HEALTHCHECK_MAXPINGFAILURES   = "2"
-    APPLICATIONINSIGHTS_CONNECTION_STRING = var.appinsights_connection_string
-    APPINSIGHTS_INSTRUMENTATIONKEY        = var.appinsights_instrumentation_key
-    POSTGRES_HOST                         = var.postgres_host
-    POSTGRES_USER                         = var.postgresql_admin_username
-    POSTGRES_PASSWORD                     = var.db_master_password
-    POSTGRES_DATABASE                     = var.database_name
-    WEBSITE_SKIP_RUNNING_KUDUAGENT        = "false"
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
-    WEBSITE_ENABLE_SYNC_UPDATE_SITE       = "1"
+    WEBSITE_HEALTHCHECK_MAXPINGFAILURES = "2"
+    POSTGRES_HOST                       = var.postgres_host
+    POSTGRES_USER                       = var.postgresql_admin_username
+    POSTGRES_PASSWORD                   = var.db_master_password
+    POSTGRES_DATABASE                   = var.database_name
+    WEBSITE_SKIP_RUNNING_KUDUAGENT      = "false"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
+    WEBSITE_ENABLE_SYNC_UPDATE_SITE     = "1"
   }
+
+  # The module merges this into app settings as APPLICATIONINSIGHTS_CONNECTION_STRING, the only
+  # telemetry setting backend/src/instrumentation.ts reads.
+  application_insights_connection_string = var.appinsights_connection_string
 
   logs = {
     default = {
@@ -102,21 +115,17 @@ module "backend_site" {
     }
   }
 
-  # avm-res-web-site no longer creates Application Insights internally (as of v0.22) —
-  # it only wires up an externally managed instance via application_insights_connection_string
-  # / application_insights_key, which we don't pass since the monitoring module already
-  # provisions App Insights and its LAW; connection string & key are passed via app_settings above.
   tags             = var.common_tags
   enable_telemetry = var.enable_telemetry
 }
 
-# Backend Autoscaler
+# Backend Autoscaler — Azure Monitor autoscale is only available on Standard and higher plan tiers.
 resource "azurerm_monitor_autoscale_setting" "backend_autoscale" {
+  count               = var.enable_backend_autoscale ? 1 : 0
   name                = "${var.app_name}-backend-autoscale"
   resource_group_name = var.resource_group_name
   location            = var.location
   target_resource_id  = module.backend_plan.resource_id
-  enabled             = var.enable_backend_autoscale
   profile {
     name = "default"
     capacity {

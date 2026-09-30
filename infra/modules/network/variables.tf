@@ -25,13 +25,6 @@ variable "container_apps_subnet_name" {
   nullable    = false
 }
 
-variable "location" {
-  description = "Azure region for resources"
-  type        = string
-  default     = "Canada Central"
-  nullable    = false
-}
-
 variable "private_endpoint_subnet_name" {
   description = "Name of the subnet for private endpoints"
   type        = string
