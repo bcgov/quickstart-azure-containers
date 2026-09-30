@@ -15,9 +15,10 @@
 #------------------------------------------------------------------------------
 
 # NSG for privateendpoints subnet
+# NSGs take the existing VNet's region: Azure only attaches an NSG to a subnet in the same region.
 resource "azurerm_network_security_group" "privateendpoints" {
   name                = "${var.resource_group_name}-pe-nsg"
-  location            = var.location
+  location            = data.azurerm_virtual_network.main.location
   resource_group_name = var.vnet_resource_group_name
 
   # Private Endpoints subnet — hosts private endpoint NICs.
@@ -39,7 +40,7 @@ resource "azurerm_network_security_group" "privateendpoints" {
 # NSG for app service subnet
 resource "azurerm_network_security_group" "app_service" {
   name                = "${var.resource_group_name}-as-nsg"
-  location            = var.location
+  location            = data.azurerm_virtual_network.main.location
   resource_group_name = var.vnet_resource_group_name
 
   # App Service subnet
@@ -196,7 +197,7 @@ resource "azurerm_network_security_group" "app_service" {
 }
 resource "azurerm_network_security_group" "container_instance" {
   name                = "${var.resource_group_name}-ci-nsg"
-  location            = var.location
+  location            = data.azurerm_virtual_network.main.location
   resource_group_name = var.vnet_resource_group_name
 
   # Container Instances subnet
@@ -324,7 +325,7 @@ resource "azurerm_network_security_group" "container_instance" {
 # NSG for Container Apps subnet
 resource "azurerm_network_security_group" "container_apps" {
   name                = "${var.resource_group_name}-ca-nsg"
-  location            = var.location
+  location            = data.azurerm_virtual_network.main.location
   resource_group_name = var.vnet_resource_group_name
 
   # Container Apps subnet
@@ -487,7 +488,7 @@ resource "azurerm_network_security_group" "container_apps" {
 # NSG for APIM subnet
 resource "azurerm_network_security_group" "apim" {
   name                = "${var.resource_group_name}-apim-nsg"
-  location            = var.location
+  location            = data.azurerm_virtual_network.main.location
   resource_group_name = var.vnet_resource_group_name
 
   # API Management subnet

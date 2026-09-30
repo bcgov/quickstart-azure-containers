@@ -142,11 +142,6 @@ resource "azurerm_container_app" "backend" {
     value = var.appinsights_connection_string
   }
 
-  secret {
-    name  = "appinsights-instrumentation-key"
-    value = var.appinsights_instrumentation_key
-  }
-
   template {
     max_replicas                     = var.max_replicas
     min_replicas                     = var.min_replicas
@@ -264,11 +259,6 @@ resource "azurerm_container_app" "backend" {
       env {
         name        = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         secret_name = "appinsights-connection-string"
-      }
-
-      env {
-        name        = "APPINSIGHTS_INSTRUMENTATIONKEY"
-        secret_name = "appinsights-instrumentation-key"
       }
 
       # CORS configuration to allow App Service frontend

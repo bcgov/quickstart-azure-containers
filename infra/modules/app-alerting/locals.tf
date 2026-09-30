@@ -1,7 +1,7 @@
 locals {
-  alerts_enabled = var.enable_alerts && length(var.alert_emails) > 0
+  alerts_enabled                               = var.enable_alerts && length(var.alert_emails) > 0
   scheduled_query_default_evaluation_frequency = "PT5M"
-  scheduled_query_window_duration      = "PT5M"
+  scheduled_query_window_duration              = "PT5M"
 
   # Application Insights smart detection remains available as a platform-managed
   # capability on the component itself. Custom alert-rule provisioning for these

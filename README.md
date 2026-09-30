@@ -671,6 +671,7 @@ Key infrastructure feature toggles controlled in `terraform.tfvars` and environm
 | `enable_container_apps` | Host the backend on Azure Container Apps (optional, alongside App Service) | `false` |
 | `enable_frontdoor` | Deploy Azure Front Door for global distribution | `false` |
 | `enable_apim` | Deploy API Management for API gateway capabilities | `false` |
+| `enable_backend_autoscale` | Azure Monitor autoscale for the backend App Service plan (requires Standard or higher `app_service_sku_name_backend`) | `false` |
 
 #### Environment-Specific Configuration
 

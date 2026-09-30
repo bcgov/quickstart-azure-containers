@@ -25,13 +25,6 @@ variable "appinsights_connection_string" {
   nullable    = false
 }
 
-variable "appinsights_instrumentation_key" {
-  description = "Application Insights instrumentation key"
-  type        = string
-  sensitive   = true
-  nullable    = false
-}
-
 variable "backend_image" {
   description = "Container image for the backend API"
   type        = string

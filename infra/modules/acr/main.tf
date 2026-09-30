@@ -1,5 +1,5 @@
 # Replaces the Azure/avm-res-containerregistry-registry/azurerm module (last pinned at 0.6.0),
-# whose newest release (0.7.0) still requires "azurerm >= 4.81.0, < 5.0.0" — incompatible with
+# whose newest release (0.8.0) still requires "azurerm >= 4.81.0, < 5.0.0" — incompatible with
 # azurerm v5. Hand-rolled here so the repo can move to azurerm v5.
 #
 # `moved` blocks below preserve state continuity for anyone who already applied with the module.
@@ -58,8 +58,9 @@ resource "azurerm_private_endpoint" "acr" {
 # ---------------------------------------------------------------------------
 # ACR Diagnostic Settings
 # ---------------------------------------------------------------------------
-# Enabled automatically when var.log_analytics_workspace_id is set (ACR is deployed
-# unconditionally by this template's root module).
+# Controlled by var.enable_diagnostic_settings (default true). The count must not depend on
+# var.log_analytics_workspace_id: that ID is unknown until the workspace is created, so a
+# fresh deployment with enable_acr = true would fail planning with "Invalid count argument".
 #
 # ── How to view logs in the Azure Portal ─────────────────────────────────────
 # 1. Open the Log Analytics workspace in the Portal.
@@ -115,10 +116,17 @@ resource "azurerm_private_endpoint" "acr" {
 #      | order by TimeGenerated desc
 # ---------------------------------------------------------------------------
 resource "azurerm_monitor_diagnostic_setting" "acr" {
-  count                      = length(trimspace(var.log_analytics_workspace_id)) > 0 ? 1 : 0
+  count                      = var.enable_diagnostic_settings ? 1 : 0
   name                       = "${var.acr_name}-diagnostics"
   target_resource_id         = azurerm_container_registry.acr.id
   log_analytics_workspace_id = var.log_analytics_workspace_id
+
+  lifecycle {
+    precondition {
+      condition     = var.log_analytics_workspace_id != ""
+      error_message = "enable_diagnostic_settings is true but log_analytics_workspace_id is empty."
+    }
+  }
 
   enabled_log {
     category = "ContainerRegistryLoginEvents"
