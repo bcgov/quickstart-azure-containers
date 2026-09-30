@@ -125,7 +125,6 @@ module "frontend" {
   app_name                              = var.app_name
   app_service_sku_name_frontend         = var.app_service_sku_name_frontend
   appinsights_connection_string         = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key       = module.monitoring.appinsights_instrumentation_key
   appinsights_resource_id               = module.monitoring.appinsights_resource_id
   common_tags                           = var.common_tags
   enable_frontdoor                      = var.enable_frontdoor
@@ -174,13 +173,12 @@ module "backend" {
   app_env                                 = var.app_env
   app_name                                = var.app_name
   app_service_sku_name_backend            = var.app_service_sku_name_backend
-  app_service_subnet_id                   = module.network.app_service_subnet_id
   appinsights_connection_string           = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key         = module.monitoring.appinsights_instrumentation_key
   backend_subnet_id                       = module.network.app_service_subnet_id
   common_tags                             = var.common_tags
   database_name                           = var.database_name
   db_master_password                      = module.postgresql.db_master_password
+  enable_backend_autoscale                = var.enable_backend_autoscale
   enable_frontdoor                        = var.enable_frontdoor
   frontend_frontdoor_resource_guid        = var.enable_frontdoor ? module.frontdoor[0].frontdoor_resource_guid : null
   frontend_possible_outbound_ip_addresses = var.enable_app_service_frontend ? module.frontend[0].possible_outbound_ip_addresses : ""
@@ -220,8 +218,9 @@ module "apim" {
   # Backend services configuration - connect to the deployed backend
   backend_services = {
     "backend-api" = {
-      protocol    = "http"
-      url         = var.enable_app_service_backend ? "https://${module.backend[0].backend_url}" : var.enable_container_apps ? "http://${module.container_apps[0].backend_container_app_url}" : ""
+      protocol = "http"
+      # backend_url is a bare hostname; backend_container_app_url already carries its https:// scheme.
+      url         = var.enable_app_service_backend ? "https://${module.backend[0].backend_url}" : var.enable_container_apps ? module.container_apps[0].backend_container_app_url : ""
       description = "Backend API service"
       title       = "Backend API"
     }
@@ -235,21 +234,20 @@ module "container_apps" {
   count  = var.enable_container_apps ? 1 : 0
   source = "./modules/container-apps"
 
-  app_name                        = var.app_name
-  app_env                         = var.app_env
-  location                        = var.location
-  resource_group_name             = azurerm_resource_group.main.name
-  common_tags                     = var.common_tags
-  container_apps_subnet_id        = module.network.container_apps_subnet_id
-  log_analytics_workspace_id      = module.monitoring.log_analytics_workspace_id
-  backend_image                   = var.api_image
-  database_name                   = var.database_name
-  postgres_host                   = module.postgresql.postgres_host
-  backend_postgres_host           = coalesce(var.backend_postgres_host_override, module.postgresql.postgres_host)
-  postgresql_admin_username       = var.postgresql_admin_username
-  db_master_password              = module.postgresql.db_master_password
-  appinsights_connection_string   = module.monitoring.appinsights_connection_string
-  appinsights_instrumentation_key = module.monitoring.appinsights_instrumentation_key
+  app_name                      = var.app_name
+  app_env                       = var.app_env
+  location                      = var.location
+  resource_group_name           = azurerm_resource_group.main.name
+  common_tags                   = var.common_tags
+  container_apps_subnet_id      = module.network.container_apps_subnet_id
+  log_analytics_workspace_id    = module.monitoring.log_analytics_workspace_id
+  backend_image                 = var.api_image
+  database_name                 = var.database_name
+  postgres_host                 = module.postgresql.postgres_host
+  backend_postgres_host         = coalesce(var.backend_postgres_host_override, module.postgresql.postgres_host)
+  postgresql_admin_username     = var.postgresql_admin_username
+  db_master_password            = module.postgresql.db_master_password
+  appinsights_connection_string = module.monitoring.appinsights_connection_string
   # Avoid referencing module.frontend here to prevent a dependency cycle.
   # Frontend App Service hostname is deterministic: <repo>-<env>-frontend.azurewebsites.net
   # Front Door endpoint hostname is also deterministic: <repo>-<env>-frontend-fd.azurefd.net

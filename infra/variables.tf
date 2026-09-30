@@ -23,6 +23,18 @@ variable "app_service_sku_name_backend" {
   default     = "B1" # Basic tier 
 }
 
+variable "enable_backend_autoscale" {
+  description = "Create an Azure Monitor autoscale setting for the backend App Service plan. Azure autoscale is only available on Standard and higher tiers, not Free/Shared/Basic."
+  type        = bool
+  default     = false
+  nullable    = false
+
+  validation {
+    condition     = !var.enable_backend_autoscale || !can(regex("^(F1|D1|SHARED|B[1-3])$", var.app_service_sku_name_backend))
+    error_message = "enable_backend_autoscale requires app_service_sku_name_backend to be Standard or higher (for example S1 or P0v3); Free, Shared and Basic plans do not support autoscale."
+  }
+}
+
 variable "app_service_sku_name_frontend" {
   description = "SKU name for the frontend App Service Plan"
   type        = string
@@ -100,6 +112,11 @@ variable "acr_enable_private_endpoint" {
   description = "Whether to create a private endpoint (Private Link) for the ACR. Premium is required when enabled."
   type        = bool
   default     = false
+
+  validation {
+    condition     = !var.acr_enable_private_endpoint || var.acr_sku == "Premium"
+    error_message = "acr_enable_private_endpoint requires acr_sku = \"Premium\"; Basic and Standard registries do not support Private Link."
+  }
 }
 variable "acr_admin_enabled" {
   description = "Whether the admin user is enabled for the ACR."

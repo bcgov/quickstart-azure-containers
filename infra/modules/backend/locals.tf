@@ -25,8 +25,9 @@ locals {
 }
 
 locals {
+  # Empty when the App Service frontend is disabled; skip blanks so no rule is emitted for it.
   frontend_possible_outbound_ips = distinct([
-    for ip in split(",", var.frontend_possible_outbound_ip_addresses) : trimspace(ip)
+    for ip in split(",", var.frontend_possible_outbound_ip_addresses) : trimspace(ip) if trimspace(ip) != ""
   ])
 
   allow_frontend_outbound_ips = [
@@ -34,9 +35,9 @@ locals {
       action                    = "Allow"
       name                      = "AFInbound${replace(ip, ".", "")}"
       priority                  = 200 + index
-      ip_address                = ip != "" ? "${ip}/32" : null
-      virtual_network_subnet_id = ip == "" ? var.app_service_subnet_id : null
-      service_tag               = ip == "" ? "AppService" : null
+      ip_address                = "${ip}/32"
+      virtual_network_subnet_id = null
+      service_tag               = null
       headers                   = null
     }
   ]
