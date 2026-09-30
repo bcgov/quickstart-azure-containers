@@ -36,6 +36,15 @@ jobs:
         manual-${{ github.run_number }}
         latest
 
+  tests:
+    name: Tests
+    needs: [fork-gate]
+    permissions:
+      contents: read
+      security-events: write # Trivy SARIF upload
+    uses: ./.github/workflows/.tests.yml
+    secrets: inherit
+
   plan-stack:
     name: Plan Stack
     needs: [fork-gate]
@@ -97,7 +106,7 @@ jobs:
 
   results:
     name: PR Results
-    needs: [fork-gate, builds, plan-stack, lint]
+    needs: [fork-gate, builds, tests, plan-stack, lint]
     if: always()
     runs-on: ubuntu-24.04
     steps:
