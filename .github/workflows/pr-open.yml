@@ -14,7 +14,7 @@ permissions:
 jobs:
   fork-gate:
     name: Fork Gate
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: github.event_name == 'pull_request'
     steps:
       - name: Block automated runs for fork PRs
@@ -61,7 +61,7 @@ jobs:
   lint:
     name: Lint
     needs: [fork-gate]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     defaults:
       run:
         working-directory: ./infra
@@ -108,7 +108,7 @@ jobs:
     name: PR Results
     needs: [fork-gate, builds, tests, plan-stack, lint]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: bcgov/actions/workflow-results@79aefe3a7abb2d0d00b1b3ea4cfbf12727a10638 # v0.9.0
         with:
