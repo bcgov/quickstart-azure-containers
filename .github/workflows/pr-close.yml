@@ -20,7 +20,7 @@ jobs:
     name: Cleanup
     needs: stack-prefix
     environment: tools # if PR plan is used in different environments, cleanup should be done in that environment where the state is stored
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7

@@ -9,7 +9,7 @@ jobs:
   backend-tests:
     name: Backend Tests
     if: ${{ ! github.event.pull_request.draft }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     services:
       postgres:
@@ -48,7 +48,7 @@ jobs:
   frontend-tests:
     name: Frontend Tests
     if: (! github.event.pull_request.draft)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - uses: bcgov/action-test-and-analyse@v2.0.0
@@ -73,7 +73,7 @@ jobs:
   e2e-tests:
     name: E2E Tests
     if: (! github.event.pull_request.draft)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     env:
       E2E_BASE_URL: http://localhost:3000
@@ -120,7 +120,7 @@ jobs:
   trivy:
     name: Trivy Security Scan
     if: (! github.event.pull_request.draft) 
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # This is required for actions/checkout
       security-events: write # This is required to upload SARIF results to the Security tab
