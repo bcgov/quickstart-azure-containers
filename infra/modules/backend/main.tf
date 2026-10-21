@@ -21,7 +21,7 @@ module "backend_plan" {
 
 module "backend_site" {
   source  = "Azure/avm-res-web-site/azurerm"
-  version = "0.24.0"
+  version = "0.24.1"
 
   kind                     = "webapp"
   name                     = "${var.repo_name}-${var.app_env}-api"
