@@ -3,5 +3,17 @@
   "description": "Presets from https://github.com/bcgov/renovate-config",
   "extends": [
     "github>bcgov/renovate-config#2026.9.26"
+  ],
+  "packageRules": [
+    {
+      "description": "Hold @opentelemetry packages on current major versions until @azure/monitor-opentelemetry supports OpenTelemetry JS v3",
+      "matchPackageNames": [
+        "/^@opentelemetry\\//"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    }
   ]
 }
