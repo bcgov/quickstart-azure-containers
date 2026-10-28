@@ -21,7 +21,7 @@
     "@popperjs/core": "^2.11.8",
     "@tanstack/react-router": "^1.170.18",
     "@tanstack/router-plugin": "^1.168.20",
-    "@types/node": "^24.13.2",
+    "@types/node": "^26.0.0",
     "@vitejs/plugin-react": "^6.0.3",
     "axios": "^1.18.1",
     "bootstrap": "^5.3.8",
