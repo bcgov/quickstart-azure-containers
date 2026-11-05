@@ -79,9 +79,9 @@
     "@types/react": "$@types/react"
   },
   "engines": {
-    "node": "24.x"
+    "node": "26.x"
   },
   "volta": {
-    "node": "24.22.2"
+    "node": "26.13.0"
   }
 }
